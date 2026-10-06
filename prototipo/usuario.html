@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Explore Fair · Usuario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul: #1a73e8;
+    --azul-suave: #e8f0fe;
+    --rojo: #d93025;
+    --amarillo: #f9ab00;
+    --verde: #188038;
+    --fondo: #ffffff;
+    --superficie: #f8fafd;
+    --texto: #1f1f1f;
+    --texto-2: #5f6368;
+    --borde: #dadce0;
+    --borde-suave: #e8eaed;
+    --nav-h: 72px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--fondo);
+    color: var(--texto);
+    font: 400 16px/1.45 "Google Sans", Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+  h1, h2, h3, p, ul { margin: 0; padding: 0; }
+  ul { list-style: none; }
+  b, h1, h2, h3 { font-weight: 500; }
+
+  .franja { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 6; display: flex; }
+  .franja i { flex: 1; }
+
+  #app {
+    max-width: 480px; margin: 0 auto; min-height: 100%;
+    padding: 20px 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));
+  }
+  #app.sin-nav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+
+  .sec { color: var(--texto-2); }
+  .chico { font-size: 13px; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ---------- Cabecera con KPIs ---------- */
+  .cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .cab h1 { font-size: 22px; line-height: 1.2; }
+  .kpis { display: flex; border: 1px solid var(--borde); border-radius: 16px; flex: none; }
+  .kpi { padding: 8px 14px; text-align: center; min-width: 64px; min-height: 52px; }
+  .kpi + .kpi { border-left: 1px solid var(--borde); }
+  .kpi b { display: block; font-size: 20px; line-height: 1.15; }
+  .kpi span { font-size: 11px; color: var(--texto-2); }
+  button.kpi b { color: var(--azul); }
+  button.kpi:active { background: var(--azul-suave); border-radius: 0 15px 15px 0; }
+
+  .guia {
+    display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 16px;
+    background: var(--azul-suave); border-radius: 16px;
+  }
+  .guia .icono { width: 36px; height: 36px; border-radius: 50%; background: var(--fondo); color: var(--azul); display: grid; place-items: center; flex: none; }
+  .guia b { display: block; font-size: 15px; }
+  .guia span { font-size: 14px; color: #3c4043; }
+
+  /* ---------- Mapa ---------- */
+  .mapa { position: relative; width: 100%; max-width: 400px; aspect-ratio: 1; margin: 20px auto 48px; }
+  .mapa svg.orbita { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .punto { position: absolute; transform: translate(-50%, -50%); display: block; }
+  .punto .rot {
+    position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    width: 104px; text-align: center; font-size: 13px; line-height: 1.2; font-weight: 500;
+    pointer-events: none;
+  }
+  .punto .rot small { display: block; font-size: 12px; font-weight: 500; color: var(--c); margin-top: 2px; }
+
+  .pab .disco {
+    position: relative; width: 64px; height: 64px; border-radius: 50%; padding: 3px; display: block;
+    background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--borde-suave) 0);
+    transition: transform .12s;
+  }
+  .pab .disco span {
+    width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center;
+    background: var(--t); color: var(--c); border: 2px solid var(--fondo);
+  }
+  .pab:active .disco, .yo-nodo:active .disco { transform: scale(.94); }
+
+  .yo-nodo .disco {
+    position: relative; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--azul); color: #fff; font-size: 24px; font-weight: 500;
+    box-shadow: 0 1px 3px rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+    transition: transform .12s;
+  }
+  .yo-nodo.pendiente .disco::before {
+    content: ""; position: absolute; inset: -6px; border-radius: 50%;
+    border: 2px solid var(--azul); animation: pulso 1.8s ease-out infinite;
+  }
+  @keyframes pulso { from { transform: scale(.92); opacity: .8; } to { transform: scale(1.25); opacity: 0; } }
+  .punto .hecho {
+    position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--verde); border: 3px solid var(--fondo); display: grid; place-items: center;
+  }
+  .pab .disco .hecho { right: -4px; bottom: -4px; width: 24px; height: 24px; }
+  .yo-nodo .rot { background: var(--fondo); border-radius: 8px; padding: 2px 0; width: 112px; }
+  .yo-nodo .rot small { color: var(--azul); }
+
+  .pista { text-align: center; font-size: 14px; color: var(--texto-2); }
+  .demo-link { display: block; margin: 16px auto 0; padding: 12px; font-size: 13px; color: var(--texto-2); text-decoration: underline; }
+
+  /* ---------- Hoja inferior de stands ---------- */
+  #velo {
+    position: fixed; inset: 0; z-index: 7; background: rgba(32,33,36,.4);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  #hoja {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
+    max-width: 480px; margin: 0 auto; background: var(--fondo);
+    border-radius: 28px 28px 0 0; padding: 8px 8px calc(16px + env(safe-area-inset-bottom));
+    transform: translateY(105%); transition: transform .25s cubic-bezier(.2,0,0,1);
+    max-height: 85vh; overflow-y: auto;
+  }
+  body.hoja-abierta #velo { opacity: 1; pointer-events: auto; }
+  body.hoja-abierta #hoja { transform: none; }
+  .asa { width: 32px; height: 4px; border-radius: 2px; background: var(--borde); margin: 8px auto 12px; }
+  .hoja-cab { display: flex; align-items: center; gap: 12px; padding: 4px 16px 12px; }
+  .hoja-cab .icono { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--t); color: var(--c); flex: none; }
+  .hoja-cab h2 { font-size: 20px; }
+  .item {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+    min-height: 68px; padding: 10px 16px; border-radius: 16px;
+  }
+  button.item:active { background: var(--superficie); }
+  .item .abr {
+    width: 44px; height: 44px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; background: var(--t); color: var(--c);
+  }
+  .item .nom { flex: 1; min-width: 0; }
+  .item .nom b { display: block; }
+  .item .nom span { font-size: 13px; color: var(--texto-2); }
+  .item .fin { font-size: 14px; font-weight: 500; flex: none; display: flex; align-items: center; gap: 4px; }
+  .item.hecho .fin { color: var(--verde); }
+  .item.vencido { opacity: .6; }
+
+  /* ---------- Pantallas de quiz ---------- */
+  .barra-sup { display: flex; align-items: center; gap: 4px; min-height: 48px; margin-bottom: 12px; }
+  .volver { width: 48px; height: 48px; margin-left: -12px; display: grid; place-items: center; border-radius: 50%; flex: none; }
+  .volver:active { background: var(--superficie); }
+  .donde { min-width: 0; }
+  .donde b { display: block; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .etiqueta-pab { font-size: 12px; font-weight: 500; color: var(--c); letter-spacing: .04em; text-transform: uppercase; }
+
+  .tarjeta { border: 1px solid var(--borde); border-radius: 24px; padding: 24px 20px; }
+  .centro { text-align: center; }
+  .centro h2 { font-size: 24px; font-weight: 400; }
+  .disco-grande {
+    width: 80px; height: 80px; border-radius: 50%; margin: 4px auto 16px; display: grid; place-items: center;
+    background: var(--t); color: var(--c); font-weight: 700; font-size: 18px;
+  }
+  .datos { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 14px 0 4px; }
+  .chip { border: 1px solid var(--borde); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--texto-2); }
+
+  label.campo { display: block; font-size: 14px; font-weight: 500; margin: 24px 0 8px; text-align: left; }
+  #codigo {
+    width: 100%; height: 64px; border-radius: 12px;
+    background: var(--fondo); border: 1px solid #80868b; color: var(--texto);
+    font: 500 28px/1 "Roboto Mono", ui-monospace, Consolas, monospace;
+    text-align: center; letter-spacing: .5em; text-indent: .5em; text-transform: uppercase; outline: none;
+  }
+  #codigo:focus { border: 2px solid var(--azul); }
+  #codigo.error { border: 2px solid var(--rojo); animation: tiembla .3s; }
+  @keyframes tiembla { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .msg-error { color: var(--rojo); font-size: 13px; min-height: 20px; margin-top: 6px; text-align: left; }
+
+  .btn {
+    display: block; width: 100%; min-height: 52px; border-radius: 26px;
+    background: var(--azul); color: #fff; font-weight: 500; font-size: 15px; margin-top: 12px;
+  }
+  .btn:active { background: #1765cc; }
+  .btn:disabled { background: #e8eaed; color: #9aa0a6; cursor: default; }
+  .btn.secundario { background: transparent; color: var(--azul); border: 1px solid var(--borde); }
+
+  .aviso { font-size: 13px; color: var(--texto-2); margin-top: 14px; text-align: center; }
+  .nota-demo { margin-top: 16px; padding: 12px 14px; border: 1px dashed var(--borde); border-radius: 12px; font-size: 12px; color: var(--texto-2); }
+  .nota-demo code { color: var(--texto); font-weight: 700; }
+
+  .quiz-cab { position: sticky; top: 4px; z-index: 2; background: var(--fondo); padding: 4px 0 12px; }
+  .quiz-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .reloj {
+    display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 99px;
+    background: var(--superficie); border: 1px solid var(--borde); font-weight: 500; flex: none;
+  }
+  .reloj.poco { color: var(--rojo); border-color: var(--rojo); background: #fce8e6; }
+  .pasos { display: flex; gap: 6px; margin-top: 12px; }
+  .pasos i { flex: 1; height: 4px; border-radius: 2px; background: var(--borde-suave); }
+  .pasos i.pasado { background: var(--azul); }
+  .pasos i.actual { background: #8ab4f8; }
+
+  .enunciado { font-size: 20px; font-weight: 400; line-height: 1.35; margin: 10px 0 20px; }
+  .opcion {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    min-height: 60px; padding: 12px 14px; margin-bottom: 10px;
+    border: 1px solid var(--borde); border-radius: 16px; font-size: 15px;
+  }
+  .opcion .letra {
+    width: 32px; height: 32px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    border: 1px solid var(--borde); font-weight: 500; font-size: 14px; color: var(--texto-2);
+  }
+  .opcion.elegida { border-color: var(--azul); background: var(--azul-suave); box-shadow: inset 0 0 0 1px var(--azul); }
+  .opcion.elegida .letra { background: var(--azul); border-color: var(--azul); color: #fff; }
+
+  .aro {
+    width: 128px; height: 128px; border-radius: 50%; margin: 4px auto 16px; display: grid; place-items: center;
+    background: conic-gradient(var(--verde) calc(var(--p) * 1%), var(--borde-suave) 0);
+  }
+  .aro div { width: 108px; height: 108px; border-radius: 50%; background: var(--fondo); display: grid; place-items: center; font-size: 32px; }
+  .ganado { font-size: 28px; color: var(--azul); }
+  .detalle { margin-top: 20px; border-top: 1px solid var(--borde-suave); text-align: left; }
+  .detalle li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--borde-suave); font-size: 14px; }
+  .detalle svg { flex: none; margin-top: 1px; }
+
+  /* ---------- Ranking ---------- */
+  .rank-titulo { font-size: 24px; font-weight: 400; margin: 0 0 20px; }
+  .podio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: end; margin-bottom: 20px; }
+  .lugar { text-align: center; min-width: 0; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none;
+    background: var(--superficie); border: 1px solid var(--borde-suave); font-weight: 500; font-size: 14px; color: var(--texto-2);
+  }
+  .lugar .avatar { margin: 0 auto 6px; width: 48px; height: 48px; }
+  .l1 .avatar { width: 60px; height: 60px; font-size: 18px; background: #fef7e0; border-color: var(--amarillo); color: #b06000; }
+  .lugar .nombre { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lugar .pts { font-size: 13px; color: var(--texto-2); }
+  .lugar .base { margin-top: 8px; border-radius: 12px 12px 0 0; background: var(--superficie); font-size: 20px; font-weight: 500; display: grid; place-items: center; color: var(--texto-2); }
+  .l1 .base { height: 72px; background: #fef7e0; color: #b06000; }
+  .l2 .base { height: 52px; }
+  .l3 .base { height: 40px; }
+
+  .lista { border: 1px solid var(--borde); border-radius: 20px; overflow: hidden; }
+  .fila { display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 60px; border-bottom: 1px solid var(--borde-suave); background: var(--fondo); }
+  .fila:last-child { border-bottom: 0; }
+  .fila .pos { width: 24px; text-align: center; font-weight: 500; color: var(--texto-2); flex: none; }
+  .fila .quien { flex: 1; min-width: 0; }
+  .fila .quien b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fila .quien span { font-size: 12px; color: var(--texto-2); }
+  .fila .total { font-weight: 500; }
+  .fila.yo { background: var(--azul-suave); }
+  .fila.yo .pos, .fila.yo .total { color: var(--azul); }
+  .fila.yo .avatar { background: var(--azul); border-color: var(--azul); color: #fff; }
+
+  .mi-puesto { position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); z-index: 4; pointer-events: none; }
+  .mi-puesto .fila {
+    max-width: 448px; margin: 0 16px 8px; border: 0; border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+  }
+  @media (min-width: 480px) { .mi-puesto .fila { margin: 0 auto 8px; } }
+
+  /* ---------- Navegación inferior ---------- */
+  #nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--superficie); border-top: 1px solid var(--borde-suave);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #nav .dentro { max-width: 480px; margin: 0 auto; display: flex; height: var(--nav-h); }
+  #nav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--texto-2); }
+  #nav .pastilla { width: 64px; height: 32px; border-radius: 16px; display: grid; place-items: center; transition: background .15s; }
+  #nav button.activa { color: var(--texto); }
+  #nav button.activa .pastilla { background: #d3e3fd; color: #0b57d0; }
+  #nav.oculta { display: none; }
+
+  #toast {
+    position: fixed; left: 16px; right: 16px; bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom));
+    max-width: 448px; margin: 0 auto; z-index: 9;
+    background: #323232; color: #fff; border-radius: 8px; padding: 14px 16px; font-size: 14px;
+    opacity: 0; transform: translateY(12px); transition: .2s; pointer-events: none;
+  }
+  #toast.visible { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="franja" aria-hidden="true"><i style="background:#4285f4"></i><i style="background:#ea4335"></i><i style="background:#fbbc04"></i><i style="background:#34a853"></i></div>
+
+<main id="app"></main>
+
+<div id="velo" data-cerrar></div>
+<section id="hoja" role="dialog" aria-modal="true" aria-label="Stands del pabellón"></section>
+
+<nav id="nav" aria-label="Navegación principal">
+  <div class="dentro">
+    <button data-ir="inicio">
+      <span class="pastilla"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></span>
+      Mapa
+    </button>
+    <button data-ir="ranking">
+      <span class="pastilla"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3"/></svg></span>
+      Ranking
+    </button>
+  </div>
+</nav>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =====================================================================
+   PROTOTIPO DE UX/UI. Todos los datos son de ejemplo y viven en memoria.
+   En la versión real, cada bloque marcado con "SERVIDOR" se reemplaza por
+   una llamada a google.script.run y la corrección ocurre en Apps Script.
+   ===================================================================== */
+
+const PUNTOS_POR_PREGUNTA = 10;
+const MINUTOS_PARA_RESPONDER = 5;
+
+const USUARIO = { nombre: 'Ana Torres' };
+
+const ENTRADA = { id: 'STD-000', nombre: 'Quiz de entrada', abr: 'GO', color: '#1a73e8', tinte: '#e8f0fe', pabellon: 'General', requiereCodigo: false, numPreguntas: 5 };
+
+const PABELLONES = [
+  { id: 'PAB-001', nombre: 'Backend',   color: '#1a73e8', tinte: '#e8f0fe', icono: 'M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01', stands: [['STD-001', 'APX', 'APX'], ['STD-002', 'ASO / APIs', 'ASO'], ['STD-003', 'LRA / LRBA', 'LRA']] },
+  { id: 'PAB-002', nombre: 'Frontend',  color: '#d93025', tinte: '#fce8e6', icono: 'M3 4h18v12H3zM8 20h8M12 16v4', stands: [['STD-004', 'Cells', 'CEL'], ['STD-005', 'Glomo', 'GLO'], ['STD-006', 'Emailing', 'EML']] },
+  { id: 'PAB-003', nombre: 'Quality',   color: '#188038', tinte: '#e6f4ea', icono: 'M12 3a9 9 0 100 18 9 9 0 000-18zM8 12.5l3 3 5-6', stands: [['STD-007', 'Testing', 'TST'], ['STD-008', 'QE', 'QE'], ['STD-009', 'Code Review', 'CR']] },
+  { id: 'PAB-004', nombre: 'Seguridad', color: '#e37400', tinte: '#fef7e0', icono: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z', stands: [['STD-010', 'SAST', 'SAST'], ['STD-011', 'Security', 'SEC'], ['STD-012', 'Gobierno', 'GOB'], ['STD-013', 'Quality', 'QA']] },
+  { id: 'PAB-005', nombre: 'Data',      color: '#9334e6', tinte: '#f3e8fd', icono: 'M5 20V10M12 20V4M19 20v-7', stands: [['STD-014', 'ADA', 'ADA'], ['STD-015', 'Data & Analytics', 'D&A'], ['STD-016', 'Gobierno de Datos', 'GDD']] },
+  { id: 'PAB-006', nombre: 'Host',      color: '#129eaf', tinte: '#e4f7fb', icono: 'M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4', stands: [['STD-017', 'Synapse', 'SYN'], ['STD-018', 'Katalyst', 'KAT'], ['STD-019', 'Control-M', 'CTM']] },
+].map(p => ({
+  ...p,
+  stands: p.stands.map(([id, nombre, abr]) => ({ id, nombre, abr, color: p.color, tinte: p.tinte, pabellon: p.nombre, requiereCodigo: true, numPreguntas: 4 })),
+}));
+
+const TODOS_LOS_STANDS = PABELLONES.flatMap(p => p.stands);
+
+// La respuesta correcta está aquí solo porque es un prototipo. SERVIDOR: nunca viaja al celular.
+const PREGUNTAS_ENTRADA = [
+  { t: '¿Qué es un custom agent de IA?', o: ['Un asistente de IA configurado para una tarea específica', 'Un servidor dedicado a almacenar modelos de lenguaje', 'Un script que se ejecuta sin usar modelos de IA', 'Un tablero que muestra métricas de uso de la IA'], c: 0 },
+  { t: '¿Qué define principalmente el comportamiento de un custom agent?', o: ['El tamaño de la pantalla donde se usa', 'La cantidad de usuarios conectados a la vez', 'Las instrucciones y el contexto con que se configura', 'El lenguaje en que está escrito el repositorio'], c: 2 },
+  { t: '¿Cuál es la principal ventaja de un custom agent frente a un chat de IA genérico?', o: ['Responde sin necesidad de conexión a la red', 'Ya conoce el contexto y las reglas de su dominio', 'Elimina la necesidad de revisar sus resultados', 'Funciona sin ningún modelo de lenguaje detrás'], c: 1 },
+  { t: '¿Qué debes hacer con el resultado que entrega un agente antes de usarlo?', o: ['Publicarlo de inmediato para ahorrar tiempo', 'Pedirle al agente que lo repita tres veces', 'Guardarlo sin abrirlo como respaldo', 'Revisarlo y validarlo con tu criterio técnico'], c: 3 },
+  { t: '¿Qué ayuda más a obtener una buena respuesta de un agente?', o: ['Dar una solicitud clara con el contexto necesario', 'Escribir la solicitud lo más corta posible', 'Repetir la misma pregunta muchas veces', 'Usar solo palabras técnicas en inglés'], c: 0 },
+];
+
+// Preguntas de relleno para probar el flujo; las reales salen del banco de cada stand.
+function preguntasDeEjemplo(stand) {
+  return [
+    { t: `¿Qué problema principal resuelve el agente de ${stand.nombre}?`, o: ['Opción de ejemplo con un texto de largo medio', 'Otra opción de ejemplo para medir el espacio', 'Una tercera alternativa de longitud parecida', 'Cuarta alternativa para completar la pregunta'], c: 1 },
+    { t: `¿Qué necesita el agente de ${stand.nombre} como entrada para trabajar?`, o: ['Opción de ejemplo con un texto de largo medio', 'Otra opción de ejemplo para medir el espacio', 'Una tercera alternativa de longitud parecida', 'Cuarta alternativa para completar la pregunta'], c: 0 },
+    { t: `¿Qué entrega el agente de ${stand.nombre} al terminar?`, o: ['Opción corta', 'Otra opción de ejemplo para medir el espacio', 'Una tercera alternativa de longitud parecida', 'Cuarta alternativa'], c: 2 },
+    { t: `¿En qué momento del desarrollo conviene usar el agente de ${stand.nombre}?`, o: ['Opción de ejemplo con un texto de largo medio', 'Otra opción de ejemplo para medir el espacio', 'Una tercera alternativa de longitud parecida', 'Cuarta alternativa para completar la pregunta'], c: 3 },
+  ];
+}
+
+const OTROS = [
+  ['Lucía Paredes', 310, 8], ['Diego Salas', 290, 7], ['Mariana Ríos', 270, 7], ['Jorge Medina', 240, 6],
+  ['Camila Vega', 220, 6], ['Renzo Aguilar', 200, 5], ['Valeria Soto', 190, 5], ['Bruno Castillo', 170, 5],
+  ['Paola Núñez', 150, 4], ['Hugo Campos', 140, 4], ['Sofía León', 120, 3], ['Martín Rojas', 110, 3],
+  ['Elena Chávez', 100, 3], ['Tomás Ibáñez', 90, 2], ['Rocío Lazo', 80, 2], ['Iván Quispe', 70, 2],
+  ['Natalia Bravo', 50, 1], ['Óscar Pinedo', 40, 1], ['Gabriela Mora', 40, 1], ['Luis Zamora', 30, 1],
+].map(([nombre, puntos, stands]) => ({ nombre, puntos, stands }));
+
+// Estado de ejemplo: ya hizo el quiz de entrada y visitó algunos stands.
+const INTENTOS_DEMO = {
+  'STD-000': { estado: 'COMPLETADO', correctas: 4, total: 5, puntaje: 40 },
+  'STD-001': { estado: 'COMPLETADO', correctas: 3, total: 4, puntaje: 30 },
+  'STD-002': { estado: 'COMPLETADO', correctas: 4, total: 4, puntaje: 40 },
+  'STD-003': { estado: 'COMPLETADO', correctas: 3, total: 4, puntaje: 30 },
+  'STD-004': { estado: 'COMPLETADO', correctas: 2, total: 4, puntaje: 20 },
+  'STD-010': { estado: 'VENCIDO', correctas: 0, total: 4, puntaje: 0 },
+};
+
+const estado = { vista: 'inicio', intentos: { ...INTENTOS_DEMO }, stand: null, quiz: null, resultado: null };
+
+/* ---------- Utilidades ---------- */
+const app = document.getElementById('app');
+const nav = document.getElementById('nav');
+const hoja = document.getElementById('hoja');
+const iniciales = n => n.split(' ').map(x => x[0]).slice(0, 2).join('');
+const hecho = id => estado.intentos[id]?.estado === 'COMPLETADO';
+const misPuntos = () => Object.values(estado.intentos).reduce((s, i) => s + i.puntaje, 0);
+const standsHechos = () => TODOS_LOS_STANDS.filter(s => hecho(s.id)).length;
+
+function ranking() {
+  const yo = { nombre: USUARIO.nombre, puntos: misPuntos(), stands: standsHechos(), yo: true };
+  // En empate, el prototipo deja al usuario detrás. SERVIDOR: desempata por completado_en.
+  return [...OTROS, yo].sort((a, b) => b.puntos - a.puntos || (a.yo ? 1 : 0) - (b.yo ? 1 : 0));
+}
+const miPuesto = () => ranking().findIndex(r => r.yo) + 1;
+
+let temporizadorToast;
+function toast(texto) {
+  const t = document.getElementById('toast');
+  t.textContent = texto;
+  t.classList.add('visible');
+  clearTimeout(temporizadorToast);
+  temporizadorToast = setTimeout(() => t.classList.remove('visible'), 2800);
+}
+
+const svg = (d, tam = 24, color = 'currentColor', grosor = 2) =>
+  `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${grosor}" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+const ICONO = {
+  check: (tam, color) => svg('M5 12.5l4.5 4.5L19 7.5', tam, color, 3),
+  mal: svg('M6 6l12 12M18 6L6 18', 20, '#d93025', 2.5),
+  atras: svg('M19 12H5M11 6l-6 6 6 6'),
+  flecha: svg('M9 6l6 6-6 6', 20, '#5f6368'),
+  reloj: tam => svg('M12 5a8 8 0 100 16 8 8 0 000-16zM12 9v4l2 2M9 2h6', tam),
+};
+
+/* ---------- Navegación ---------- */
+function ir(vista) {
+  clearInterval(estado.quiz?.intervalo);
+  cerrarHoja();
+  estado.vista = vista;
+  render();
+  window.scrollTo(0, 0);
+}
+
+function render() {
+  const conNav = estado.vista === 'inicio' || estado.vista === 'ranking';
+  nav.classList.toggle('oculta', !conNav);
+  app.classList.toggle('sin-nav', !conNav);
+  nav.querySelectorAll('button').forEach(b => b.classList.toggle('activa', b.dataset.ir === estado.vista));
+  ({ inicio: vistaInicio, codigo: vistaCodigo, quiz: vistaQuiz, resultado: vistaResultado, vencido: vistaVencido, ranking: vistaRanking })[estado.vista]();
+}
+
+/* ---------- Vista: mapa ---------- */
+const RADIO = 37;   // distancia del centro a los pabellones, en % del mapa
+
+function vistaInicio() {
+  const entrada = estado.intentos[ENTRADA.id];
+
+  const pabellones = PABELLONES.map((p, i) => {
+    const angulo = (-90 + i * 360 / PABELLONES.length) * Math.PI / 180;
+    const x = 50 + RADIO * Math.cos(angulo), y = 50 + RADIO * Math.sin(angulo);
+    const visitados = p.stands.filter(s => hecho(s.id));
+    const puntos = visitados.reduce((s, st) => s + estado.intentos[st.id].puntaje, 0);
+    const completo = visitados.length === p.stands.length;
+    return `
+      <button class="punto pab" data-pab="${p.id}" style="left:${x}%;top:${y}%;--c:${p.color};--t:${p.tinte};--p:${visitados.length / p.stands.length * 100}"
+              aria-label="Pabellón ${p.nombre}${completo ? ' completo' : ''}${visitados.length ? `, ${puntos} puntos` : ''}">
+        <span class="disco"><span>${svg(p.icono, 26)}</span>${completo ? `<i class="hecho">${ICONO.check(13, '#fff')}</i>` : ''}</span>
+        <span class="rot">${p.nombre}${visitados.length ? `<small>${puntos} pts</small>` : ''}</span>
+      </button>`;
+  }).join('');
+
+  app.innerHTML = `
+    <header class="cab">
+      <div><p class="sec chico">Explore Fair</p><h1>Hola, ${USUARIO.nombre.split(' ')[0]}</h1></div>
+      <div class="kpis">
+        <div class="kpi"><b class="tnum">${misPuntos()}</b><span>puntos</span></div>
+        <button class="kpi" data-ir="ranking" aria-label="Ver ranking"><b class="tnum">#${miPuesto()}</b><span>puesto</span></button>
+      </div>
+    </header>
+
+    <div class="guia">
+      <span class="icono">${svg('M9 11V5.5a1.5 1.5 0 013 0V11m0-1.5a1.5 1.5 0 013 0V11m0-.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1a6 6 0 01-5-2.7L5 14.5a1.5 1.5 0 012.5-1.6L9 14.5V11', 20)}</span>
+      <p>${entrada
+        ? `<b>Suma puntos en cada stand</b><span>Escucha la charla y pulsa su pabellón.</span>`
+        : `<b>Te damos la bienvenida a la feria</b><span>Pulsa tu círculo para empezar el quiz de entrada.</span>`}</p>
+    </div>
+
+    <section class="mapa" aria-label="Mapa de pabellones">
+      <svg class="orbita" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="${RADIO}" fill="none" stroke="#e8eaed" stroke-width=".4" stroke-dasharray="1.2 1.6"/>
+      </svg>
+      ${pabellones}
+      <button class="punto yo-nodo ${entrada ? '' : 'pendiente'}" data-stand="${ENTRADA.id}" style="left:50%;top:50%"
+              aria-label="${entrada ? `Quiz de entrada respondido, ${entrada.puntaje} puntos` : 'Responder el quiz de entrada'}">
+        <span class="disco">${iniciales(USUARIO.nombre)}${entrada ? `<span class="hecho">${ICONO.check(14, '#fff')}</span>` : ''}</span>
+        <span class="rot">${entrada ? `Quiz de entrada<small>${entrada.puntaje} pts</small>` : `Empieza aquí<small>Quiz de entrada</small>`}</span>
+      </button>
+    </section>
+
+    <button class="demo-link" id="reiniciar">Prototipo: ${entrada ? 'ver como usuario nuevo' : 'ver con avance de ejemplo'}</button>
+  `;
+
+  document.getElementById('reiniciar').onclick = () => {
+    estado.intentos = entrada ? {} : { ...INTENTOS_DEMO };
+    render();
+  };
+}
+
+/* ---------- Hoja inferior: stands de un pabellón ---------- */
+function abrirHoja(pabellonId) {
+  const p = PABELLONES.find(x => x.id === pabellonId);
+  hoja.style.cssText = `--c:${p.color};--t:${p.tinte}`;
+  hoja.innerHTML = `
+    <div class="asa"></div>
+    <div class="hoja-cab">
+      <span class="icono">${svg(p.icono)}</span>
+      <div><p class="sec chico">Pabellón${p.stands.every(s => hecho(s.id)) ? ' completo' : ''}</p><h2>${p.nombre}</h2></div>
+    </div>
+    <ul>${p.stands.map(s => {
+      const i = estado.intentos[s.id];
+      if (!i) return `<li><button class="item" data-stand="${s.id}">
+          <span class="abr">${s.abr}</span>
+          <span class="nom"><b>${s.nombre}</b><span>${s.numPreguntas} preguntas · hasta ${s.numPreguntas * PUNTOS_POR_PREGUNTA} pts</span></span>
+          <span class="fin">${ICONO.flecha}</span></button></li>`;
+      const ok = i.estado === 'COMPLETADO';
+      return `<li><div class="item ${ok ? 'hecho' : 'vencido'}">
+          <span class="abr">${s.abr}</span>
+          <span class="nom"><b>${s.nombre}</b><span>${ok ? `${i.correctas} de ${i.total} correctas` : 'Se venció el tiempo'}</span></span>
+          <span class="fin tnum">${ok ? `${ICONO.check(18, '#188038')}${i.puntaje} pts` : '0 pts'}</span></div></li>`;
+    }).join('')}</ul>
+    <p class="aviso" style="margin:8px 16px 4px">Necesitas el código que da el líder al terminar la charla.</p>
+  `;
+  document.body.classList.add('hoja-abierta');
+}
+function cerrarHoja() { document.body.classList.remove('hoja-abierta'); }
+
+function abrirStand(id) {
+  const stand = id === ENTRADA.id ? ENTRADA : TODOS_LOS_STANDS.find(s => s.id === id);
+  const i = estado.intentos[id];
+  if (i?.estado === 'COMPLETADO') return toast(`Ya respondiste ${stand.nombre}: ${i.correctas} de ${i.total} · ${i.puntaje} pts`);
+  if (i?.estado === 'VENCIDO') return toast(`Se te venció el tiempo en ${stand.nombre}. No se puede repetir.`);
+  estado.stand = stand;
+  ir('codigo');
+}
+
+/* ---------- Vista: ingreso de código ---------- */
+function cabecera(stand) {
+  return `
+    <div class="barra-sup" style="--c:${stand.color}">
+      <button class="volver" data-ir="inicio" aria-label="Volver al mapa">${ICONO.atras}</button>
+      <div class="donde"><span class="etiqueta-pab">${stand.pabellon}</span><b>${stand.nombre}</b></div>
+    </div>`;
+}
+
+function vistaCodigo() {
+  const s = estado.stand;
+  app.innerHTML = `
+    ${cabecera(s)}
+    <div class="tarjeta centro" style="--c:${s.color};--t:${s.tinte}">
+      <div class="disco-grande">${s.abr}</div>
+      <h2>${s.nombre}</h2>
+      <div class="datos">
+        <span class="chip">${s.numPreguntas} preguntas</span>
+        <span class="chip">${MINUTOS_PARA_RESPONDER} minutos</span>
+        <span class="chip">Hasta ${s.numPreguntas * PUNTOS_POR_PREGUNTA} pts</span>
+      </div>
+      ${s.requiereCodigo ? `
+        <label class="campo" for="codigo">Código que te dio el líder del stand</label>
+        <input id="codigo" maxlength="4" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="····" aria-describedby="error-codigo">
+        <p class="msg-error" id="error-codigo" role="alert"></p>` : ''}
+      <button class="btn" id="empezar" ${s.requiereCodigo ? 'disabled' : ''}>Empezar</button>
+      <p class="aviso">El tiempo corre desde que empiezas y solo tienes un intento.</p>
+    </div>
+    ${s.requiereCodigo ? `<p class="nota-demo">Prototipo: cualquier código de 4 caracteres funciona. Usa <code>0000</code> para ver el error de código inválido y <code>9999</code> para probar un quiz de 15 segundos.</p>` : ''}
+  `;
+
+  const boton = document.getElementById('empezar');
+  const campo = document.getElementById('codigo');
+  if (!campo) { boton.onclick = () => empezarQuiz(MINUTOS_PARA_RESPONDER * 60); return; }
+
+  const error = document.getElementById('error-codigo');
+  campo.oninput = () => {
+    campo.value = campo.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    campo.classList.remove('error');
+    error.textContent = '';
+    boton.disabled = campo.value.length < 4;
+  };
+  campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
+  boton.onclick = () => {
+    // SERVIDOR: valida que el código exista, sea de este stand y no haya pasado expira_en.
+    if (campo.value === '0000') {
+      campo.classList.add('error');
+      error.textContent = 'Código inválido o vencido. Pídele uno nuevo al líder.';
+      campo.select();
+      return;
+    }
+    empezarQuiz(campo.value === '9999' ? 15 : MINUTOS_PARA_RESPONDER * 60);
+  };
+  campo.focus();
+}
+
+/* ---------- Vista: preguntas ---------- */
+function empezarQuiz(segundos) {
+  const s = estado.stand;
+  // SERVIDOR: crea el intento EN_CURSO, sortea las preguntas y devuelve vence_en.
+  estado.quiz = {
+    preguntas: s.id === ENTRADA.id ? PREGUNTAS_ENTRADA : preguntasDeEjemplo(s),
+    respuestas: [],
+    actual: 0,
+    venceEn: Date.now() + segundos * 1000,
+  };
+  estado.vista = 'quiz';
+  render();
+  window.scrollTo(0, 0);
+  estado.quiz.intervalo = setInterval(tic, 250);
+}
+
+function segundosRestantes() { return Math.max(0, Math.ceil((estado.quiz.venceEn - Date.now()) / 1000)); }
+function formato(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
+function tic() {
+  const r = segundosRestantes();
+  const reloj = document.getElementById('reloj');
+  if (reloj) {
+    reloj.querySelector('span').textContent = formato(r);
+    reloj.classList.toggle('poco', r <= 30);
+  }
+  if (r === 0) {
+    clearInterval(estado.quiz.intervalo);
+    estado.intentos[estado.stand.id] = { estado: 'VENCIDO', correctas: 0, total: estado.quiz.preguntas.length, puntaje: 0 };
+    ir('vencido');
+  }
+}
+
+function vistaQuiz() {
+  const s = estado.stand, q = estado.quiz, p = q.preguntas[q.actual];
+  const elegida = q.respuestas[q.actual];
+  const ultima = q.actual === q.preguntas.length - 1;
+  const r = segundosRestantes();
+
+  app.innerHTML = `
+    <div class="quiz-cab" style="--c:${s.color}">
+      <div class="quiz-fila">
+        <div class="donde"><span class="etiqueta-pab">${s.pabellon}</span><b>${s.nombre}</b></div>
+        <div class="reloj tnum ${r <= 30 ? 'poco' : ''}" id="reloj" aria-label="Tiempo restante">${ICONO.reloj(18)}<span>${formato(r)}</span></div>
+      </div>
+      <div class="pasos" aria-hidden="true">${q.preguntas.map((_, i) => `<i class="${i < q.actual ? 'pasado' : i === q.actual ? 'actual' : ''}"></i>`).join('')}</div>
+    </div>
+
+    <p class="sec chico">Pregunta ${q.actual + 1} de ${q.preguntas.length}</p>
+    <h2 class="enunciado">${p.t}</h2>
+    <div role="radiogroup" aria-label="Opciones">
+      ${p.o.map((texto, i) => `
+        <button class="opcion ${elegida === i ? 'elegida' : ''}" role="radio" aria-checked="${elegida === i}" data-opcion="${i}">
+          <span class="letra">${'ABCD'[i]}</span><span>${texto}</span>
+        </button>`).join('')}
+    </div>
+    <button class="btn" id="siguiente" ${elegida === undefined ? 'disabled' : ''}>${ultima ? 'Enviar respuestas' : 'Siguiente'}</button>
+  `;
+
+  document.getElementById('siguiente').onclick = () => {
+    if (!ultima) { q.actual++; vistaQuiz(); window.scrollTo(0, 0); return; }
+    enviarQuiz();
+  };
+}
+
+function enviarQuiz() {
+  const s = estado.stand, q = estado.quiz;
+  clearInterval(q.intervalo);
+  // SERVIDOR: comprueba vence_en, corrige y guarda el intento como COMPLETADO.
+  const puestoAntes = miPuesto();
+  const aciertos = q.preguntas.map((p, i) => q.respuestas[i] === p.c);
+  const correctas = aciertos.filter(Boolean).length;
+  const puntaje = correctas * PUNTOS_POR_PREGUNTA;
+  estado.intentos[s.id] = { estado: 'COMPLETADO', correctas, total: q.preguntas.length, puntaje };
+  estado.resultado = { aciertos, correctas, puntaje, puestoAntes, puestoAhora: miPuesto() };
+  ir('resultado');
+}
+
+/* ---------- Vista: resultado ---------- */
+function vistaResultado() {
+  const s = estado.stand, q = estado.quiz, r = estado.resultado;
+  const subio = r.puestoAntes - r.puestoAhora;
+  app.innerHTML = `
+    ${cabecera(s)}
+    <div class="tarjeta centro">
+      <div class="aro" style="--p:${r.correctas / q.preguntas.length * 100}"><div class="tnum">${r.correctas}/${q.preguntas.length}</div></div>
+      <p class="ganado tnum">+${r.puntaje} puntos</p>
+      <p class="sec" style="margin-top:6px">
+        ${subio > 0 ? `Subiste ${subio} ${subio === 1 ? 'puesto' : 'puestos'}. Ahora vas #${r.puestoAhora}.` : `Te mantienes en el puesto #${r.puestoAhora}.`}
+      </p>
+      <ul class="detalle">
+        ${q.preguntas.map((p, i) => `<li>${r.aciertos[i] ? ICONO.check(20, '#188038') : ICONO.mal}<span>${p.t}</span></li>`).join('')}
+      </ul>
+    </div>
+    <button class="btn" data-ir="inicio">Volver al mapa</button>
+    <button class="btn secundario" data-ir="ranking">Ver ranking</button>
+  `;
+}
+
+function vistaVencido() {
+  const s = estado.stand;
+  app.innerHTML = `
+    ${cabecera(s)}
+    <div class="tarjeta centro">
+      <div class="disco-grande" style="background:#f1f3f4;color:#5f6368">${ICONO.reloj(36)}</div>
+      <h2>Se acabó el tiempo</h2>
+      <p class="sec" style="margin-top:8px">No alcanzaste a enviar tus respuestas de ${s.nombre}, así que este stand no suma puntos.</p>
+      <p class="sec" style="margin-top:8px">Todavía puedes sumar en los demás stands.</p>
+    </div>
+    <button class="btn" data-ir="inicio">Volver al mapa</button>
+  `;
+}
+
+/* ---------- Vista: ranking ---------- */
+function vistaRanking() {
+  const r = ranking();
+  const fila = (p, i) => `
+    <li class="fila ${p.yo ? 'yo' : ''}" ${p.yo ? 'id="mi-fila"' : ''}>
+      <span class="pos tnum">${i + 1}</span>
+      <span class="avatar">${iniciales(p.nombre)}</span>
+      <span class="quien"><b>${p.nombre}${p.yo ? ' (tú)' : ''}</b><span>${p.stands} ${p.stands === 1 ? 'stand' : 'stands'}</span></span>
+      <span class="total tnum">${p.puntos}</span>
+    </li>`;
+  const lugar = (n, clase) => `
+    <div class="lugar ${clase}">
+      <div class="avatar">${iniciales(r[n].nombre)}</div>
+      <div class="nombre">${r[n].nombre}${r[n].yo ? ' (tú)' : ''}</div>
+      <div class="pts tnum">${r[n].puntos} pts</div>
+      <div class="base">${n + 1}</div>
+    </div>`;
+  const yo = r.findIndex(p => p.yo);
+
+  app.innerHTML = `
+    <h1 class="rank-titulo">Ranking</h1>
+    <div class="podio">${lugar(1, 'l2')}${lugar(0, 'l1')}${lugar(2, 'l3')}</div>
+    <ul class="lista">${r.map(fila).slice(3).join('')}</ul>
+    <p class="aviso">En empate, va primero quien llegó antes a ese puntaje.</p>
+    <div style="height:72px"></div>
+    <div class="mi-puesto" id="mi-puesto" hidden><ul>${fila(r[yo], yo)}</ul></div>
+  `;
+
+  // La fila propia queda fija abajo solo mientras la original no se ve en pantalla.
+  const original = document.getElementById('mi-fila');
+  const fija = document.getElementById('mi-puesto');
+  fija.querySelector('.fila').removeAttribute('id');
+  if (!original) return;                       // está en el podio
+  new IntersectionObserver(([e]) => { fija.hidden = e.intersectionRatio >= 0.9; }, { rootMargin: '0px 0px -72px 0px', threshold: 0.9 }).observe(original);
+}
+
+/* ---------- Eventos globales ---------- */
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-cerrar]')) return cerrarHoja();
+  const destino = e.target.closest('[data-ir]');
+  if (destino) return ir(destino.dataset.ir);
+  const pabellon = e.target.closest('[data-pab]');
+  if (pabellon) return abrirHoja(pabellon.dataset.pab);
+  const stand = e.target.closest('[data-stand]');
+  if (stand) return abrirStand(stand.dataset.stand);
+  const opcion = e.target.closest('[data-opcion]');
+  if (opcion) { estado.quiz.respuestas[estado.quiz.actual] = +opcion.dataset.opcion; vistaQuiz(); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
+
+render();
+</script>
+</body>
+</html>

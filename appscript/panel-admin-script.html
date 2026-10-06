@@ -1,0 +1,110 @@
+<script>
+(() => {
+  const PALABRA = 'REINICIAR';
+  // Mismo orden y nombres de hoja que HOJAS_A_REINICIAR en panel-admin.gs
+  const HOJAS = [
+    { hoja: 'Intentos', nombre: 'Intentos', detalle: 'Quizzes respondidos y sus puntajes', icono: 'M9 11l3 3 8-8M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9' },
+    { hoja: 'Codigos', nombre: 'Códigos', detalle: 'Códigos generados por los líderes', icono: ICONO.llave },
+    { hoja: 'Usuarios', nombre: 'Usuarios', detalle: 'Personas que ingresaron a la app', icono: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0' },
+  ];
+  let conteos = null;
+  let ultimo = null;
+  let recien = null;   // resultado del reinicio que se acaba de hacer, para el aviso verde
+
+  const filas = n => n + (n === 1 ? ' fila' : ' filas');
+  const hayDatos = () => HOJAS.some(h => conteos[h.hoja] > 0);
+
+  function mostrar() {
+    $('panel-saludo').textContent = 'Hola, ' + INICIO.nombre.split(' ')[0];
+    document.querySelectorAll('.marca.borra').forEach(m => { m.innerHTML = svg(ICONO.equis, 18, '#d93025', 2.5); });
+    document.querySelectorAll('.marca.queda').forEach(m => { m.innerHTML = svg(ICONO.check, 18, '#188038', 2.5); });
+    pintarGuia();
+    if (!conteos) App.cargando($('panel-conteos'));
+    cargar();
+  }
+
+  function cargar() {
+    return servidor('obtenerPanel').then(r => { conteos = r.conteos; ultimo = r.ultimo; pintar(); })
+      .catch(() => { if (!conteos) App.error($('panel-conteos'), cargar); });
+  }
+
+  function pintarGuia() {
+    $('panel-guia').classList.toggle('ok', !!recien);
+    $('panel-guia-icono').innerHTML = recien ? svg(ICONO.check, 20, 'currentColor', 2.5) : svg(ICONO.escudo, 20);
+    $('panel-guia-titulo').textContent = recien ? 'Datos reiniciados' : 'Panel de administración';
+    $('panel-guia-texto').textContent = recien ? recien : 'Actualiza el catálogo o reinicia los datos de la feria.';
+  }
+
+  function pintar() {
+    pintarGuia();
+    $('panel-conteos').innerHTML = HOJAS.map(h => `
+      <li class="fila">
+        <span class="icono">${svg(h.icono, 22)}</span>
+        <span class="quien"><b>${h.nombre}</b><span>${h.detalle}</span></span>
+        <span class="cuanto tnum ${conteos[h.hoja] ? '' : 'cero'}">${conteos[h.hoja]}</span>
+      </li>`).join('');
+
+    const boton = $('panel-abrir');
+    boton.disabled = !hayDatos();
+    boton.textContent = hayDatos() ? 'Reiniciar datos' : 'No hay datos que borrar';
+    $('panel-ultimo').textContent = ultimo
+      ? 'Último reinicio: ' + new Date(ultimo.cuando).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' }) + ' por ' + ultimo.por
+      : 'Aún no se ha hecho ningún reinicio';
+  }
+
+  function abrirConfirmacion() {
+    App.abrirHoja(`
+      <div class="hoja-texto">
+        <h2>¿Reiniciar los datos de la feria?</h2>
+        <p>Esta acción afecta a todos los usuarios y no se puede deshacer desde la app.</p>
+        <ul class="resumen">
+          ${HOJAS.map(h => `<li>Se borran <b>${filas(conteos[h.hoja])}</b> de ${h.nombre.toLowerCase()}</li>`).join('')}
+        </ul>
+        <p class="chico">Antes de borrar se guarda una copia de estas hojas en el mismo archivo.</p>
+        <label for="panel-confirmar">Escribe ${PALABRA} para confirmar</label>
+        <input id="panel-confirmar" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+        <button class="btn peligro" id="panel-ejecutar" disabled>Reiniciar datos</button>
+        <button class="btn texto" data-cerrar>Cancelar</button>
+      </div>`);
+
+    const campo = $('panel-confirmar');
+    const boton = $('panel-ejecutar');
+    campo.oninput = () => { boton.disabled = campo.value.trim().toUpperCase() !== PALABRA; };
+    campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
+    boton.onclick = () => {
+      boton.disabled = true;
+      campo.disabled = true;
+      boton.innerHTML = '<i class="giro"></i>Reiniciando…';
+      servidor('reiniciarDatos', campo.value.trim()).then(r => {
+        const partes = HOJAS.filter(h => r.borradas[h.hoja] > 0).map(h => r.borradas[h.hoja] + ' ' + h.nombre.toLowerCase());
+        recien = 'Se borraron ' + partes.join(', ').replace(/, ([^,]*)$/, ' y $1') + '. Copia guardada como ' + r.respaldo + '.';
+        conteos = r.conteos;
+        ultimo = r.ultimo;
+        App.estado.puesto = null;
+        App.cerrarHoja();
+        pintar();
+        window.scrollTo(0, 0);
+      }).catch(error => {
+        toast(error && error.message ? error.message : 'No se pudo reiniciar. Inténtalo de nuevo.');
+        campo.disabled = false;
+        boton.disabled = false;
+        boton.textContent = 'Reiniciar datos';
+      });
+    };
+    setTimeout(() => campo.focus(), 250);
+  }
+
+  $('panel-abrir').addEventListener('click', abrirConfirmacion);
+
+  $('panel-actualizar').addEventListener('click', () => {
+    const boton = $('panel-actualizar');
+    boton.disabled = true;
+    servidor('actualizarCatalogo')
+      .then(r => toast(`Listo: ${r.pabellones} pabellones, ${r.stands} stands y ${r.preguntas} preguntas activas.`))
+      .catch(error => toast(error && error.message ? error.message : 'No se pudo actualizar.'))
+      .then(() => { boton.disabled = false; });
+  });
+
+  App.registrar('panel-admin', { alMostrar: mostrar, alRefrescar: cargar });
+})();
+</script>

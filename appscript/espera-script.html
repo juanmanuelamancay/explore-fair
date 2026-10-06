@@ -1,0 +1,184 @@
+<script>
+(() => {
+  // Llegada la hora, se pregunta cada tanto si ya abrieron la feria, para entrar sin que el usuario haga nada.
+  const SEGUNDOS_ENTRE_COMPROBACIONES = 60;
+  const cuenta = $('espera-cuenta');
+  let datos = null;
+  let desfase = 0;          // hora del servidor menos hora del celular
+  let intervalo = null;
+  let ultimaComprobacion = 0;
+
+  function mostrar() {
+    $('espera-saludo').textContent = 'Hola, ' + INICIO.nombre.split(' ')[0];
+    if (!datos) App.cargando(cuenta);
+    cargar();
+    intervalo = setInterval(tic, 1000);
+  }
+
+  function ocultar() { clearInterval(intervalo); }
+
+  function cargar() {
+    return servidor('obtenerEspera').then(r => {
+      datos = r;
+      desfase = r.ahora - Date.now();
+      pintar();
+    }).catch(() => { if (!datos) App.error(cuenta, cargar); });
+  }
+
+  const restante = () => Math.max(0, Math.floor((datos.fecha - (Date.now() + desfase)) / 1000));
+
+  function pintar() {
+    pintarCuenta();
+
+    $('espera-premios').hidden = !datos.premios.length;
+    $('espera-premios').innerHTML = !datos.premios.length ? '' : `
+      <h2 class="titulo-seccion">Premios</h2>
+      <ul class="lista">${datos.premios.map((p, i) => `
+        <li class="fila premio">
+          ${medalla(i + 1)}
+          <span class="quien"><b>${esc(p.titulo)}</b>${p.descripcion ? `<span>${esc(p.descripcion)}</span>` : ''}</span>
+        </li>`).join('')}
+      </ul>`;
+
+    // Una tarjeta por pabellón, después de Premios y Cómo se juega.
+    carrusel.hidden = false;   // se muestra recién con todas sus láminas, no solo con la fija
+    carrusel.querySelectorAll('.lamina.de-pabellon').forEach(l => l.remove());
+    carrusel.insertAdjacentHTML('beforeend', datos.pabellones.map(p => {
+      const tono = paleta(p.indice);
+      return `
+        <section class="lamina de-pabellon" data-titulo="Pabellón ${esc(p.nombre)}">
+          <h2 class="titulo-seccion">Pabellones</h2>
+          <div class="tarjeta pab-tarjeta" style="--c:${tono.color};--t:${tono.tinte}">
+            <div class="titulo">
+              <span class="icono">${svg(tono.icono, 26)}</span>
+              <div><span class="etiqueta-pab">${p.stands.length} ${p.stands.length === 1 ? 'stand' : 'stands'}</span><h2>${esc(p.nombre)}</h2></div>
+            </div>
+            <ul>${p.stands.map(s => `<li><span class="abr">${esc(abreviatura(s))}</span>${esc(s)}</li>`).join('')}</ul>
+          </div>
+        </section>`;
+    }).join(''));
+    armarCarrusel();
+  }
+
+  /* ---------- Carrusel ---------- */
+  const SEGUNDOS_POR_LAMINA = 6;
+  const SEGUNDOS_DE_PAUSA_TRAS_TOCAR = 12;   // si la persona lo mueve, se le deja leer tranquila
+  const carrusel = $('espera-carrusel');
+  const puntos = $('espera-puntos');
+  let laminas = [];
+  let activa = 0;
+  let ultimoToque = 0;
+  let ultimoAvance = Date.now();
+  let enMovimientoHasta = 0;   // mientras el carrusel se desplaza solo, no se recalcula la lámina activa
+
+  function armarCarrusel() {
+    laminas = [...carrusel.querySelectorAll('.lamina')].filter(l => !l.hidden);
+    activa = Math.min(activa, laminas.length - 1);
+    puntos.hidden = laminas.length < 2;
+    puntos.innerHTML = laminas.map((l, i) =>
+      `<button role="tab" data-lamina="${i}" aria-label="${esc(l.dataset.titulo)}"></button>`).join('');
+    // Al aparecer láminas nuevas delante (Premios llega con los datos), el navegador intenta seguir
+    // mostrando la que ya estaba a la vista y el carrusel quedaba en la segunda. Se le fija la
+    // posición a mano, ahora y en el siguiente cuadro, que es cuando el navegador la reacomoda.
+    irALamina(activa, false);
+    requestAnimationFrame(() => irALamina(activa, false));
+  }
+
+  function marcarActiva() {
+    puntos.querySelectorAll('button').forEach((b, i) => {
+      b.classList.toggle('activa', i === activa);
+      b.setAttribute('aria-selected', i === activa);
+    });
+    // El carrusel toma el alto de la lámina a la vista, para no dejar un hueco bajo las más cortas.
+    if (laminas[activa]) carrusel.style.height = laminas[activa].offsetHeight + 'px';
+  }
+
+  function irALamina(indice, suave) {
+    if (!laminas.length) return;
+    activa = (indice + laminas.length) % laminas.length;
+    enMovimientoHasta = Date.now() + (suave ? 800 : 300);
+    carrusel.scrollTo({ left: laminas[activa].offsetLeft, behavior: suave ? 'smooth' : 'auto' });
+    marcarActiva();
+  }
+
+  // Al deslizar con el dedo, el punto activo sigue a la lámina que quedó a la vista.
+  carrusel.addEventListener('scroll', () => {
+    if (Date.now() < enMovimientoHasta) return;
+    const cerca = laminas.reduce((mejor, l, i) =>
+      Math.abs(l.offsetLeft - carrusel.scrollLeft) < Math.abs(laminas[mejor].offsetLeft - carrusel.scrollLeft) ? i : mejor, 0);
+    if (cerca !== activa) { activa = cerca; marcarActiva(); }
+  }, { passive: true });
+
+  ['pointerdown', 'touchstart', 'wheel'].forEach(evento => {
+    carrusel.addEventListener(evento, () => { ultimoToque = Date.now(); }, { passive: true });
+  });
+  puntos.addEventListener('click', e => {
+    const boton = e.target.closest('[data-lamina]');
+    if (!boton) return;
+    ultimoToque = Date.now();
+    irALamina(+boton.dataset.lamina, true);
+  });
+  window.addEventListener('resize', () => irALamina(activa, false));
+
+  /** Avanza solo. No lo hace con la app en segundo plano, recién tocado, o con movimiento reducido. */
+  function avanzarSolo() {
+    const ahora = Date.now();
+    if (laminas.length < 2 || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (ahora - ultimoToque < SEGUNDOS_DE_PAUSA_TRAS_TOCAR * 1000 || ahora - ultimoAvance < SEGUNDOS_POR_LAMINA * 1000) return;
+    // Si ya bajó hasta dejar el inicio del carrusel fuera de la pantalla, está leyendo: no se le mueve.
+    if (carrusel.getBoundingClientRect().top < 0) return;
+    ultimoAvance = ahora;
+    irALamina(activa + 1, true);
+  }
+
+  function pintarCuenta() {
+    const cuando = !datos.fecha ? '' : new Date(datos.fecha).toLocaleString('es', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+    const pie = `
+      ${cuando ? `<p class="cuando">${esc(cuando.charAt(0).toUpperCase() + cuando.slice(1))}</p>` : ''}
+      ${datos.lugar ? `<p class="donde-es">${esc(datos.lugar)}</p>` : ''}
+      ${datos.mensaje ? `<p class="mensaje">${esc(datos.mensaje)}</p>` : ''}`;
+
+    if (!datos.fecha) {
+      cuenta.innerHTML = `<div class="disco-grande">${svg(ICONO.reloj, 34)}</div><h2>Muy pronto</h2>
+        <p class="aviso">Estamos preparando la feria de agentes.</p>${pie}`;
+    } else if (restante() === 0) {
+      cuenta.innerHTML = `<div class="disco-grande" style="--t:var(--verde-suave);--c:var(--verde)">${svg(ICONO.check, 34, 'currentColor', 2.5)}</div>
+        <h2>Llegó el día</h2><p class="aviso">La feria está por abrir. Esta pantalla cambiará sola cuando empiece.</p>${pie}`;
+    } else {
+      cuenta.innerHTML = `
+        <p class="sec chico">La feria de agentes empieza en</p>
+        <div class="reloj-grande tnum" role="timer">
+          <div><b id="espera-d">0</b><span>días</span></div>
+          <div><b id="espera-h">0</b><span>horas</span></div>
+          <div><b id="espera-m">0</b><span>min</span></div>
+          <div><b id="espera-s">0</b><span>seg</span></div>
+        </div>${pie}`;
+      pintarNumeros();
+    }
+  }
+
+  function pintarNumeros() {
+    const r = restante();
+    $('espera-d').textContent = Math.floor(r / 86400);
+    $('espera-h').textContent = String(Math.floor(r % 86400 / 3600)).padStart(2, '0');
+    $('espera-m').textContent = String(Math.floor(r % 3600 / 60)).padStart(2, '0');
+    $('espera-s').textContent = String(r % 60).padStart(2, '0');
+  }
+
+  function tic() {
+    if (!datos) return;
+    avanzarSolo();
+    if (!datos.fecha) return;
+    if (restante() > 0) {
+      if ($('espera-d')) pintarNumeros(); else pintarCuenta();
+      return;
+    }
+    if ($('espera-d')) pintarCuenta();   // la cuenta acaba de llegar a cero
+    if (document.hidden || Date.now() - ultimaComprobacion < SEGUNDOS_ENTRE_COMPROBACIONES * 1000) return;
+    ultimaComprobacion = Date.now();
+    App.comprobarAcceso();
+  }
+
+  App.registrar('espera', { alMostrar: mostrar, alOcultar: ocultar, alRefrescar: cargar });
+})();
+</script>

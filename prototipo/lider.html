@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Explore Fair · Líder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul: #1a73e8;
+    --azul-suave: #e8f0fe;
+    --rojo: #d93025;
+    --amarillo: #f9ab00;
+    --verde: #188038;
+    --fondo: #ffffff;
+    --superficie: #f8fafd;
+    --texto: #1f1f1f;
+    --texto-2: #5f6368;
+    --borde: #dadce0;
+    --borde-suave: #e8eaed;
+    --nav-h: 72px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--fondo);
+    color: var(--texto);
+    font: 400 16px/1.45 "Google Sans", Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+  h1, h2, h3, p, ul { margin: 0; padding: 0; }
+  ul { list-style: none; }
+  b, h1, h2, h3 { font-weight: 500; }
+
+  .franja { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 6; display: flex; }
+  .franja i { flex: 1; }
+
+  #app {
+    max-width: 480px; margin: 0 auto; min-height: 100%;
+    padding: 20px 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));
+  }
+
+  .sec { color: var(--texto-2); }
+  .chico { font-size: 13px; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ---------- Cabecera con KPIs ---------- */
+  .cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .cab h1 { font-size: 22px; line-height: 1.2; }
+
+  .guia {
+    display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 16px;
+    background: var(--azul-suave); border-radius: 16px;
+  }
+  .guia .icono { width: 36px; height: 36px; border-radius: 50%; background: var(--fondo); color: var(--azul); display: grid; place-items: center; flex: none; }
+  .guia b { display: block; font-size: 15px; }
+  .guia span { font-size: 14px; color: #3c4043; }
+
+  /* ---------- Selector de stand ---------- */
+  .tu-stand { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+  .tu-stand .abr {
+    width: 44px; height: 44px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; background: var(--t); color: var(--c);
+  }
+  .etiqueta-pab { font-size: 12px; font-weight: 500; color: var(--c); letter-spacing: .04em; text-transform: uppercase; }
+  .tu-stand b { display: block; font-size: 17px; }
+  .chips { display: flex; gap: 8px; margin-top: 20px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip-stand {
+    flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px;
+    border: 1px solid var(--borde); font-size: 14px; font-weight: 500; color: var(--texto-2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip-stand.activo { background: var(--t); border-color: var(--c); color: var(--c); }
+  .chip-stand i { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); }
+
+  /* ---------- Tarjeta del código ---------- */
+  .tarjeta { border: 1px solid var(--borde); border-radius: 24px; padding: 24px 20px; margin-top: 16px; text-align: center; }
+  .disco-grande {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px; display: grid; place-items: center;
+    background: #f1f3f4; color: var(--texto-2);
+  }
+  .tarjeta h2 { font-size: 20px; font-weight: 400; }
+
+  .codigo {
+    font: 500 64px/1 "Roboto Mono", ui-monospace, Consolas, monospace;
+    letter-spacing: .18em; margin: 10px 0 18px; padding-left: .18em;
+  }
+  .codigo.vencido { color: #9aa0a6; text-decoration: line-through; text-decoration-thickness: 2px; }
+  .barra { height: 6px; border-radius: 3px; background: var(--borde-suave); overflow: hidden; }
+  .barra i { display: block; height: 100%; border-radius: 3px; background: var(--azul); transition: width .25s linear; }
+  .barra.poco i { background: var(--rojo); }
+  .vence { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 14px; color: var(--texto-2); }
+  .vence b { font-size: 18px; color: var(--texto); }
+  .vence.poco b { color: var(--rojo); }
+
+  .btn {
+    display: block; width: 100%; min-height: 52px; border-radius: 26px;
+    background: var(--azul); color: #fff; font-weight: 500; font-size: 15px; margin-top: 20px;
+  }
+  .btn:active { background: #1765cc; }
+  .btn.secundario { background: transparent; color: var(--azul); border: 1px solid var(--borde); }
+  .btn.texto { background: transparent; color: var(--azul); margin-top: 4px; }
+  .aviso { font-size: 13px; color: var(--texto-2); margin-top: 12px; }
+
+  .lista { border: 1px solid var(--borde); border-radius: 20px; overflow: hidden; }
+  .fila { display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 60px; border-bottom: 1px solid var(--borde-suave); background: var(--fondo); }
+  .fila:last-child { border-bottom: 0; }
+  .fila .quien { flex: 1; min-width: 0; }
+  .fila .quien b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fila .quien span { font-size: 12px; color: var(--texto-2); }
+  .fila .total { font-weight: 500; }
+  .fila .pos { width: 24px; text-align: center; font-weight: 500; color: var(--texto-2); flex: none; }
+  .vacio { padding: 20px 16px; text-align: center; font-size: 14px; color: var(--texto-2); }
+
+  .demo-link { display: block; margin: 12px auto 0; padding: 12px; font-size: 13px; color: var(--texto-2); text-decoration: underline; }
+
+  /* ---------- Ranking ---------- */
+  .rank-titulo { font-size: 24px; font-weight: 400; margin: 0 0 20px; }
+  .podio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: end; margin-bottom: 20px; }
+  .lugar { text-align: center; min-width: 0; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none;
+    background: var(--superficie); border: 1px solid var(--borde-suave); font-weight: 500; font-size: 14px; color: var(--texto-2);
+  }
+  .lugar .avatar { margin: 0 auto 6px; width: 48px; height: 48px; }
+  .l1 .avatar { width: 60px; height: 60px; font-size: 18px; background: #fef7e0; border-color: var(--amarillo); color: #b06000; }
+  .lugar .nombre { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lugar .pts { font-size: 13px; color: var(--texto-2); }
+  .lugar .base { margin-top: 8px; border-radius: 12px 12px 0 0; background: var(--superficie); font-size: 20px; font-weight: 500; display: grid; place-items: center; color: var(--texto-2); }
+  .l1 .base { height: 72px; background: #fef7e0; color: #b06000; }
+  .l2 .base { height: 52px; }
+  .l3 .base { height: 40px; }
+
+  /* ---------- Hoja de confirmación ---------- */
+  #velo { position: fixed; inset: 0; z-index: 7; background: rgba(32,33,36,.4); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  #hoja {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; max-width: 480px; margin: 0 auto;
+    background: var(--fondo); border-radius: 28px 28px 0 0;
+    padding: 8px 24px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(105%); transition: transform .25s cubic-bezier(.2,0,0,1);
+  }
+  body.hoja-abierta #velo { opacity: 1; pointer-events: auto; }
+  body.hoja-abierta #hoja { transform: none; }
+  .asa { width: 32px; height: 4px; border-radius: 2px; background: var(--borde); margin: 8px auto 20px; }
+  #hoja h2 { font-size: 22px; font-weight: 400; }
+  #hoja p { margin-top: 10px; color: var(--texto-2); font-size: 15px; }
+
+  /* ---------- Navegación inferior ---------- */
+  #nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--superficie); border-top: 1px solid var(--borde-suave);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #nav .dentro { max-width: 480px; margin: 0 auto; display: flex; height: var(--nav-h); }
+  #nav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--texto-2); }
+  #nav .pastilla { width: 64px; height: 32px; border-radius: 16px; display: grid; place-items: center; transition: background .15s; }
+  #nav button.activa { color: var(--texto); }
+  #nav button.activa .pastilla { background: #d3e3fd; color: #0b57d0; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="franja" aria-hidden="true"><i style="background:#4285f4"></i><i style="background:#ea4335"></i><i style="background:#fbbc04"></i><i style="background:#34a853"></i></div>
+
+<main id="app"></main>
+
+<div id="velo" data-cerrar></div>
+<section id="hoja" role="dialog" aria-modal="true" aria-labelledby="hoja-titulo"></section>
+
+<nav id="nav" aria-label="Navegación principal">
+  <div class="dentro">
+    <button data-ir="codigo">
+      <span class="pastilla"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 3a5.5 5.5 0 11-5.2 7.3L3 17.6V21h3.4v-2.4h2.4v-2.4h2.3l1.2-1.2A5.5 5.5 0 0115.5 3zM17 7h.01"/></svg></span>
+      Código
+    </button>
+    <button data-ir="ranking">
+      <span class="pastilla"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3"/></svg></span>
+      Ranking
+    </button>
+  </div>
+</nav>
+
+<script>
+/* =====================================================================
+   PROTOTIPO DE UX/UI DE LA VISTA DEL LÍDER. Datos de ejemplo en memoria.
+   En la versión real, cada bloque marcado con "SERVIDOR" se reemplaza por
+   una llamada a google.script.run.
+   ===================================================================== */
+
+const MINUTOS_VIGENCIA = 5;
+// Sin 0/O ni 1/I/L, para que el código no se confunda al dictarlo o leerlo de lejos.
+const ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+const LIDER = { nombre: 'Carlos Mendoza' };
+const PABELLON = { nombre: 'Backend', color: '#1a73e8', tinte: '#e8f0fe' };
+const STANDS_DEL_PABELLON = [
+  { id: 'STD-001', nombre: 'APX', abr: 'APX' },
+  { id: 'STD-002', nombre: 'ASO / APIs', abr: 'ASO' },
+  { id: 'STD-003', nombre: 'LRA / LRBA', abr: 'LRA' },
+];
+
+// Por stand: el código vigente (si hay) y el último vencido, que se muestra hasta generar otro.
+const DATOS = {
+  'STD-001': { activo: null, ultimo: null },
+  'STD-002': { activo: null, ultimo: null },
+  'STD-003': { activo: null, ultimo: null },
+};
+
+const RANKING = [
+  ['Lucía Paredes', 310, 8], ['Diego Salas', 290, 7], ['Mariana Ríos', 270, 7], ['Jorge Medina', 240, 6],
+  ['Camila Vega', 220, 6], ['Renzo Aguilar', 200, 5], ['Valeria Soto', 190, 5], ['Bruno Castillo', 170, 5],
+  ['Ana Torres', 160, 4], ['Paola Núñez', 150, 4], ['Hugo Campos', 140, 4], ['Sofía León', 120, 3],
+  ['Martín Rojas', 110, 3], ['Elena Chávez', 100, 3], ['Tomás Ibáñez', 90, 2], ['Rocío Lazo', 80, 2],
+].map(([nombre, puntos, stands]) => ({ nombre, puntos, stands }));
+
+// soloUnStand = true: líder de un stand. false: líder de pabellón, elige entre sus stands.
+const estado = { vista: 'codigo', soloUnStand: true, standId: 'STD-001' };
+
+/* ---------- Utilidades ---------- */
+const app = document.getElementById('app');
+const hoja = document.getElementById('hoja');
+const iniciales = n => n.split(' ').map(x => x[0]).slice(0, 2).join('');
+const stand = () => STANDS_DEL_PABELLON.find(s => s.id === estado.standId);
+const datos = () => DATOS[estado.standId];
+const formato = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const svg = (d, tam = 24) => `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+const ICONO = {
+  llave: 'M15.5 3a5.5 5.5 0 11-5.2 7.3L3 17.6V21h3.4v-2.4h2.4v-2.4h2.3l1.2-1.2A5.5 5.5 0 0115.5 3zM17 7h.01',
+  megafono: 'M4 10v4h3l6 4V6l-6 4H4zM17 9a4 4 0 010 6',
+};
+
+function segundosRestantes(c) { return Math.max(0, Math.ceil((c.expiraEn - Date.now()) / 1000)); }
+
+/* ---------- Acciones ---------- */
+function generar() {
+  const d = datos();
+  // SERVIDOR: anula el código activo del stand, crea uno nuevo y devuelve codigo y expira_en.
+  const codigo = Array.from({ length: 4 }, () => ALFABETO[Math.floor(Math.random() * ALFABETO.length)]).join('');
+  d.activo = { codigo, expiraEn: Date.now() + MINUTOS_VIGENCIA * 60000 };
+  d.ultimo = null;
+  cerrarHoja();
+  render();
+}
+
+function pedirGenerar() {
+  const d = datos();
+  if (!d.activo) return generar();
+  hoja.innerHTML = `
+    <div class="asa"></div>
+    <h2 id="hoja-titulo">¿Generar un código nuevo?</h2>
+    <p>El código <b style="color:var(--texto)">${d.activo.codigo}</b> dejará de funcionar de inmediato. Quienes ya entraron con él pueden terminar su quiz.</p>
+    <button class="btn" data-accion="generar">Generar código nuevo</button>
+    <button class="btn texto" data-cerrar>Cancelar</button>`;
+  document.body.classList.add('hoja-abierta');
+}
+function cerrarHoja() { document.body.classList.remove('hoja-abierta'); }
+
+// Corre siempre: vence códigos de cualquier stand y refresca el reloj del que está en pantalla.
+function tic() {
+  let vencio = false;
+  for (const d of Object.values(DATOS)) {
+    if (d.activo && segundosRestantes(d.activo) === 0) {
+      d.ultimo = d.activo;
+      d.activo = null;
+      vencio = true;
+    }
+  }
+  if (estado.vista !== 'codigo') return;
+  if (vencio) return render();
+  const c = datos().activo;
+  if (!c) return;
+  const r = segundosRestantes(c);
+  const poco = r <= 60;
+  document.getElementById('resta').textContent = formato(r);
+  document.getElementById('barra').classList.toggle('poco', poco);
+  document.getElementById('vence').classList.toggle('poco', poco);
+  document.querySelector('#barra i').style.width = `${r / (MINUTOS_VIGENCIA * 60) * 100}%`;
+}
+
+/* ---------- Vista: generar código ---------- */
+function vistaCodigo() {
+  const s = stand(), d = datos(), c = d.activo;
+
+  const guia = c
+    ? `<b>Comparte este código</b><span>Dilo en voz alta o muestra tu pantalla.</span>`
+    : `<b>Al terminar tu charla</b><span>Genera el código para que respondan el quiz.</span>`;
+
+  const selector = estado.soloUnStand
+    ? `<div class="tu-stand">
+         <span class="abr">${s.abr}</span>
+         <div><span class="etiqueta-pab">${PABELLON.nombre}</span><b>${s.nombre}</b></div>
+       </div>`
+    : `<div class="chips" role="tablist" aria-label="Stands de ${PABELLON.nombre}">
+         ${STANDS_DEL_PABELLON.map(x => `
+           <button class="chip-stand ${x.id === s.id ? 'activo' : ''}" role="tab" aria-selected="${x.id === s.id}" data-elegir="${x.id}">
+             ${x.nombre}${DATOS[x.id].activo ? '<i title="Código activo"></i>' : ''}
+           </button>`).join('')}
+       </div>`;
+
+  let tarjeta;
+  if (c) {
+    const r = segundosRestantes(c), poco = r <= 60;
+    tarjeta = `
+      <p class="sec chico">Código de ${s.nombre}</p>
+      <p class="codigo" aria-label="Código ${c.codigo.split('').join(' ')}">${c.codigo}</p>
+      <div class="barra ${poco ? 'poco' : ''}" id="barra"><i style="width:${r / (MINUTOS_VIGENCIA * 60) * 100}%"></i></div>
+      <div class="vence ${poco ? 'poco' : ''}" id="vence"><span>Se puede ingresar durante</span><b class="tnum" id="resta">${formato(r)}</b></div>
+      <button class="btn secundario" data-accion="pedir">Generar uno nuevo</button>
+      <button class="demo-link" data-accion="acelerar">Prototipo: hacer que venza en 10 segundos</button>`;
+  } else if (d.ultimo) {
+    tarjeta = `
+      <p class="sec chico">El código venció</p>
+      <p class="codigo vencido">${d.ultimo.codigo}</p>
+      <button class="btn" data-accion="pedir">Generar código nuevo</button>
+      <p class="aviso">Úsalo si alguien no alcanzó a ingresar o al terminar otra charla.</p>`;
+  } else {
+    tarjeta = `
+      <div class="disco-grande">${svg(ICONO.llave, 32)}</div>
+      <h2>Sin código activo</h2>
+      <p class="aviso">El código dura ${MINUTOS_VIGENCIA} minutos y sirve solo para ${s.nombre}.</p>
+      <button class="btn" data-accion="pedir">Generar código</button>`;
+  }
+
+  app.innerHTML = `
+    <header class="cab">
+      <div><p class="sec chico">Explore Fair · Líder</p><h1>Hola, ${LIDER.nombre.split(' ')[0]}</h1></div>
+    </header>
+
+    <div class="guia"><span class="icono">${svg(c ? ICONO.megafono : ICONO.llave, 20)}</span><p>${guia}</p></div>
+
+    <div style="--c:${PABELLON.color};--t:${PABELLON.tinte}">${selector}</div>
+
+    <section class="tarjeta" aria-label="Código del stand">${tarjeta}</section>
+
+    <button class="demo-link" data-accion="alcance">Prototipo: ${estado.soloUnStand ? 'ver como líder de todo el pabellón' : 'ver como líder de un solo stand'}</button>
+  `;
+}
+
+/* ---------- Vista: ranking ---------- */
+function vistaRanking() {
+  const r = RANKING;
+  const lugar = (n, clase) => `
+    <div class="lugar ${clase}">
+      <div class="avatar">${iniciales(r[n].nombre)}</div>
+      <div class="nombre">${r[n].nombre}</div>
+      <div class="pts tnum">${r[n].puntos} pts</div>
+      <div class="base">${n + 1}</div>
+    </div>`;
+  app.innerHTML = `
+    <h1 class="rank-titulo">Ranking</h1>
+    <div class="podio">${lugar(1, 'l2')}${lugar(0, 'l1')}${lugar(2, 'l3')}</div>
+    <ul class="lista">
+      ${r.map((p, i) => `
+        <li class="fila">
+          <span class="pos tnum">${i + 1}</span>
+          <span class="avatar">${iniciales(p.nombre)}</span>
+          <span class="quien"><b>${p.nombre}</b><span>${p.stands} ${p.stands === 1 ? 'stand' : 'stands'}</span></span>
+          <span class="total tnum">${p.puntos}</span>
+        </li>`).slice(3).join('')}
+    </ul>
+    <p class="aviso" style="text-align:center">En empate, va primero quien llegó antes a ese puntaje.</p>
+  `;
+}
+
+/* ---------- Navegación y eventos ---------- */
+function render() {
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('activa', b.dataset.ir === estado.vista));
+  estado.vista === 'codigo' ? vistaCodigo() : vistaRanking();
+}
+
+const ACCIONES = {
+  pedir: pedirGenerar,
+  generar,
+  acelerar: () => { datos().activo.expiraEn = Date.now() + 10000; },
+  alcance: () => { estado.soloUnStand = !estado.soloUnStand; estado.standId = 'STD-001'; render(); },
+};
+
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-cerrar]')) return cerrarHoja();
+  const destino = e.target.closest('[data-ir]');
+  if (destino) { estado.vista = destino.dataset.ir; render(); window.scrollTo(0, 0); return; }
+  const elegir = e.target.closest('[data-elegir]');
+  if (elegir) { estado.standId = elegir.dataset.elegir; return render(); }
+  const accion = e.target.closest('[data-accion]');
+  if (accion) ACCIONES[accion.dataset.accion]();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
+
+render();
+setInterval(tic, 250);
+</script>
+</body>
+</html>

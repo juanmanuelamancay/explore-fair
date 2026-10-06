@@ -1,0 +1,51 @@
+<section id="vista-panel-admin" class="vista" hidden>
+
+  <header class="cab">
+    <div>
+      <p class="sec chico" data-marca></p>
+      <h1 id="panel-saludo"></h1>
+    </div>
+    <button class="refrescar" data-refrescar aria-label="Actualizar"></button>
+  </header>
+
+  <div class="guia" id="panel-guia" role="status">
+    <span class="icono" id="panel-guia-icono"></span>
+    <p><b id="panel-guia-titulo"></b><span id="panel-guia-texto"></span></p>
+  </div>
+
+  <h2 class="titulo-seccion">Datos generados durante la feria</h2>
+  <ul class="lista" id="panel-conteos"></ul>
+
+  <h2 class="titulo-seccion">Catálogo</h2>
+  <section class="tarjeta panel-reinicio">
+    <h2>Actualizar desde el Sheet</h2>
+    <p>Si cambiaste pabellones, stands, preguntas, líderes, permisos o configuración en el Sheet, la app lo toma sola en un minuto. Pulsa aquí para que lo tome ahora.</p>
+    <button class="btn secundario" id="panel-actualizar">Actualizar ahora</button>
+  </section>
+
+  <h2 class="titulo-seccion">Reinicio</h2>
+  <section class="tarjeta panel-reinicio">
+    <h2>Reiniciar la feria</h2>
+    <p>Deja la app como al inicio: sin usuarios, sin puntajes y sin códigos. Úsalo después de las pruebas y antes de abrir la feria.</p>
+
+    <div class="grupo">
+      <h3>Se borra</h3>
+      <ul>
+        <li><span class="marca borra"></span><div>Intentos<span>Todos los puntajes y el ranking vuelven a cero</span></div></li>
+        <li><span class="marca borra"></span><div>Códigos<span>Los códigos activos dejan de funcionar</span></div></li>
+        <li><span class="marca borra"></span><div>Usuarios<span>Se registran de nuevo, solos, al volver a entrar</span></div></li>
+      </ul>
+    </div>
+    <div class="grupo">
+      <h3>Se conserva</h3>
+      <ul>
+        <li><span class="marca queda"></span><div>Pabellones, stands y preguntas</div></li>
+        <li><span class="marca queda"></span><div>Líderes, admins, permisos y configuración</div></li>
+      </ul>
+    </div>
+
+    <button class="btn peligro-borde" id="panel-abrir" disabled>Reiniciar datos</button>
+    <p class="aviso" id="panel-ultimo"></p>
+  </section>
+
+</section>

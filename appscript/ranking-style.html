@@ -1,0 +1,31 @@
+<style>
+  /* Vista RANKING: podio, lista y fila propia. */
+  .rank-cab { margin-bottom: 20px; }
+  .rank-cab .rank-titulo { font-size: 24px; font-weight: 400; }
+  .podio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: end; margin-bottom: 20px; padding-top: 16px; }
+  .lugar { text-align: center; min-width: 0; }
+  .lugar .avatar { display: grid; margin: 0 auto 6px; width: 48px; height: 48px; }
+  .l1 .avatar { width: 60px; height: 60px; font-size: 18px; }
+  .l1 .corona { width: 28px; height: 21px; top: -16px; }
+  .lugar .nombre { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lugar .pts { font-size: 13px; color: var(--texto-2); }
+  .lugar .base { margin-top: 8px; border-radius: 12px 12px 0 0; background: var(--m-fondo, var(--superficie)); font-size: 20px; font-weight: 700; display: grid; place-items: center; color: var(--m-texto, var(--texto-2)); }
+  .l1 .base { height: 72px; }
+  .l2 .base { height: 52px; }
+  .l3 .base { height: 40px; }
+  .lugar.yo .nombre { color: var(--azul); }
+
+  .fila .pos { width: 24px; text-align: center; font-weight: 500; color: var(--texto-2); flex: none; }
+  .fila .total { font-weight: 500; }
+  .fila.yo { background: var(--azul-suave); }
+  .fila.yo .pos, .fila.yo .total { color: var(--azul); }
+  .fila.yo .avatar:not(.oro):not(.plata):not(.bronce) { background: var(--azul); border-color: var(--azul); color: #fff; }
+  .fila.con-corona { padding-top: 18px; }   /* deja sitio a la corona sobre el avatar */
+
+  .mi-puesto { position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); z-index: 4; pointer-events: none; }
+  .mi-puesto .fila {
+    max-width: 448px; margin: 0 16px 8px; border: 0; border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+  }
+  @media (min-width: 480px) { .mi-puesto .fila { margin: 0 auto 8px; } }
+</style>

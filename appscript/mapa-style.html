@@ -1,0 +1,89 @@
+<style>
+  /* Vista MAPA: el usuario en el centro y los pabellones alrededor. */
+  .mapa { position: relative; width: 100%; max-width: 400px; aspect-ratio: 1; margin: 20px auto 48px; }
+  .mapa svg.orbita { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .mapa .estado { position: absolute; inset: 0; justify-content: center; }
+
+  .punto { position: absolute; transform: translate(-50%, -50%); display: block; }
+  .punto .rot {
+    position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    width: 104px; text-align: center; font-size: 13px; line-height: 1.2; font-weight: 500;
+    pointer-events: none;
+  }
+  .punto .rot small { display: block; font-size: 12px; font-weight: 500; color: var(--c); margin-top: 2px; }
+  .punto .hecho {
+    position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--verde); border: 3px solid var(--fondo); display: grid; place-items: center;
+  }
+
+  .pab .disco {
+    position: relative; width: 64px; height: 64px; border-radius: 50%; padding: 3px; display: block;
+    background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--borde-suave) 0);
+    transition: transform .12s;
+  }
+  .pab .disco > span {
+    width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center;
+    background: var(--t); color: var(--c); border: 2px solid var(--fondo);
+  }
+  .pab .disco .hecho { right: -4px; bottom: -4px; width: 24px; height: 24px; }
+  .pab:active .disco, .yo-nodo:active .disco { transform: scale(.94); }
+
+  /* Pabellones cerrados hasta terminar el quiz de entrada */
+  .pab.bloqueado .disco > span { filter: grayscale(1); opacity: .5; }
+  .pab.bloqueado .rot { color: #9aa0a6; }
+  .pab.bloqueado:active .disco { transform: none; }
+  .pab .candado {
+    position: absolute; right: -4px; bottom: -4px; width: 24px; height: 24px; border-radius: 50%;
+    background: #f1f3f4; border: 3px solid var(--fondo); display: grid; place-items: center;
+  }
+
+  .yo-nodo .disco {
+    position: relative; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--azul); color: #fff; font-size: 24px; font-weight: 500;
+    box-shadow: 0 1px 3px rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+    transition: transform .12s;
+  }
+  .yo-nodo.pendiente .disco::before {
+    content: ""; position: absolute; inset: -6px; border-radius: 50%;
+    border: 2px solid var(--azul); animation: pulso 1.8s ease-out infinite;
+  }
+  @keyframes pulso { from { transform: scale(.92); opacity: .8; } to { transform: scale(1.25); opacity: 0; } }
+  .yo-nodo .rot { background: var(--fondo); border-radius: 8px; padding: 2px 0; width: 112px; }
+  .yo-nodo .rot small { color: var(--azul); }
+
+  /*
+   * Apertura al terminar el quiz de entrada: cada pabellón recupera su color, su candado salta
+   * y desaparece, y una onda de su color se expande. --retraso los escalona uno tras otro.
+   * "both" mantiene el aspecto cerrado mientras a cada uno le llega su turno.
+   */
+  .pab.abriendo .disco > span { animation: abrir-color var(--duracion) ease both; animation-delay: var(--retraso); }
+  .pab.abriendo .rot { animation: abrir-texto var(--duracion) ease both; animation-delay: var(--retraso); }
+  .pab.abriendo .candado { animation: abrir-candado var(--duracion) cubic-bezier(.3, 0, .2, 1) both; animation-delay: var(--retraso); }
+  .pab.abriendo .disco::after {
+    content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--c);
+    opacity: 0; animation: abrir-onda var(--duracion) ease-out forwards; animation-delay: var(--retraso);
+  }
+  .yo-nodo .hecho.recien { animation: abrir-check .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+  @keyframes abrir-color { from { filter: grayscale(1); opacity: .5; } to { filter: none; opacity: 1; } }
+  @keyframes abrir-texto { from { color: #9aa0a6; } to { color: var(--texto); } }
+  @keyframes abrir-candado {
+    0% { transform: none; opacity: 1; }
+    35% { transform: scale(1.3) rotate(-14deg); opacity: 1; }
+    100% { transform: scale(0) rotate(20deg); opacity: 0; }
+  }
+  @keyframes abrir-onda { 0% { transform: scale(.95); opacity: .7; } 100% { transform: scale(1.45); opacity: 0; } }
+  @keyframes abrir-check { from { transform: scale(0); } to { transform: scale(1); } }
+
+  /* Hoja con los stands de un pabellón */
+  .hoja-cab { display: flex; align-items: center; gap: 12px; padding: 4px 16px 12px; }
+  .hoja-cab .icono { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--t); color: var(--c); flex: none; }
+  .hoja-cab h2 { font-size: 20px; }
+  .item { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; min-height: 68px; padding: 10px 16px; border-radius: 16px; }
+  button.item:active { background: var(--superficie); }
+  .item .nom { flex: 1; min-width: 0; }
+  .item .nom b { display: block; }
+  .item .nom span { font-size: 13px; color: var(--texto-2); }
+  .item .fin { font-size: 14px; font-weight: 500; flex: none; display: flex; align-items: center; gap: 4px; color: var(--texto-2); }
+  .item.hecho .fin { color: var(--verde); }
+  .item.vencido { opacity: .6; }
+</style>

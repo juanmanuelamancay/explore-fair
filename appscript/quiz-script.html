@@ -1,0 +1,220 @@
+<script>
+(() => {
+  const LETRAS = 'ABCD';
+  const SEGUNDOS_EN_ROJO = 30;
+  const pantalla = $('quiz-pantalla');
+
+  // Lo que llega desde el mapa (stand, pabellon, color, tinte) más el quiz en curso.
+  let q = null;
+
+  function mostrar(datos) {
+    q = { stand: datos.stand, pabellon: datos.pabellon, color: datos.color, tinte: datos.tinte, intervalo: null };
+    if (q.stand.estado === 'EN_CURSO') {
+      // Cerró la app a mitad del quiz: se retoma sin pedir el código otra vez.
+      App.cargando(pantalla);
+      iniciar('');
+    } else {
+      pantallaCodigo();
+    }
+  }
+
+  function ocultar() { if (q) clearInterval(q.intervalo); }
+
+  const cabecera = () => `
+    <div class="barra-sup" style="--c:${q.color}">
+      <button class="volver" data-ir="mapa" aria-label="Volver al mapa">${svg(ICONO.atras)}</button>
+      <div class="donde"><span class="etiqueta-pab">${esc(q.pabellon)}</span><b>${esc(q.stand.nombre)}</b></div>
+    </div>`;
+
+  /* ---------- Código ---------- */
+  function pantallaCodigo() {
+    const s = q.stand;
+    pantalla.innerHTML = `
+      ${cabecera()}
+      <div class="tarjeta centro" style="--c:${q.color};--t:${q.tinte}">
+        <div class="disco-grande">${esc(abreviatura(s.nombre))}</div>
+        <h2>${esc(s.nombre)}</h2>
+        <div class="datos">
+          <span class="chip">${s.numPreguntas} preguntas</span>
+          <span class="chip">${INICIO.minutosParaResponder} minutos</span>
+          <span class="chip">Hasta ${s.puntosMax} pts</span>
+        </div>
+        ${s.requiereCodigo ? `
+          <label class="campo" for="quiz-codigo">Código que te dio el líder del stand</label>
+          <input id="quiz-codigo" maxlength="4" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="····" aria-describedby="quiz-error">
+          <p class="msg-error" id="quiz-error" role="alert"></p>` : ''}
+        <button class="btn" id="quiz-empezar" ${s.requiereCodigo ? 'disabled' : ''}>Empezar</button>
+        <p class="aviso">El tiempo corre desde que empiezas y solo tienes un intento.</p>
+      </div>`;
+
+    const boton = $('quiz-empezar');
+    const campo = $('quiz-codigo');
+    if (!campo) { boton.onclick = () => iniciar(''); return; }
+
+    campo.oninput = () => {
+      campo.value = campo.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      campo.classList.remove('error');
+      $('quiz-error').textContent = '';
+      boton.disabled = campo.value.length < 4;
+    };
+    campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
+    boton.onclick = () => iniciar(campo.value);
+    campo.focus();
+  }
+
+  function iniciar(codigo) {
+    const boton = $('quiz-empezar');
+    if (boton) { boton.disabled = true; boton.innerHTML = '<i class="giro"></i>Validando…'; }
+
+    servidor('iniciarQuiz', q.stand.id, codigo).then(r => {
+      if (!r.ok) return inicioRechazado(r);
+      if (r.aviso) toast(r.aviso);
+      q.intentoId = r.intentoId;
+      q.preguntas = r.preguntas;
+      q.respuestas = {};
+      q.actual = 0;
+      // El reloj se guía por la hora del servidor, no por la del celular.
+      q.venceEn = r.venceEn + (Date.now() - r.ahora);
+      pantallaPregunta();
+      q.intervalo = setInterval(tic, 250);
+    }).catch(() => {
+      toast('No pudimos empezar el quiz. Revisa tu conexión.');
+      if ($('quiz-empezar')) pantallaCodigo(); else App.ir('mapa');
+    });
+  }
+
+  function inicioRechazado(r) {
+    const campo = $('quiz-codigo');
+    if (r.motivo === 'CODIGO' && campo) {
+      const boton = $('quiz-empezar');
+      boton.textContent = 'Empezar';
+      boton.disabled = false;
+      campo.classList.add('error');
+      $('quiz-error').textContent = r.mensaje;
+      campo.select();
+      return;
+    }
+    if (r.motivo === 'VENCIDO') return pantallaVencido();
+    toast(r.mensaje);
+    App.ir('mapa');
+  }
+
+  /* ---------- Preguntas ---------- */
+  const restante = () => Math.max(0, Math.ceil((q.venceEn - Date.now()) / 1000));
+
+  function tic() {
+    const r = restante();
+    const reloj = $('quiz-reloj');
+    if (reloj) {
+      reloj.querySelector('span').textContent = formatoReloj(r);
+      reloj.classList.toggle('poco', r <= SEGUNDOS_EN_ROJO);
+    }
+    if (r === 0) { clearInterval(q.intervalo); pantallaVencido(); }
+  }
+
+  function pantallaPregunta() {
+    const p = q.preguntas[q.actual];
+    const elegida = q.respuestas[p.id];
+    const ultima = q.actual === q.preguntas.length - 1;
+    const r = restante();
+
+    pantalla.innerHTML = `
+      <div class="quiz-cab" style="--c:${q.color}">
+        <div class="quiz-fila">
+          <div class="donde"><span class="etiqueta-pab">${esc(q.pabellon)}</span><b>${esc(q.stand.nombre)}</b></div>
+          <div class="reloj tnum ${r <= SEGUNDOS_EN_ROJO ? 'poco' : ''}" id="quiz-reloj" aria-label="Tiempo restante">${svg(ICONO.reloj, 18)}<span>${formatoReloj(r)}</span></div>
+        </div>
+        <div class="pasos" aria-hidden="true">${q.preguntas.map((_, i) => `<i class="${i < q.actual ? 'pasado' : i === q.actual ? 'actual' : ''}"></i>`).join('')}</div>
+      </div>
+      <p class="sec chico">Pregunta ${q.actual + 1} de ${q.preguntas.length}</p>
+      <h2 class="enunciado">${esc(p.texto)}</h2>
+      <div role="radiogroup" aria-label="Opciones">
+        ${p.opciones.map((texto, i) => `
+          <button class="opcion ${elegida === LETRAS[i] ? 'elegida' : ''}" role="radio" aria-checked="${elegida === LETRAS[i]}" data-letra="${LETRAS[i]}">
+            <span class="letra">${LETRAS[i]}</span><span>${esc(texto)}</span>
+          </button>`).join('')}
+      </div>
+      <button class="btn" id="quiz-siguiente" ${elegida ? '' : 'disabled'}>${ultima ? 'Enviar respuestas' : 'Siguiente'}</button>`;
+
+    $('quiz-siguiente').onclick = () => {
+      if (ultima) return enviar();
+      q.actual++;
+      pantallaPregunta();
+      window.scrollTo(0, 0);
+    };
+  }
+
+  function enviar() {
+    const boton = $('quiz-siguiente');
+    q.enviando = true;
+    boton.disabled = true;
+    boton.innerHTML = '<i class="giro"></i>Enviando…';
+    // Ya terminó: el reloj se detiene mientras el servidor corrige.
+    clearInterval(q.intervalo);
+
+    servidor('enviarQuiz', q.intentoId, q.respuestas).then(r => {
+      if (r.ok) return pantallaResultado(r);
+      if (r.motivo === 'VENCIDO') return pantallaVencido();
+      toast(r.mensaje);
+      App.ir('mapa');
+    }).catch(() => {
+      toast('No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.');
+      q.enviando = false;
+      boton.disabled = false;
+      boton.textContent = 'Enviar respuestas';
+      q.intervalo = setInterval(tic, 250);
+    });
+  }
+
+  /* ---------- Resultado ---------- */
+  function pantallaResultado(r) {
+    const antes = App.estado.puesto;
+    App.estado.puesto = r.puesto;
+    // El mapa lo usa para mostrar el resultado al instante, sin esperar al servidor.
+    App.estado.recien = { standId: q.stand.id, estado: 'COMPLETADO', correctas: r.correctas, total: r.total, puntaje: r.puntaje, puesto: r.puesto };
+    let puesto = '';
+    if (r.puesto) {
+      const subio = antes ? antes - r.puesto : 0;
+      puesto = subio > 0 ? `Subiste ${subio} ${subio === 1 ? 'puesto' : 'puestos'}. Ahora vas #${r.puesto}.`
+        : antes === r.puesto ? `Te mantienes en el puesto #${r.puesto}.` : `Vas en el puesto #${r.puesto}.`;
+    }
+    pantalla.innerHTML = `
+      ${cabecera()}
+      <div class="tarjeta centro">
+        <div class="aro" style="--p:${r.total ? r.correctas / r.total * 100 : 0}"><div class="tnum">${r.correctas}/${r.total}</div></div>
+        <p class="ganado tnum">+${r.puntaje} puntos</p>
+        <p class="sec" style="margin-top:6px">${puesto}</p>
+        <ul class="detalle">
+          ${q.preguntas.map((p, i) => `<li>${r.aciertos[i] ? svg(ICONO.check, 20, '#188038', 3) : svg(ICONO.equis, 20, '#d93025', 2.5)}<span>${esc(p.texto)}</span></li>`).join('')}
+        </ul>
+      </div>
+      <button class="btn" data-ir="mapa">Volver al mapa</button>
+      ${INICIO.vistas.indexOf('RANKING') >= 0 ? '<button class="btn secundario" data-ir="ranking">Ver ranking</button>' : ''}`;
+    window.scrollTo(0, 0);
+  }
+
+  function pantallaVencido() {
+    clearInterval(q.intervalo);
+    App.estado.recien = { standId: q.stand.id, estado: 'VENCIDO', correctas: 0, total: q.stand.numPreguntas, puntaje: 0, puesto: App.estado.puesto };
+    pantalla.innerHTML = `
+      ${cabecera()}
+      <div class="tarjeta centro">
+        <div class="disco-grande">${svg(ICONO.reloj, 36)}</div>
+        <h2>Se acabó el tiempo</h2>
+        <p class="sec" style="margin-top:8px">No alcanzaste a enviar tus respuestas de ${esc(q.stand.nombre)}, así que este stand no suma puntos.</p>
+        <p class="sec" style="margin-top:8px">Todavía puedes sumar en los demás stands.</p>
+      </div>
+      <button class="btn" data-ir="mapa">Volver al mapa</button>`;
+    window.scrollTo(0, 0);
+  }
+
+  pantalla.addEventListener('click', e => {
+    const opcion = e.target.closest('[data-letra]');
+    if (!opcion || !q || !q.preguntas || q.enviando) return;
+    q.respuestas[q.preguntas[q.actual].id] = opcion.dataset.letra;
+    pantallaPregunta();
+  });
+
+  App.registrar('quiz', { alMostrar: mostrar, alOcultar: ocultar, sinNav: true });
+})();
+</script>

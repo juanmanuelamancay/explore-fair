@@ -1,0 +1,32 @@
+<section id="vista-espera" class="vista" hidden>
+
+  <header class="cab">
+    <div>
+      <p class="sec chico" data-marca></p>
+      <h1 id="espera-saludo"></h1>
+    </div>
+    <button class="refrescar" data-refrescar aria-label="Actualizar"></button>
+  </header>
+
+  <!-- Cuenta regresiva, o el aviso de que ya llegó el día -->
+  <section class="tarjeta centro espera-cuenta" id="espera-cuenta" aria-live="polite"></section>
+
+  <!-- Carrusel: empieza en Premios, sigue con Cómo se juega y luego una tarjeta por pabellón
+       (las agrega el script). Se desliza con el dedo, avanza solo y los puntos llevan a cada lámina. -->
+  <div class="carrusel" id="espera-carrusel" hidden>
+
+    <section class="lamina" data-titulo="Premios" id="espera-premios" hidden></section>
+
+    <section class="lamina" data-titulo="Cómo se juega">
+      <h2 class="titulo-seccion">Cómo se juega</h2>
+      <ol class="lista espera-pasos">
+        <li class="fila"><span class="paso">1</span><span class="quien"><b>Responde el quiz de entrada</b><span>Es lo primero al llegar y abre los pabellones.</span></span></li>
+        <li class="fila"><span class="paso">2</span><span class="quien"><b>Visita los stands</b><span>Al terminar cada charla, el líder te da un código.</span></span></li>
+        <li class="fila"><span class="paso">3</span><span class="quien"><b>Suma puntos y sube en el ranking</b><span>Cada respuesta correcta cuenta. Solo hay un intento por stand.</span></span></li>
+      </ol>
+    </section>
+
+  </div>
+  <div class="carrusel-puntos" id="espera-puntos" role="tablist"></div>
+
+</section>

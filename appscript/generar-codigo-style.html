@@ -1,0 +1,28 @@
+<style>
+  /* Vista GENERAR_CODIGO: el código en grande para leerlo de lejos. */
+  .tu-stand { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+  .tu-stand b { display: block; font-size: 17px; }
+  .chips { display: flex; gap: 8px; margin-top: 20px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip-stand {
+    flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px;
+    border: 1px solid var(--borde); font-size: 14px; font-weight: 500; color: var(--texto-2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip-stand.activo { background: var(--t); border-color: var(--c); color: var(--c); }
+  .chip-stand i { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); }
+
+  .codigo-tarjeta { margin-top: 16px; }
+  .codigo-tarjeta h2 { font-size: 20px; }
+  .codigo {
+    font: 500 64px/1 "Roboto Mono", ui-monospace, Consolas, monospace;
+    letter-spacing: .18em; margin: 10px 0 18px; padding-left: .18em;
+  }
+  .codigo.vencido { color: #9aa0a6; text-decoration: line-through; text-decoration-thickness: 2px; }
+  .barra { height: 6px; border-radius: 3px; background: var(--borde-suave); overflow: hidden; }
+  .barra i { display: block; height: 100%; border-radius: 3px; background: var(--azul); transition: width .25s linear; }
+  .barra.poco i { background: var(--rojo); }
+  .vence { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 14px; color: var(--texto-2); }
+  .vence b { font-size: 18px; color: var(--texto); }
+  .vence.poco b { color: var(--rojo); }
+</style>

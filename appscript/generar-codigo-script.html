@@ -1,0 +1,141 @@
+<script>
+(() => {
+  const SEGUNDOS_EN_ROJO = 60;
+  const tarjeta = $('codigo-tarjeta');
+  let stands = null;
+  let elegido = null;       // id del stand en pantalla
+  let desfase = 0;          // hora del servidor menos hora del celular
+  let intervalo = null;
+  const vencidos = {};      // stand -> último código que venció mientras se veía, hasta generar otro
+
+  const stand = () => stands.find(s => s.id === elegido);
+  const restante = activo => Math.max(0, Math.ceil((activo.expiraEn - (Date.now() + desfase)) / 1000));
+  const totalSegundos = () => INICIO.minutosVigenciaCodigo * 60;
+
+  function mostrar() {
+    $('codigo-saludo').textContent = 'Hola, ' + INICIO.nombre.split(' ')[0];
+    if (!stands) App.cargando(tarjeta);
+    cargar();
+    intervalo = setInterval(tic, 250);
+  }
+
+  function ocultar() { clearInterval(intervalo); }
+
+  function cargar() {
+    return servidor('obtenerCodigos').then(r => {
+      stands = r.stands;
+      desfase = r.ahora - Date.now();
+      if (!stands.some(s => s.id === elegido)) elegido = stands.length ? stands[0].id : null;
+      pintar();
+    }).catch(() => { if (!stands) App.error(tarjeta, cargar); });
+  }
+
+  function pintar() {
+    if (!stands.length) {
+      $('codigo-stand').innerHTML = '';
+      tarjeta.innerHTML = `<div class="disco-grande">${svg(ICONO.llave, 32)}</div><h2>No tienes stands asignados</h2>
+        <p class="aviso">Pide a un administrador que te asigne tu stand.</p>`;
+      return;
+    }
+    const s = stand();
+    const tono = paleta(s.indice);
+    const activo = s.activo;
+
+    $('codigo-guia-icono').innerHTML = svg(activo ? ICONO.megafono : ICONO.llave, 20);
+    $('codigo-guia-titulo').textContent = activo ? 'Comparte este código' : 'Al terminar tu charla';
+    $('codigo-guia-texto').textContent = activo ? 'Dilo en voz alta o muestra tu pantalla.' : 'Genera el código para que respondan el quiz.';
+
+    $('codigo-stand').innerHTML = stands.length === 1
+      ? `<div class="tu-stand" style="--c:${tono.color};--t:${tono.tinte}">
+           <span class="abr">${esc(abreviatura(s.nombre))}</span>
+           <div><span class="etiqueta-pab">${esc(s.pabellon)}</span><b>${esc(s.nombre)}</b></div>
+         </div>`
+      : `<div class="chips" role="tablist" aria-label="Stands">
+           ${stands.map(x => {
+             const t = paleta(x.indice);
+             return `<button class="chip-stand ${x.id === s.id ? 'activo' : ''}" role="tab" aria-selected="${x.id === s.id}"
+                       data-elegir="${esc(x.id)}" style="--c:${t.color};--t:${t.tinte}">
+                       ${esc(x.nombre)}${x.activo ? '<i title="Código activo"></i>' : ''}</button>`;
+           }).join('')}
+         </div>`;
+
+    if (activo) {
+      const r = restante(activo), poco = r <= SEGUNDOS_EN_ROJO;
+      tarjeta.innerHTML = `
+        <p class="sec chico">Código de ${esc(s.nombre)}</p>
+        <p class="codigo" aria-label="Código ${esc(activo.codigo.split('').join(' '))}">${esc(activo.codigo)}</p>
+        <div class="barra ${poco ? 'poco' : ''}" id="codigo-barra"><i style="width:${Math.min(100, r / totalSegundos() * 100)}%"></i></div>
+        <div class="vence ${poco ? 'poco' : ''}" id="codigo-vence"><span>Se puede ingresar durante</span><b class="tnum" id="codigo-resta">${formatoReloj(r)}</b></div>
+        <button class="btn secundario" data-accion="pedir">Generar uno nuevo</button>`;
+    } else if (vencidos[s.id]) {
+      tarjeta.innerHTML = `
+        <p class="sec chico">El código venció</p>
+        <p class="codigo vencido">${esc(vencidos[s.id])}</p>
+        <button class="btn" data-accion="pedir">Generar código nuevo</button>
+        <p class="aviso">Úsalo si alguien no alcanzó a ingresar o al terminar otra charla.</p>`;
+    } else {
+      tarjeta.innerHTML = `
+        <div class="disco-grande">${svg(ICONO.llave, 32)}</div>
+        <h2>Sin código activo</h2>
+        <p class="aviso">El código dura ${INICIO.minutosVigenciaCodigo} minutos y sirve solo para ${esc(s.nombre)}.</p>
+        <button class="btn" data-accion="pedir">Generar código</button>`;
+    }
+  }
+
+  function tic() {
+    if (!stands) return;
+    let vencio = false;
+    stands.forEach(s => {
+      if (s.activo && restante(s.activo) === 0) { vencidos[s.id] = s.activo.codigo; s.activo = null; vencio = true; }
+    });
+    if (vencio) return pintar();
+    const activo = elegido && stand().activo;
+    if (!activo || !$('codigo-resta')) return;
+    const r = restante(activo), poco = r <= SEGUNDOS_EN_ROJO;
+    $('codigo-resta').textContent = formatoReloj(r);
+    $('codigo-barra').classList.toggle('poco', poco);
+    $('codigo-vence').classList.toggle('poco', poco);
+    $('codigo-barra').firstElementChild.style.width = Math.min(100, r / totalSegundos() * 100) + '%';
+  }
+
+  function pedir() {
+    const s = stand();
+    if (!s.activo) return generar();
+    const hoja = App.abrirHoja(`
+      <div class="hoja-texto">
+        <h2>¿Generar un código nuevo?</h2>
+        <p>El código <b style="color:var(--texto)">${esc(s.activo.codigo)}</b> dejará de funcionar de inmediato. Quienes ya entraron con él pueden terminar su quiz.</p>
+        <button class="btn" data-accion="generar">Generar código nuevo</button>
+        <button class="btn texto" data-cerrar>Cancelar</button>
+      </div>`);
+    hoja.onclick = e => { if (e.target.closest('[data-accion="generar"]')) generar(); };
+  }
+
+  function generar() {
+    const s = stand();
+    App.cerrarHoja();
+    const boton = tarjeta.querySelector('[data-accion="pedir"]');
+    if (boton) { boton.disabled = true; boton.innerHTML = '<i class="giro oscuro" style="width:18px;height:18px;vertical-align:-3px;margin-right:8px"></i>Generando…'; }
+
+    servidor('generarCodigo', s.id).then(r => {
+      desfase = r.ahora - Date.now();
+      s.activo = { codigo: r.codigo, expiraEn: r.expiraEn };
+      delete vencidos[s.id];
+      pintar();
+    }).catch(() => {
+      toast('No pudimos generar el código. Inténtalo de nuevo.');
+      pintar();
+    });
+  }
+
+  $('vista-generar-codigo').addEventListener('click', e => {
+    if (!stands) return;
+    const ficha = e.target.closest('[data-elegir]');
+    if (ficha) { elegido = ficha.dataset.elegir; return pintar(); }
+    const accion = e.target.closest('[data-accion="pedir"]');
+    if (accion && !accion.disabled) pedir();
+  });
+
+  App.registrar('generar-codigo', { alMostrar: mostrar, alOcultar: ocultar, alRefrescar: cargar });
+})();
+</script>

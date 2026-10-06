@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+  <?!= incluir('comun-style') ?>
+  <? for (var i = 0; i < archivos.length; i++) { ?>
+    <?!= incluir(archivos[i] + '-style') ?>
+  <? } ?>
+</head>
+<body>
+
+  <div class="franja" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+  <main id="app">
+    <? for (var i = 0; i < archivos.length; i++) { ?>
+      <?!= incluir(archivos[i] + '-view') ?>
+    <? } ?>
+  </main>
+
+  <nav id="nav" aria-label="Navegación principal" hidden><div class="dentro" id="nav-dentro"></div></nav>
+
+  <div id="velo" data-cerrar></div>
+  <section id="hoja" role="dialog" aria-modal="true"></section>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script>window.INICIO = <?!= inicio ?>;</script>
+  <?!= incluir('comun-script') ?>
+  <? for (var i = 0; i < archivos.length; i++) { ?>
+    <?!= incluir(archivos[i] + '-script') ?>
+  <? } ?>
+  <script>App.iniciar();</script>
+
+</body>
+</html>

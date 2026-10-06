@@ -1,0 +1,93 @@
+<script>
+(() => {
+  const SEGUNDOS_MINIMOS_DE_REFRESCO = 15;
+  const contenido = $('ranking-contenido');
+  const fija = $('ranking-mi-puesto');
+  let filas = null;
+  let intervalo = null;
+  let observador = null;
+
+  let enPantalla = false;   // la vista Ranking es la que se está mostrando
+
+  /** Siempre trae el ranking al entrar: quien vuelve de un quiz lo ve al día sin esperar ni pulsar nada. */
+  function mostrar() {
+    enPantalla = true;
+    if (!filas) App.cargando(contenido);
+    cargar();
+    programar();
+  }
+
+  // Mientras la vista está abierta se refresca sola, sin bajar de 15 segundos para no saturar el servidor.
+  function programar() {
+    clearInterval(intervalo);
+    intervalo = setInterval(cargar, Math.max(SEGUNDOS_MINIMOS_DE_REFRESCO, INICIO.segundosRefresco) * 1000);
+  }
+
+  // Con el celular bloqueado o la app en segundo plano no se pide nada; al volver se actualiza de inmediato.
+  document.addEventListener('visibilitychange', () => {
+    if (!enPantalla) return;
+    if (document.hidden) return clearInterval(intervalo);
+    cargar();
+    programar();
+  });
+
+  function ocultar() {
+    enPantalla = false;
+    clearInterval(intervalo);
+    if (observador) observador.disconnect();
+    fija.hidden = true;
+  }
+
+  function cargar() {
+    return servidor('obtenerRanking').then(r => { filas = r.filas; pintar(); })
+      .catch(() => { if (!filas) App.error(contenido, cargar); });
+  }
+
+  const htmlFila = (p, i) => `
+    <li class="fila ${p.yo ? 'yo' : ''} ${i < 3 ? 'con-corona' : ''}">
+      <span class="pos tnum">${i + 1}</span>
+      ${avatarDePuesto(p.nombre, i + 1)}
+      <span class="quien"><b>${esc(p.nombre)}${p.yo ? ' (tú)' : ''}</b><span>${p.stands} ${p.stands === 1 ? 'stand' : 'stands'}</span></span>
+      <span class="total tnum">${p.puntos}</span>
+    </li>`;
+
+  function pintar() {
+    if (observador) observador.disconnect();
+    fija.hidden = true;
+
+    if (!filas.length) {
+      contenido.innerHTML = `<div class="tarjeta estado"><div class="icono">${svg(ICONO.trofeo, 32)}</div>
+        <h2>Aún no hay puntajes</h2><p>El ranking se llena cuando alguien responde su primer quiz.</p></div>`;
+      return;
+    }
+
+    // El podio necesita tres personas; con menos se muestra todo como lista.
+    const conPodio = filas.length >= 3;
+    const lugar = (n, clase) => `
+      <div class="lugar ${clase} ${metalDe(n + 1)} ${filas[n].yo ? 'yo' : ''}">
+        ${avatarDePuesto(filas[n].nombre, n + 1)}
+        <div class="nombre">${esc(filas[n].nombre)}${filas[n].yo ? ' (tú)' : ''}</div>
+        <div class="pts tnum">${filas[n].puntos} pts</div>
+        <div class="base">${n + 1}</div>
+      </div>`;
+    const lista = filas.map(htmlFila).slice(conPodio ? 3 : 0).join('');
+
+    contenido.innerHTML = `
+      ${conPodio ? `<div class="podio">${lugar(1, 'l2')}${lugar(0, 'l1')}${lugar(2, 'l3')}</div>` : ''}
+      ${lista ? `<ul class="lista">${lista}</ul>` : ''}
+      <p class="aviso">En empate, va primero quien llegó antes a ese puntaje.</p>
+      <div style="height:72px"></div>`;
+
+    // La fila propia queda fija abajo solo mientras la original no se ve en pantalla.
+    const original = contenido.querySelector('.fila.yo');
+    if (!original) return;
+    const yo = filas.findIndex(p => p.yo);
+    fija.innerHTML = `<ul>${htmlFila(filas[yo], yo)}</ul>`;
+    observador = new IntersectionObserver(entradas => { fija.hidden = entradas[0].intersectionRatio >= 0.9; },
+      { rootMargin: '0px 0px -72px 0px', threshold: 0.9 });
+    observador.observe(original);
+  }
+
+  App.registrar('ranking', { alMostrar: mostrar, alOcultar: ocultar, alRefrescar: cargar });
+})();
+</script>

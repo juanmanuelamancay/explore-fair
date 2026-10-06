@@ -1,0 +1,200 @@
+<script>
+/* Utilidades y navegación compartidas. Cada vista se registra con App.registrar(nombre, { alMostrar, alOcultar, sinNav }). */
+
+const INICIO = window.INICIO;
+const $ = id => document.getElementById(id);
+
+/** Todo dato que venga de las hojas pasa por aquí antes de entrar a innerHTML. */
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const iniciales = nombre => String(nombre).trim().split(/\s+/).map(p => p.charAt(0)).slice(0, 2).join('').toUpperCase();
+const formatoReloj = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+const svg = (d, tam = 24, color = 'currentColor', grosor = 2) =>
+  `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${grosor}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+
+const ICONO = {
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  equis: 'M6 6l12 12M18 6L6 18',
+  atras: 'M19 12H5M11 6l-6 6 6 6',
+  flecha: 'M9 6l6 6-6 6',
+  reloj: 'M12 5a8 8 0 100 16 8 8 0 000-16zM12 9v4l2 2M9 2h6',
+  toque: 'M9 11V5.5a1.5 1.5 0 013 0V11m0-1.5a1.5 1.5 0 013 0V11m0-.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1a6 6 0 01-5-2.7L5 14.5a1.5 1.5 0 012.5-1.6L9 14.5V11',
+  mapa: 'M12 9a3 3 0 100 6 3 3 0 000-6zM12 3a9 9 0 100 18 9 9 0 000-18z',
+  trofeo: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3',
+  candado: 'M7 11V8a5 5 0 0110 0v3M6 11h12v9H6z',
+  refrescar: 'M20 11a8 8 0 10-2.3 5.7M20 4v7h-7',
+  llave: 'M15.5 3a5.5 5.5 0 11-5.2 7.3L3 17.6V21h3.4v-2.4h2.4v-2.4h2.3l1.2-1.2A5.5 5.5 0 0115.5 3zM17 7h.01',
+  megafono: 'M4 10v4h3l6 4V6l-6 4H4zM17 9a4 4 0 010 6',
+  escudo: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z',
+  nube: 'M7 18a4 4 0 01-.6-7.96A6 6 0 0118 9.5a4.25 4.25 0 01-.5 8.5H7zM3 3l18 18',
+};
+
+// Color, tinte e ícono de cada pabellón según su posición en el mapa. Se repiten si hay más de seis.
+/** Círculo con el número de puesto. Los tres primeros llevan corona de oro, plata o bronce. */
+const CORONA = '<svg class="corona" viewBox="0 0 24 18" aria-hidden="true"><path d="M2 5l5 4 5-7 5 7 5-4-2 11H4L2 5z"/></svg>';
+
+/** "oro", "plata" o "bronce" para los tres primeros puestos; vacío para el resto. */
+const metalDe = puesto => ['oro', 'plata', 'bronce'][puesto - 1] || '';
+
+function medalla(puesto) {
+  const metal = metalDe(puesto);
+  return `<span class="medalla ${metal}">${metal ? CORONA : ''}${puesto}</span>`;
+}
+
+/** Avatar con las iniciales; en los tres primeros puestos toma el metal y la corona. */
+function avatarDePuesto(nombre, puesto) {
+  const metal = metalDe(puesto);
+  return `<span class="avatar ${metal}">${metal ? CORONA : ''}${esc(iniciales(nombre))}</span>`;
+}
+
+const PALETA = [
+  { color: '#1a73e8', tinte: '#e8f0fe', icono: 'M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01' },
+  { color: '#d93025', tinte: '#fce8e6', icono: 'M3 4h18v12H3zM8 20h8M12 16v4' },
+  { color: '#188038', tinte: '#e6f4ea', icono: 'M12 3a9 9 0 100 18 9 9 0 000-18zM8 12.5l3 3 5-6' },
+  { color: '#e37400', tinte: '#fef7e0', icono: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z' },
+  { color: '#9334e6', tinte: '#f3e8fd', icono: 'M5 20V10M12 20V4M19 20v-7' },
+  { color: '#129eaf', tinte: '#e4f7fb', icono: 'M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4' },
+];
+const paleta = indice => PALETA[indice % PALETA.length];
+
+/** "ASO / APIs" -> "ASO", "Code Review" -> "CR", "Katalyst" -> "KATA". */
+function abreviatura(nombre) {
+  const palabras = String(nombre).split('/')[0].trim().split(/[\s&-]+/).filter(Boolean);
+  if (palabras.length > 1) return palabras.map(p => p.charAt(0)).join('').slice(0, 4).toUpperCase();
+  return (palabras[0] || '?').slice(0, 4).toUpperCase();
+}
+
+/** Llama a una función del servidor y devuelve una promesa. */
+function servidor(nombre, ...argumentos) {
+  return new Promise((bien, mal) => {
+    google.script.run.withSuccessHandler(bien).withFailureHandler(error => {
+      // Si el servidor ya no le permite esta vista (cambió su rol o se encendió la sala de espera),
+      // se comprueba su acceso y la app se reabre con lo que le corresponde.
+      if (nombre !== 'obtenerAcceso' && /No tienes permiso/.test(String(error && error.message))) App.comprobarAcceso();
+      mal(error);
+    })[nombre](...argumentos);
+  });
+}
+
+let temporizadorToast;
+function toast(texto) {
+  const t = $('toast');
+  t.textContent = texto;
+  t.classList.add('visible');
+  clearTimeout(temporizadorToast);
+  temporizadorToast = setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
+const App = (() => {
+  // vista de Permisos -> nombre de la vista en el navegador, en el orden de la barra inferior
+  const NAVEGACION = [
+    { vista: 'MAPA', nombre: 'mapa', texto: 'Mapa', icono: ICONO.mapa },
+    { vista: 'GENERAR_CODIGO', nombre: 'generar-codigo', texto: 'Código', icono: ICONO.llave },
+    { vista: 'PANEL_ADMIN', nombre: 'panel-admin', texto: 'Panel', icono: ICONO.escudo },
+    { vista: 'RANKING', nombre: 'ranking', texto: 'Ranking', icono: ICONO.trofeo },
+    { vista: 'ESPERA', nombre: 'espera', texto: 'Espera', icono: ICONO.reloj },
+  ];
+  const vistas = {};
+  let actual = null;
+  let destinos = [];
+
+  function registrar(nombre, definicion) { vistas[nombre] = definicion; }
+
+  function ir(nombre, datos) {
+    if (!vistas[nombre]) return;
+    if (actual && vistas[actual].alOcultar) vistas[actual].alOcultar();
+    cerrarHoja();
+    actual = nombre;
+    document.querySelectorAll('.vista').forEach(s => { s.hidden = s.id !== 'vista-' + nombre; });
+    const conNav = destinos.length > 1 && !vistas[nombre].sinNav;
+    $('nav').hidden = !conNav;
+    $('app').classList.toggle('sin-nav', !conNav);
+    $('nav-dentro').querySelectorAll('button').forEach(b => b.classList.toggle('activa', b.dataset.ir === nombre));
+    window.scrollTo(0, 0);
+    if (vistas[nombre].alMostrar) vistas[nombre].alMostrar(datos || {});
+  }
+
+  /**
+   * Vuelve a pedir al servidor los datos de la vista en pantalla, sin recargar la página.
+   * No toca la caché compartida: eso frenaría a todos. Los datos propios (puntaje, intentos,
+   * códigos) nunca se guardan en caché, así que siempre llegan al día.
+   */
+  /** Si el rol o las vistas ya no son los de cuando se abrió la página, la vuelve a abrir. */
+  function comprobarAcceso() {
+    return servidor('obtenerAcceso').then(a => {
+      const iguales = a.rol === INICIO.rol && a.vistas.slice().sort().join() === INICIO.vistas.slice().sort().join();
+      if (!iguales) reabrir(a.url);
+    }).catch(() => {});
+  }
+
+  function refrescar(boton) {
+    const vista = vistas[actual];
+    if (!vista || !vista.alRefrescar || boton.disabled) return;
+    const MINIMO_MS = 600;   // para que el giro se alcance a ver aunque la respuesta sea inmediata
+    const inicio = Date.now();
+    boton.disabled = true;
+    boton.classList.add('girando');
+    // A la vez que los datos, se comprueba si a la persona le cambiaron el rol o las vistas.
+    const acceso = comprobarAcceso();
+    const datos = Promise.resolve(vista.alRefrescar()).catch(() => {});
+    Promise.all([acceso, datos]).then(() => {
+      setTimeout(() => { boton.disabled = false; boton.classList.remove('girando'); }, Math.max(0, MINIMO_MS - (Date.now() - inicio)));
+    });
+  }
+
+  /**
+   * Vuelve a abrir la app para que se arme con el rol nuevo. La página vive dentro de un marco
+   * de Google que a veces impide navegar sola, así que además queda un botón para hacerlo a mano.
+   */
+  function reabrir(url) {
+    abrirHoja(`
+      <div class="hoja-texto">
+        <h2>Tu acceso cambió</h2>
+        <p>Te asignaron otro rol u otras vistas. Hay que volver a abrir la app para verlas.</p>
+        <a class="btn" href="${esc(url)}" target="_top" style="display:grid;place-items:center;text-decoration:none">Abrir de nuevo</a>
+      </div>`);
+    try { window.open(url, '_top'); } catch (error) { /* queda el botón */ }
+  }
+
+  function abrirHoja(html) {
+    $('hoja').onclick = null;   // cada vista pone su propio manejador al abrirla
+    $('hoja').innerHTML = '<div class="asa"></div>' + html;
+    document.body.classList.add('hoja-abierta');
+    return $('hoja');
+  }
+  function cerrarHoja() { document.body.classList.remove('hoja-abierta'); }
+
+  function cargando(contenedor) {
+    contenedor.innerHTML = '<div class="estado"><i class="giro oscuro"></i><p>Cargando…</p></div>';
+  }
+  function error(contenedor, reintentar) {
+    contenedor.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.nube, 32)}</div>
+      <h2>No pudimos cargar</h2><p>Revisa tu conexión e inténtalo de nuevo.</p>
+      <button class="btn secundario">Reintentar</button></div>`;
+    contenedor.querySelector('button').onclick = reintentar;
+  }
+
+  function iniciar() {
+    destinos = NAVEGACION.filter(d => INICIO.vistas.indexOf(d.vista) >= 0 && vistas[d.nombre]);
+    $('nav-dentro').innerHTML = destinos.map(d =>
+      `<button data-ir="${d.nombre}"><span class="pastilla">${svg(d.icono)}</span>${d.texto}</button>`).join('');
+    // "Explore Fair · Rol" en la cabecera de cada vista, para saber con qué rol se entró.
+    const ROLES = { USUARIO: 'Usuario', LIDER: 'Líder', ADMIN: 'Admin', PRUEBA: 'Prueba' };
+    const rol = ROLES[INICIO.rol] || INICIO.rol.charAt(0) + INICIO.rol.slice(1).toLowerCase();
+    document.querySelectorAll('[data-marca]').forEach(p => { p.textContent = 'Explore Fair · ' + rol; });
+    document.querySelectorAll('[data-refrescar]').forEach(b => { b.innerHTML = svg(ICONO.refrescar, 22); });
+    document.addEventListener('click', e => {
+      if (e.target.closest('[data-cerrar]')) return cerrarHoja();
+      const actualizar = e.target.closest('[data-refrescar]');
+      if (actualizar) return refrescar(actualizar);
+      const destino = e.target.closest('[data-ir]');
+      if (destino) ir(destino.dataset.ir);
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
+    if (destinos.length) ir(destinos[0].nombre);
+  }
+
+  // estado.puesto lo comparten mapa y quiz para decir cuánto subió la persona.
+  return { registrar, ir, abrirHoja, cerrarHoja, cargando, error, iniciar, comprobarAcceso, estado: { puesto: null } };
+})();
+</script>
