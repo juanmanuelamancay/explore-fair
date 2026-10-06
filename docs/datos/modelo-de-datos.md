@@ -63,7 +63,7 @@ Google Sheets no valida relaciones; estas reglas las hace cumplir el Apps Script
 
 1. **Un intento por persona y stand:** la combinación `email` + `stand_id` es única en `Intentos`.
 2. **Las claves no se reutilizan ni se derivan del nombre:** son correlativos generados (`PAB-001`, `STD-001`, `PRG-001`, `INT-0001`). Renombrar un stand no rompe sus preguntas ni sus intentos.
-3. **Baja lógica:** las filas con historial no se borran, se desactivan con `activo = FALSE`. Un código vencido pasa a `estado = EXPIRADO`, no se elimina.
+3. **Baja y cascada:** los registros con historial transaccional se conservan. Al eliminar un pabellón desde el panel, se eliminan físicamente sus stands y preguntas, se anulan sus códigos activos y se conservan los intentos históricos.
 4. **Coherencia de `pabellon_id` en `Intentos`:** siempre es el pabellón del `stand_id` de esa misma fila, copiado al crearla.
 5. **Coherencia del código:** el `codigo` de un intento debe pertenecer al mismo `stand_id` del intento.
 6. **Preguntas del intento:** todos los IDs de `preguntas_json` deben ser preguntas activas del `stand_id` del intento al momento de crearlo.

@@ -1,5 +1,5 @@
 /**
- * Vista PANEL_ADMIN. Por ahora solo reinicia los datos que se generan durante la feria.
+ * Vista PANEL_ADMIN: editor jerárquico del catálogo y reinicio de datos transaccionales.
  */
 
 const PALABRA_DE_REINICIO = 'REINICIAR';
@@ -68,4 +68,303 @@ function reiniciarDatos(palabra) {
   } finally {
     bloqueo.releaseLock();
   }
+}
+
+/* ---------- Editor del catálogo ---------- */
+
+const ADMIN_DEFINICIONES = {
+  pabellones: { hoja: HOJA.PABELLONES, campos: ['pabellon_id', 'nombre', 'descripcion', 'orden', 'activo'] },
+  stands: { hoja: HOJA.STANDS, campos: ['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'requiere_codigo', 'num_preguntas', 'orden', 'activo'] },
+  preguntas: { hoja: HOJA.PREGUNTAS, campos: ['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo'] },
+  staff: { hoja: HOJA.STAFF, campos: ['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'activo'] },
+  permisos: { hoja: HOJA.PERMISOS, campos: ['rol', 'vista', 'activo'] },
+  config: { hoja: HOJA.CONFIG, campos: ['clave', 'valor', 'descripcion'] },
+  premios: { hoja: HOJA.PREMIOS, campos: ['orden', 'titulo', 'descripcion', 'activo'] },
+};
+
+const ADMIN_CAMPOS_ID = {
+  pabellones: 'pabellon_id',
+  stands: 'stand_id',
+  preguntas: 'pregunta_id',
+};
+
+function adminDefinicion_(entidad) {
+  const def = ADMIN_DEFINICIONES[texto_(entidad).toLowerCase()];
+  if (!def) throw new Error('La sección solicitada no existe.');
+  return def;
+}
+
+function adminValor_(valor) {
+  if (Object.prototype.toString.call(valor) === '[object Date]') {
+    return Utilities.formatDate(valor, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+  }
+  return valor;
+}
+
+function adminFila_(fila, campos) {
+  const resultado = { _fila: fila._fila };
+  campos.forEach(campo => { resultado[campo] = adminValor_(fila[campo] === undefined ? '' : fila[campo]); });
+  return resultado;
+}
+
+function adminFilas_(entidad) {
+  const def = adminDefinicion_(entidad);
+  if (entidad === 'premios' && !hojaSiExiste_(def.hoja)) return [];
+  return leerHoja_(def.hoja).map(fila => adminFila_(fila, def.campos));
+}
+
+/** Devuelve el catálogo editable sin fechas Date ni columnas internas innecesarias. */
+function obtenerAdminCatalogo() {
+  exigirVista_('PANEL_ADMIN');
+  const datos = {};
+  Object.keys(ADMIN_DEFINICIONES).forEach(entidad => { datos[entidad] = adminFilas_(entidad); });
+  return datos;
+}
+
+function adminSiguienteId_(entidad, prefijo) {
+  const campo = ADMIN_CAMPOS_ID[entidad];
+  const usados = adminFilas_(entidad).map(fila => texto_(fila[campo]).toUpperCase());
+  const propiedad = 'ULTIMA_ID_' + entidad.toUpperCase();
+  const guardado = Number(PropertiesService.getScriptProperties().getProperty(propiedad)) || 0;
+  const patron = new RegExp('^' + prefijo + '-(\\d+)$');
+  const mayorEnHoja = usados.reduce((mayor, usado) => {
+    const coincidencia = usado.match(patron);
+    return coincidencia ? Math.max(mayor, Number(coincidencia[1])) : mayor;
+  }, 0);
+  let numero = Math.max(guardado, mayorEnHoja) + 1;
+  let candidato = prefijo + '-' + String(numero).padStart(3, '0');
+  while (usados.indexOf(candidato) >= 0) {
+    numero++;
+    candidato = prefijo + '-' + String(numero).padStart(3, '0');
+  }
+  return { id: candidato, numero: numero, propiedad: propiedad };
+}
+
+function adminTexto_(registro, campo) { return texto_(registro[campo]); }
+function adminNumero_(registro, campo, minimo) {
+  const valor = Number(registro[campo]);
+  if (!isFinite(valor) || valor < minimo || Math.floor(valor) !== valor) {
+    throw new Error('El campo "' + campo + '" debe ser un número entero válido.');
+  }
+  return valor;
+}
+
+function adminBooleano_(registro, campo) {
+  return registro[campo] === true || /^(true|1|si|sí|verdadero)$/i.test(texto_(registro[campo]));
+}
+
+function adminNormalizar_(entidad, entrada) {
+  const registro = {};
+  const campos = ADMIN_DEFINICIONES[entidad].campos;
+  campos.forEach(campo => { registro[campo] = entrada[campo] === undefined ? '' : entrada[campo]; });
+  if (entidad === 'pabellones') {
+    registro.pabellon_id = id_(registro.pabellon_id);
+    registro.nombre = texto_(registro.nombre);
+    registro.descripcion = texto_(registro.descripcion);
+    registro.orden = Number(registro.orden);
+    registro.activo = adminBooleano_(registro, 'activo');
+  } else if (entidad === 'stands') {
+    registro.stand_id = id_(registro.stand_id);
+    registro.pabellon_id = id_(registro.pabellon_id);
+    registro.nombre = texto_(registro.nombre);
+    registro.descripcion = texto_(registro.descripcion);
+    registro.requiere_codigo = adminBooleano_(registro, 'requiere_codigo');
+    registro.num_preguntas = Number(registro.num_preguntas);
+    registro.orden = Number(registro.orden);
+    registro.activo = adminBooleano_(registro, 'activo');
+  } else if (entidad === 'preguntas') {
+    registro.pregunta_id = id_(registro.pregunta_id);
+    registro.stand_id = id_(registro.stand_id);
+    ['texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d'].forEach(campo => { registro[campo] = texto_(registro[campo]); });
+    registro.correcta = texto_(registro.correcta).toUpperCase();
+    registro.puntos = Number(registro.puntos);
+    registro.activo = adminBooleano_(registro, 'activo');
+  } else if (entidad === 'staff') {
+    registro.email = texto_(registro.email).toLowerCase();
+    registro.nombre = texto_(registro.nombre);
+    registro.rol = texto_(registro.rol).toUpperCase();
+    registro.pabellon_id = id_(registro.pabellon_id);
+    registro.stand_id = id_(registro.stand_id);
+    registro.activo = adminBooleano_(registro, 'activo');
+  } else if (entidad === 'permisos') {
+    registro.rol = texto_(registro.rol).toUpperCase();
+    registro.vista = texto_(registro.vista).toUpperCase();
+    registro.activo = adminBooleano_(registro, 'activo');
+  } else if (entidad === 'config') {
+    registro.clave = normal_(registro.clave);
+    registro.valor = texto_(registro.valor);
+    registro.descripcion = texto_(registro.descripcion);
+  } else if (entidad === 'premios') {
+    registro.orden = Number(registro.orden);
+    registro.titulo = texto_(registro.titulo);
+    registro.descripcion = texto_(registro.descripcion);
+    registro.activo = adminBooleano_(registro, 'activo');
+  }
+  return registro;
+}
+
+function adminValidarUnicidad_(entidad, registro, fila) {
+  const filas = adminFilas_(entidad);
+  const igual = (a, b) => fila && a._fila === fila._fila ? false : a === b;
+  let campos = [];
+  if (entidad === 'pabellones') campos = ['pabellon_id'];
+  if (entidad === 'stands') campos = ['stand_id'];
+  if (entidad === 'preguntas') campos = ['pregunta_id'];
+  if (entidad === 'staff') campos = ['email'];
+  if (entidad === 'config') campos = ['clave'];
+  if (entidad === 'permisos') {
+    if (filas.some(f => f._fila !== (fila && fila._fila) && texto_(f.rol).toUpperCase() === registro.rol && texto_(f.vista).toUpperCase() === registro.vista)) {
+      throw new Error('Ya existe ese permiso para el rol indicado.');
+    }
+  }
+  campos.forEach(campo => {
+    if (filas.some(f => f._fila !== (fila && fila._fila) && igual(texto_(f[campo]).toUpperCase(), texto_(registro[campo]).toUpperCase()))) {
+      throw new Error('Ya existe un registro con ese valor en "' + campo + '".');
+    }
+  });
+}
+
+function adminValidarRelaciones_(entidad, registro, fila) {
+  const pabellones = adminFilas_('pabellones');
+  const stands = adminFilas_('stands');
+  const preguntas = adminFilas_('preguntas');
+  const permisos = adminFilas_('permisos');
+  const pabellonActivo = id => pabellones.some(p => p.pabellon_id === id && adminBooleano_(p, 'activo'));
+  const standActivo = id => stands.some(s => s.stand_id === id && adminBooleano_(s, 'activo'));
+
+  if (entidad === 'pabellones') {
+    if (!registro.nombre) throw new Error('Escribe un nombre para el pabellón.');
+    adminNumero_(registro, 'orden', 0);
+  }
+  if (entidad === 'stands') {
+    if (!registro.nombre || !registro.pabellon_id || !pabellonActivo(registro.pabellon_id)) throw new Error('El stand necesita un pabellón activo válido.');
+    adminNumero_(registro, 'num_preguntas', 1);
+    adminNumero_(registro, 'orden', 0);
+  }
+  if (entidad === 'preguntas') {
+    if (!standActivo(registro.stand_id)) throw new Error('La pregunta necesita un stand activo válido.');
+    if (!registro.texto || ['opcion_a', 'opcion_b', 'opcion_c', 'opcion_d'].some(campo => !registro[campo])) throw new Error('Completa el enunciado y las cuatro opciones.');
+    if (!/^[ABCD]$/.test(registro.correcta)) throw new Error('La respuesta correcta debe ser A, B, C o D.');
+    adminNumero_(registro, 'puntos', 0);
+  }
+  if (entidad === 'staff') {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(registro.email)) throw new Error('Escribe un correo válido.');
+    if (!registro.nombre || !registro.rol) throw new Error('Completa nombre y rol.');
+    if (registro.activo && !permisos.some(p => p.rol === registro.rol && adminBooleano_(p, 'activo'))) throw new Error('Ese rol no tiene permisos activos. Configura primero al menos una vista.');
+    if (registro.rol === 'ADMIN') {
+      registro.pabellon_id = '';
+      registro.stand_id = '';
+    } else {
+      if (registro.pabellon_id && !pabellonActivo(registro.pabellon_id)) throw new Error('El pabellón asignado no está activo.');
+      if (registro.stand_id) {
+        const stand = stands.find(s => s.stand_id === registro.stand_id && adminBooleano_(s, 'activo'));
+        if (!stand || (registro.pabellon_id && stand.pabellon_id !== registro.pabellon_id)) throw new Error('El stand no pertenece al pabellón asignado.');
+        if (!registro.pabellon_id) registro.pabellon_id = stand.pabellon_id;
+      }
+    }
+  }
+  if (entidad === 'permisos') {
+    if (!registro.rol || !registro.vista || registro.vista === 'ESPERA' || !Object.prototype.hasOwnProperty.call(ARCHIVO_DE_VISTA, registro.vista)) throw new Error('El rol o la vista no son válidos.');
+    if (registro.activo && registro.vista === 'QUIZ' && !permisos.some(p => p._fila !== (fila && fila._fila) && p.rol === registro.rol && p.vista === 'MAPA' && adminBooleano_(p, 'activo'))) throw new Error('QUIZ necesita también el permiso MAPA para ese rol.');
+  }
+  if (entidad === 'config') {
+    if (!Object.prototype.hasOwnProperty.call(CONFIG_DEFECTO, registro.clave)) throw new Error('Esa clave de configuración no está soportada por la app.');
+    const defecto = CONFIG_DEFECTO[registro.clave];
+    if (registro.clave === 'fecha_feria' && registro.valor && !fechaEnMs_(registro.valor)) throw new Error('La fecha de la feria no tiene un formato válido.');
+    else if (typeof defecto === 'boolean' && !/^(true|false|1|0|si|no|sí|verdadero|falso)$/i.test(registro.valor)) throw new Error('Ese valor debe ser TRUE o FALSE.');
+    else if (typeof defecto === 'number' && (registro.valor === '' || isNaN(Number(registro.valor)) || Number(registro.valor) < 0)) throw new Error('Ese valor debe ser un número mayor o igual a cero.');
+  }
+  if (entidad === 'premios') {
+    if (!registro.titulo) throw new Error('Escribe un título para el premio.');
+    adminNumero_(registro, 'orden', 1);
+  }
+}
+
+function guardarAdminRegistro(entidad, entrada) {
+  const sesion = exigirVista_('PANEL_ADMIN');
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede editar el catálogo.');
+  entidad = texto_(entidad).toLowerCase();
+  const def = adminDefinicion_(entidad);
+  if (entidad === 'premios' && !hojaSiExiste_(def.hoja)) throw new Error('Crea primero la hoja Premios con sus encabezados.');
+  const original = entrada && entrada._fila ? adminFilas_(entidad).find(f => f._fila === Number(entrada._fila)) : null;
+  const registro = adminNormalizar_(entidad, entrada || {});
+  adminValidarRelaciones_(entidad, registro, original);
+  const bloqueo = LockService.getScriptLock();
+  bloqueo.waitLock(SEGUNDOS_BLOQUEO);
+  try {
+    let secuencia = null;
+    if (!original && ADMIN_CAMPOS_ID[entidad]) {
+      const prefijo = entidad === 'pabellones' ? 'PAB' : entidad === 'stands' ? 'STD' : 'PRG';
+      secuencia = adminSiguienteId_(entidad, prefijo);
+      registro[ADMIN_CAMPOS_ID[entidad]] = secuencia.id;
+    }
+    adminValidarUnicidad_(entidad, registro, original);
+    if (original) actualizarFila_(def.hoja, original._fila, registro);
+    else agregarFila_(def.hoja, registro);
+    if (secuencia) PropertiesService.getScriptProperties().setProperty(secuencia.propiedad, String(secuencia.numero));
+    limpiarCache();
+  } finally {
+    bloqueo.releaseLock();
+  }
+  return obtenerAdminCatalogo();
+}
+
+function borrarAdminRegistro(entidad, numeroDeFila) {
+  const sesion = exigirVista_('PANEL_ADMIN');
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede editar el catálogo.');
+  entidad = texto_(entidad).toLowerCase();
+  if (entidad === 'pabellones') return eliminarAdminPabellon(numeroDeFila);
+  const def = adminDefinicion_(entidad);
+  if (entidad === 'premios' && !hojaSiExiste_(def.hoja)) throw new Error('La hoja Premios no existe.');
+  const fila = adminFilas_(entidad).find(f => f._fila === Number(numeroDeFila));
+  if (!fila) throw new Error('El registro ya no existe. Actualiza la lista.');
+  if (entidad === 'pabellones' && adminFilas_('stands').some(s => s.pabellon_id === fila.pabellon_id && adminBooleano_(s, 'activo'))) throw new Error('No puedes desactivar un pabellón con stands activos. Desactiva primero sus stands.');
+  if (entidad === 'stands' && adminFilas_('preguntas').some(p => p.stand_id === fila.stand_id && adminBooleano_(p, 'activo'))) throw new Error('No puedes desactivar un stand con preguntas activas. Desactiva primero sus preguntas.');
+  if (entidad === 'staff' && texto_(fila.email).toLowerCase() === sesion.email) throw new Error('No puedes desactivar tu propio acceso de administrador.');
+  if (entidad === 'permisos' && fila.rol === 'ADMIN' && fila.vista === 'PANEL_ADMIN' && adminFilas_('permisos').filter(p => p.rol === 'ADMIN' && p.vista === 'PANEL_ADMIN' && adminBooleano_(p, 'activo')).length < 2) throw new Error('Debe quedar al menos un permiso PANEL_ADMIN activo para ADMIN.');
+
+  const bloqueo = LockService.getScriptLock();
+  bloqueo.waitLock(SEGUNDOS_BLOQUEO);
+  try {
+    if (entidad === 'config') hoja_(def.hoja).deleteRow(fila._fila);
+    else actualizarFila_(def.hoja, fila._fila, { activo: false });
+    limpiarCache();
+  } finally {
+    bloqueo.releaseLock();
+  }
+  return obtenerAdminCatalogo();
+}
+
+/** Elimina un pabellón y todo su árbol de catálogo. El historial transaccional se conserva. */
+function eliminarAdminPabellon(numeroDeFila) {
+  const sesion = exigirVista_('PANEL_ADMIN');
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede editar el catálogo.');
+  const pabellon = adminFilas_('pabellones').find(f => f._fila === Number(numeroDeFila));
+  if (!pabellon) throw new Error('El pabellón ya no existe. Actualiza la lista.');
+
+  const stands = adminFilas_('stands').filter(s => s.pabellon_id === pabellon.pabellon_id);
+  const standIds = stands.map(s => s.stand_id);
+  const preguntas = adminFilas_('preguntas').filter(p => standIds.indexOf(p.stand_id) >= 0);
+  const codigos = hojaSiExiste_(HOJA.CODIGOS) ? leerHoja_(HOJA.CODIGOS).filter(c => standIds.indexOf(id_(c.stand_id)) >= 0 && texto_(c.estado).toUpperCase() === 'ACTIVO') : [];
+
+  const bloqueo = LockService.getScriptLock();
+  bloqueo.waitLock(SEGUNDOS_BLOQUEO);
+  try {
+    const hojaPreguntas = hoja_(HOJA.PREGUNTAS);
+    preguntas.sort((a, b) => b._fila - a._fila).forEach(p => hojaPreguntas.deleteRow(p._fila));
+    const hojaStands = hoja_(HOJA.STANDS);
+    stands.sort((a, b) => b._fila - a._fila).forEach(s => hojaStands.deleteRow(s._fila));
+    hoja_(HOJA.PABELLONES).deleteRow(pabellon._fila);
+    if (codigos.length) {
+      const hojaCodigos = hoja_(HOJA.CODIGOS);
+      codigos.forEach(c => actualizarFila_(HOJA.CODIGOS, c._fila, { estado: 'ANULADO' }));
+    }
+    limpiarCache();
+  } finally {
+    bloqueo.releaseLock();
+  }
+  return {
+    datos: obtenerAdminCatalogo(),
+    borrado: { pabellones: 1, stands: stands.length, preguntas: preguntas.length, codigos: codigos.length },
+  };
 }

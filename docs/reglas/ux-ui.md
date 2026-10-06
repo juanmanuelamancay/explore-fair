@@ -217,7 +217,11 @@ De arriba hacia abajo: saludo, mensaje guía, stand y tarjeta del código. No ll
 
 ### Panel
 
-Tiene dos funciones: actualizar el catálogo y reiniciar los datos. De arriba hacia abajo: saludo, mensaje guía, lista de datos generados, tarjeta de catálogo y tarjeta de reinicio.
+Tiene un editor relacional del catálogo, además de actualizar el catálogo y reiniciar los datos. De arriba hacia abajo: saludo, mensaje guía, lista de datos generados, pestañas del catálogo, búsqueda, filtros, editor y tarjeta de reinicio.
+
+- **Secciones editables:** `Pabellones`, `Stands`, `Preguntas`, `Staff`, `Permisos`, `Config` y `Premios`. Cada fila permite editar o iniciar una baja; los formularios muestran selectores para las referencias a otras hojas.
+- **Integridad:** el servidor valida claves únicas, roles y vistas válidos, relaciones activas y dependencias antes de escribir. El árbol de pabellones permite crear stands y preguntas en contexto. Eliminar un pabellón muestra los conteos, elimina sus stands y preguntas, anula sus códigos activos y conserva los intentos históricos.
+- **Búsqueda y estado:** por defecto se muestran solo registros activos. El filtro permite consultar también los inactivos sin mezclarlos visualmente con los activos.
 
 - **Tarjeta "Actualizar desde el Sheet":** botón secundario "Actualizar ahora". Hace que la app relea las hojas de catálogo en el momento y confirma con un mensaje temporal cuántos pabellones, stands y preguntas activas encontró.
 

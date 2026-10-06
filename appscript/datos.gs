@@ -10,6 +10,7 @@ const HOJA = {
   STAFF: 'Staff',
   PERMISOS: 'Permisos',
   CONFIG: 'Config',
+  PREMIOS: 'Premios',
   USUARIOS: 'Usuarios',
   CODIGOS: 'Codigos',
   INTENTOS: 'Intentos',

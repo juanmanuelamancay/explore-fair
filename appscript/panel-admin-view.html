@@ -16,10 +16,24 @@
   <h2 class="titulo-seccion">Datos generados durante la feria</h2>
   <ul class="lista" id="panel-conteos"></ul>
 
-  <h2 class="titulo-seccion">Catálogo</h2>
+  <div class="panel-cab-catalogo">
+    <div>
+      <h2 class="titulo-seccion">Catálogo</h2>
+      <p class="panel-ayuda">Administra los datos y sus relaciones desde aquí.</p>
+    </div>
+    <button class="btn-icono" id="panel-nuevo" aria-label="Agregar registro" title="Agregar registro"><span id="panel-nuevo-icono"></span></button>
+  </div>
+  <div class="panel-tabs" id="panel-tabs" role="tablist" aria-label="Secciones del catálogo"></div>
+  <div class="panel-filtros">
+    <label class="panel-busqueda"><span id="panel-buscar-icono"></span><input id="panel-buscar" type="search" placeholder="Buscar en esta sección" autocomplete="off"></label>
+    <label class="panel-switch"><input id="panel-solo-activos" type="checkbox" checked><span>Solo activos</span></label>
+  </div>
+  <section id="panel-editor" aria-live="polite"></section>
+
+  <h2 class="titulo-seccion">Sincronización</h2>
   <section class="tarjeta panel-reinicio">
     <h2>Actualizar desde el Sheet</h2>
-    <p>Si cambiaste pabellones, stands, preguntas, líderes, permisos o configuración en el Sheet, la app lo toma sola en un minuto. Pulsa aquí para que lo tome ahora.</p>
+    <p>Si cambiaste datos directamente en el Sheet, fuerza una lectura inmediata del catálogo.</p>
     <button class="btn secundario" id="panel-actualizar">Actualizar ahora</button>
   </section>
 

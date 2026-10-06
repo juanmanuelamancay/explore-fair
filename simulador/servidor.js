@@ -50,6 +50,7 @@ class Hoja {
   getDataRange() { return new Rango(this, 1, 1, Math.max(1, this.getLastRow()), Math.max(1, this.getLastColumn())); }
   getRange(fila, columna, filas = 1, columnas = 1) { return new Rango(this, fila, columna, filas, columnas); }
   appendRow(fila) { this.datos.length = this.getLastRow(); this.datos.push(fila.slice()); return this; }
+  deleteRow(fila) { this.datos.splice(fila - 1, 1); return this; }
   copyTo(libro) { const copia = new Hoja(libro, 'Copia de ' + this.nombre, this.datos.map(f => f.slice())); libro.hojas.push(copia); return copia; }
   setName(nombre) { this.nombre = nombre; return this; }
   getName() { return this.nombre; }

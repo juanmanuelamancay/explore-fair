@@ -23,7 +23,7 @@ Prototipos navegables, con datos de ejemplo:
 
 - [../prototipo/usuario.html](../prototipo/usuario.html): vistas `MAPA`, `QUIZ` y `RANKING`.
 - [../prototipo/lider.html](../prototipo/lider.html): vistas `GENERAR_CODIGO` y `RANKING`.
-- [../prototipo/admin.html](../prototipo/admin.html): vistas `PANEL_ADMIN` (por ahora solo con el reinicio de datos) y `RANKING`.
+- [../prototipo/admin.html](../prototipo/admin.html): prototipo visual de `PANEL_ADMIN` y `RANKING`; la vista real administra el catálogo desde Apps Script.
 
 Carpetas y documentos previstos, se crean cuando tengan contenido:
 
