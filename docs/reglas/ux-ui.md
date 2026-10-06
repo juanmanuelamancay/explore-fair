@@ -120,7 +120,8 @@ De arriba hacia abajo:
 2. **Mensaje guía:** franja azul suave con un ícono, un título y una línea de instrucción. Cambia según el momento:
    - Sin quiz de entrada: da la bienvenida e indica pulsar el círculo propio para abrir los pabellones.
    - Con quiz de entrada hecho: indica escuchar la charla y pulsar el pabellón.
-3. **Mapa radial:** el usuario en el centro y los pabellones repartidos alrededor en un círculo.
+3. **Ayuda "Cómo se juega":** botón secundario debajo del mensaje guía que abre una hoja con cuatro pasos: entrar a un pabellón, escuchar al líder y pedir el código, responder el quiz y revisar puntos/ranking.
+4. **Mapa radial:** el usuario en el centro y los pabellones repartidos alrededor en un círculo.
 
 Reglas del mapa:
 

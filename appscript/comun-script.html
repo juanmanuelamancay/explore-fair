@@ -158,7 +158,8 @@ const App = (() => {
 
   function abrirHoja(html) {
     $('hoja').onclick = null;   // cada vista pone su propio manejador al abrirla
-    $('hoja').innerHTML = '<div class="asa"></div>' + html;
+    $('hoja').removeAttribute('aria-labelledby');
+    $('hoja').innerHTML = '<div class="asa"></div><button class="hoja-cerrar" data-cerrar aria-label="Cerrar">' + svg(ICONO.equis, 20) + '</button>' + html;
     document.body.classList.add('hoja-abierta');
     return $('hoja');
   }

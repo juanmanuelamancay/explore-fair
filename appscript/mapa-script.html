@@ -63,9 +63,11 @@
       kpiPuesto.classList.add(metalDe(datos.puesto));
       kpiPuesto.insertAdjacentHTML('afterbegin', CORONA);
     }
-    $('mapa-guia-icono').innerHTML = svg(ICONO.toque, 20);
+    $('mapa-guia-icono').innerHTML = `
+      <span class="guia-icono-cara guia-icono-mano">${svg(ICONO.toque, 20)}</span>
+      <span class="guia-icono-cara guia-icono-pregunta" aria-hidden="true">?</span>`;
     $('mapa-guia-titulo').textContent = entradaHecha ? 'Suma puntos en cada stand' : 'Te damos la bienvenida a la feria';
-    $('mapa-guia-texto').textContent = entradaHecha ? 'Escucha la charla y pulsa su pabellón.' : 'Pulsa tu círculo y responde el quiz de entrada para abrir los pabellones.';
+    $('mapa-guia-texto').textContent = entradaHecha ? 'Escucha la charla y pulsa su pabellón.' : 'Responde el quiz de entrada para abrir los pabellones.';
 
     const pabellones = datos.pabellones.map((p, i) => {
       const angulo = (-90 + i * 360 / datos.pabellones.length) * Math.PI / 180;
@@ -129,6 +131,7 @@
           <span class="icono">${svg(tono.icono)}</span>
           <div><p class="sec chico">Pabellón${completo ? ' completo' : ''}</p><h2>${esc(p.nombre)}</h2></div>
         </div>
+        <p class="hoja-seccion">Stands de este pabellón</p>
         <ul>${filas}</ul>
         <p class="aviso" style="margin:8px 16px 4px">Necesitas el código que da el líder al terminar la charla.</p>
       </div>`);
@@ -146,6 +149,75 @@
     const tono = pabellon ? paleta(pabellon.indice) : PALETA[0];
     App.ir('quiz', { stand: stand, pabellon: pabellon ? pabellon.nombre : 'General', color: tono.color, tinte: tono.tinte });
   }
+
+function abrirComoJugar() {
+  const hoja = App.abrirHoja(`
+    <div class="hoja-texto">
+      <h2 id="como-jugar-titulo">Cómo participar</h2>
+
+      <p>
+        Recorre la feria a tu ritmo, participa en las charlas y
+        completa quizzes para sumar puntos y subir en el ranking.
+      </p>
+
+      <ol class="pasos-ayuda">
+
+        <li class="paso-ayuda">
+          <b class="numero">1</b>
+          <div>
+            <b>Empieza con el quiz de entrada</b>
+            <span>
+              Pulsa tu círculo en el centro de la pantalla y completa
+              el quiz para conseguir tus primeros puntos y desbloquear
+              los pabellones.
+            </span>
+          </div>
+        </li>
+
+        <li class="paso-ayuda">
+          <b class="numero">2</b>
+          <div>
+            <b>Recorre la feria y escucha una charla</b>
+            <span>
+              Puedes visitar los pabellones y stands en el orden que quieras.
+              Al terminar una charla, el líder compartirá un código.
+            </span>
+          </div>
+        </li>
+
+        <li class="paso-ayuda">
+          <b class="numero">3</b>
+          <div>
+            <b>Abre el quiz del stand</b>
+            <span>
+              En la app, pulsa el pabellón donde estás, selecciona el stand
+              de la charla e introduce el código.
+            </span>
+          </div>
+        </li>
+
+        <li class="paso-ayuda">
+          <b class="numero">4</b>
+          <div>
+            <b>Responde y suma puntos</b>
+            <span>
+              Completa el quiz para sumar puntos. Después podrás ver
+              tu posición actualizada en el ranking.
+            </span>
+          </div>
+        </li>
+
+      </ol>
+    </div>
+  `);
+
+  const modal = $('hoja');
+  modal.setAttribute('aria-labelledby', 'como-jugar-titulo');
+  modal.setAttribute('tabindex', '-1');
+  modal.focus();
+}
+
+  $('mapa-como-jugar').addEventListener('click', abrirComoJugar);
 
   $('mapa-lienzo').addEventListener('click', e => {
     if (!datos) return;
