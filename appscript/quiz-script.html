@@ -63,11 +63,14 @@
   }
 
   function iniciar(codigo) {
-    const boton = $('quiz-empezar');
-    if (boton) { boton.disabled = true; boton.innerHTML = '<i class="giro"></i>Validando…'; }
+    pantallaEspera('Preparando tu quiz', 'Estamos armando tus preguntas.', q.stand.numPreguntas);
 
     servidor('iniciarQuiz', q.stand.id, codigo).then(r => {
-      if (!r.ok) return inicioRechazado(r);
+      if (!r.ok) {
+        // La pantalla del código ya no está: si hace falta, se vuelve a mostrar para corregirlo.
+        if (r.motivo === 'CODIGO') pantallaCodigo();
+        return inicioRechazado(r);
+      }
       if (r.aviso) toast(r.aviso);
       q.intentoId = r.intentoId;
       q.preguntas = r.preguntas;
@@ -75,11 +78,11 @@
       q.actual = 0;
       // El reloj se guía por la hora del servidor, no por la del celular.
       q.venceEn = r.venceEn + (Date.now() - r.ahora);
-      pantallaPregunta();
+      pantallaPregunta(true);
       q.intervalo = setInterval(tic, 250);
     }).catch(() => {
       toast('No pudimos empezar el quiz. Revisa tu conexión.');
-      if ($('quiz-empezar')) pantallaCodigo(); else App.ir('mapa');
+      if (q.stand.estado === 'EN_CURSO') App.ir('mapa'); else pantallaCodigo();
     });
   }
 
@@ -112,13 +115,15 @@
     if (r === 0) { clearInterval(q.intervalo); pantallaVencido(); }
   }
 
-  function pantallaPregunta() {
+  /** entrar = true anima la entrada (al empezar o pasar de pregunta); al elegir una opción no se repite. */
+  function pantallaPregunta(entrar = false) {
     const p = q.preguntas[q.actual];
     const elegida = q.respuestas[p.id];
     const ultima = q.actual === q.preguntas.length - 1;
     const r = restante();
 
     pantalla.innerHTML = `
+      <div class="pregunta-vista ${entrar ? 'entra' : ''}">
       <div class="quiz-cab" style="--c:${q.color}">
         <div class="quiz-fila">
           <div class="donde"><span class="etiqueta-pab">${esc(q.pabellon)}</span><b>${esc(q.stand.nombre)}</b></div>
@@ -130,27 +135,26 @@
       <h2 class="enunciado">${esc(p.texto)}</h2>
       <div role="radiogroup" aria-label="Opciones">
         ${p.opciones.map((texto, i) => `
-          <button class="opcion ${elegida === LETRAS[i] ? 'elegida' : ''}" role="radio" aria-checked="${elegida === LETRAS[i]}" data-letra="${LETRAS[i]}">
+          <button class="opcion ${elegida === LETRAS[i] ? 'elegida' : ''}" style="--i:${i}" role="radio" aria-checked="${elegida === LETRAS[i]}" data-letra="${LETRAS[i]}">
             <span class="letra">${LETRAS[i]}</span><span>${esc(texto)}</span>
           </button>`).join('')}
       </div>
-      <button class="btn" id="quiz-siguiente" ${elegida ? '' : 'disabled'}>${ultima ? 'Enviar respuestas' : 'Siguiente'}</button>`;
+      <button class="btn" id="quiz-siguiente" ${elegida ? '' : 'disabled'}>${ultima ? 'Enviar respuestas' : 'Siguiente'}</button>
+      </div>`;
 
     $('quiz-siguiente').onclick = () => {
       if (ultima) return enviar();
       q.actual++;
-      pantallaPregunta();
+      pantallaPregunta(true);
       window.scrollTo(0, 0);
     };
   }
 
   function enviar() {
-    const boton = $('quiz-siguiente');
     q.enviando = true;
-    boton.disabled = true;
-    boton.innerHTML = '<i class="giro"></i>Enviando…';
     // Ya terminó: el reloj se detiene mientras el servidor corrige.
     clearInterval(q.intervalo);
+    pantallaEnviando();
 
     servidor('enviarQuiz', q.intentoId, q.respuestas).then(r => {
       if (r.ok) return pantallaResultado(r);
@@ -160,10 +164,27 @@
     }).catch(() => {
       toast('No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.');
       q.enviando = false;
-      boton.disabled = false;
-      boton.textContent = 'Enviar respuestas';
+      pantallaPregunta(true);
       q.intervalo = setInterval(tic, 250);
     });
+  }
+
+  /* ---------- Revisando (mientras el servidor corrige) ---------- */
+  function pantallaEnviando() {
+    pantallaEspera('Revisando tus respuestas', 'Estamos sumando tus puntos.', q.preguntas.length);
+  }
+
+  /** Espera animada mientras el servidor responde: un punto por cada pregunta que se enciende. */
+  function pantallaEspera(titulo, texto, pasos) {
+    pantalla.innerHTML = `
+      ${cabecera()}
+      <div class="tarjeta centro enviando-quiz" style="--c:${q.color};--t:${q.tinte}" role="status" aria-live="polite">
+        <div class="corrigiendo"><span class="anillo-girando"></span><span class="nucleo">${svg(ICONO.check, 34, q.color, 3)}</span></div>
+        <h2>${titulo}</h2>
+        <p class="sec" style="margin-top:6px">${texto}</p>
+        <div class="revision" aria-hidden="true">${Array.from({ length: pasos }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</div>
+      </div>`;
+    window.scrollTo(0, 0);
   }
 
   /* ---------- Resultado ---------- */
@@ -181,16 +202,30 @@
     pantalla.innerHTML = `
       ${cabecera()}
       <div class="tarjeta centro">
-        <div class="aro" style="--p:${r.total ? r.correctas / r.total * 100 : 0}"><div class="tnum">${r.correctas}/${r.total}</div></div>
-        <p class="ganado tnum">+${r.puntaje} puntos</p>
+        <div class="sello ${r.correctas === r.total ? 'perfecto' : ''}">${svg(r.correctas === r.total ? ICONO.trofeo : ICONO.check, 44, '#fff', 3)}</div>
+        <p class="ganado tnum" id="quiz-ganado">+0 puntos</p>
         <p class="sec" style="margin-top:6px">${puesto}</p>
         <ul class="detalle">
-          ${q.preguntas.map((p, i) => `<li>${r.aciertos[i] ? svg(ICONO.check, 20, '#188038', 3) : svg(ICONO.equis, 20, '#d93025', 2.5)}<span>${esc(p.texto)}</span></li>`).join('')}
+          ${q.preguntas.map((p, i) => `<li style="--i:${i}">${r.aciertos[i] ? svg(ICONO.check, 20, '#188038', 3) : svg(ICONO.equis, 20, '#d93025', 2.5)}<span>${esc(p.texto)}</span></li>`).join('')}
         </ul>
       </div>
       <button class="btn" data-ir="mapa">Volver al mapa</button>
       ${INICIO.vistas.indexOf('RANKING') >= 0 ? '<button class="btn secundario" data-ir="ranking">Ver ranking</button>' : ''}`;
     window.scrollTo(0, 0);
+    contarPuntos(r.puntaje);
+  }
+
+  /** Los puntos suben desde 0 hasta el total, con desaceleración al final. */
+  function contarPuntos(total) {
+    const el = $('quiz-ganado');
+    const inicio = performance.now();
+    const DURACION = 900;
+    const paso = t => {
+      const k = Math.min(1, (t - inicio) / DURACION);
+      el.textContent = '+' + Math.round(total * (1 - Math.pow(1 - k, 3))) + ' puntos';
+      if (k < 1) requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
   }
 
   function pantallaVencido() {

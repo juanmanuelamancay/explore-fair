@@ -96,6 +96,8 @@
   function irALamina(indice, suave) {
     if (!laminas.length) return;
     activa = (indice + laminas.length) % laminas.length;
+    // Cada lámina dura su tiempo completo desde que aparece, aunque la anterior haya llevado mucho rato.
+    ultimoAvance = Date.now();
     enMovimientoHasta = Date.now() + (suave ? 800 : 300);
     carrusel.scrollTo({ left: laminas[activa].offsetLeft, behavior: suave ? 'smooth' : 'auto' });
     marcarActiva();

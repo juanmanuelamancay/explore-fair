@@ -3,6 +3,8 @@
   const RADIO = 37;   // distancia del centro a los pabellones, en % del mapa
   // Animación de apertura de los pabellones: espera inicial, desfase entre uno y otro, y duración de cada uno.
   const APERTURA = { inicioMs: 350, pasoMs: 130, duracionMs: 650 };
+  // Animación al volver de un stand: duración total, para no repintar mientras se ve.
+  const SUMA = { totalMs: 1900 };
   let datos = null;
   let animandoHasta = 0;
 
@@ -35,33 +37,62 @@
 
     const esEntrada = !!datos.entrada && datos.entrada.id === reciente.standId;
     let stand = esEntrada ? datos.entrada : null;
-    if (!stand) datos.pabellones.forEach(p => p.stands.forEach(s => { if (s.id === reciente.standId) stand = s; }));
+    let pabellon = null;
+    if (!stand) datos.pabellones.forEach(p => p.stands.forEach(s => { if (s.id === reciente.standId) { stand = s; pabellon = p; } }));
     if (!stand || stand.estado === 'COMPLETADO' || stand.estado === 'VENCIDO') return;
 
+    // El anillo del pabellón arranca desde lo que tenía antes del stand recién respondido.
+    const desde = pabellon ? progreso(pabellon) : 0;
     Object.assign(stand, { estado: reciente.estado, correctas: reciente.correctas, total: reciente.total, puntaje: reciente.puntaje });
     datos.puntos += reciente.puntaje;
     datos.puesto = reciente.puesto;
 
-    pintar(esEntrada);
+    const sumando = pabellon ? { pabId: pabellon.id, desde: desde, puntos: reciente.puntaje } : null;
+    pintar(esEntrada, sumando);
     if (esEntrada) {
       animandoHasta = Date.now() + APERTURA.inicioMs + APERTURA.pasoMs * (datos.pabellones.length - 1) + APERTURA.duracionMs;
       toast('Ya puedes visitar los pabellones.');
+    } else if (sumando) {
+      animandoHasta = Date.now() + SUMA.totalMs;
+      sumar(sumando, pabellon, stand);
     }
   }
 
+  /** Porcentaje de stands completados de un pabellón. */
+  function progreso(p) {
+    return p.stands.filter(s => s.estado === 'COMPLETADO').length / p.stands.length * 100;
+  }
+
+  /** Anillo que se llena hasta el nuevo progreso, puntos que suben y contador del puesto que se mueve. */
+  function sumar(sumando, pabellon, stand) {
+    const kpi = $('mapa-puntos');
+    kpi.classList.remove('sube');
+    void kpi.offsetWidth;
+    kpi.classList.add('sube');
+    requestAnimationFrame(() => {
+      const nodo = $('mapa-lienzo').querySelector(`[data-pab="${sumando.pabId}"]`);
+      if (!nodo) return;
+      void nodo.offsetWidth; // fuerza el estado inicial para que la transición corra
+      nodo.style.setProperty('--p', progreso(pabellon));
+    });
+    toast(sumando.puntos ? `+${sumando.puntos} puntos en ${stand.nombre}` : `Completaste ${stand.nombre}`);
+  }
+
   /** Con abriendo = true los pabellones se dibujan cerrados y se abren uno tras otro. */
-  function pintar(abriendo) {
+  function pintar(abriendo, sumando) {
     const entrada = datos.entrada;
     const entradaHecha = !entrada || entrada.estado === 'COMPLETADO' || entrada.estado === 'VENCIDO';
 
     $('mapa-puntos').textContent = datos.puntos;
     $('mapa-puesto').textContent = datos.puesto ? '#' + datos.puesto : '–';
     const kpiPuesto = $('mapa-puesto').parentElement;
-    kpiPuesto.classList.remove('oro', 'plata', 'bronce');
+    kpiPuesto.classList.remove('oro', 'plata', 'bronce', 'celebra');
     kpiPuesto.querySelectorAll('.corona').forEach(c => c.remove());
     if (metalDe(datos.puesto)) {
       kpiPuesto.classList.add(metalDe(datos.puesto));
       kpiPuesto.insertAdjacentHTML('afterbegin', CORONA);
+      // La corona solo se celebra al volver de un quiz o al abrir los pabellones, no en cada refresco.
+      if (abriendo || sumando) kpiPuesto.classList.add('celebra');
     }
     $('mapa-guia-icono').innerHTML = `
       <span class="guia-icono-cara guia-icono-mano">${svg(ICONO.toque, 20)}</span>
@@ -76,11 +107,12 @@
       const puntos = hechos.reduce((suma, s) => suma + s.puntaje, 0);
       const completo = hechos.length === p.stands.length;
       const tono = paleta(p.indice);
+      const esSumando = !!sumando && sumando.pabId === p.id;
       return `
-        <button class="punto pab ${entradaHecha ? (abriendo ? 'abriendo' : '') : 'bloqueado'}" data-pab="${esc(p.id)}" aria-disabled="${!entradaHecha}"
-                style="left:${x}%;top:${y}%;--c:${tono.color};--t:${tono.tinte};--p:${hechos.length / p.stands.length * 100};--retraso:${APERTURA.inicioMs + i * APERTURA.pasoMs}ms;--duracion:${APERTURA.duracionMs}ms"
+        <button class="punto pab ${entradaHecha ? (abriendo ? 'abriendo' : '') : 'bloqueado'} ${esSumando ? 'sumando' : ''}" data-pab="${esc(p.id)}" aria-disabled="${!entradaHecha}"
+                style="left:${x}%;top:${y}%;--c:${tono.color};--t:${tono.tinte};--p:${esSumando ? sumando.desde : hechos.length / p.stands.length * 100};--retraso:${APERTURA.inicioMs + i * APERTURA.pasoMs}ms;--duracion:${APERTURA.duracionMs}ms"
                 aria-label="Pabellón ${esc(p.nombre)}${entradaHecha ? '' : ', bloqueado hasta responder el quiz de entrada'}${completo ? ' completo' : ''}${hechos.length ? ', ' + puntos + ' puntos' : ''}">
-          <span class="disco"><span>${svg(tono.icono, 26)}</span>${completo ? `<i class="hecho">${svg(ICONO.check, 13, '#fff', 3)}</i>` : ''}${entradaHecha && !abriendo ? '' : `<i class="candado">${svg(ICONO.candado, 12, '#5f6368', 2.5)}</i>`}</span>
+          <span class="disco"><span>${svg(tono.icono, 26)}</span>${completo ? `<i class="hecho ${esSumando ? 'recien' : ''}">${svg(ICONO.check, 13, '#fff', 3)}</i>` : ''}${entradaHecha && !abriendo ? '' : `<i class="candado">${svg(ICONO.candado, 12, '#5f6368', 2.5)}</i>`}${esSumando && sumando.puntos ? `<i class="sumado">+${sumando.puntos}</i>` : ''}</span>
           <span class="rot">${esc(p.nombre)}${hechos.length ? `<small>${puntos} pts</small>` : ''}</span>
         </button>`;
     }).join('');

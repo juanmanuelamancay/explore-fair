@@ -1,0 +1,147 @@
+<script>
+(() => {
+  const LETRAS = ['A', 'B', 'C', 'D'];
+  const contenido = $('pg-contenido');
+  let datos = null;     // { maximo, stands, preguntas } tal como lo devuelve el servidor
+  let standId = null;   // stand que se está viendo
+  let recien = null;    // pregunta que se acaba de guardar: su tarjeta destella una vez
+  let guardando = false; // mientras el servidor guarda, la hoja no se puede cerrar
+
+  // Con la hoja guardando, ni la X, ni Cancelar, ni el fondo, ni Escape pueden cerrarla.
+  const bloquearCierre = e => {
+    if (guardando && (e.type === 'keydown' ? e.key === 'Escape' : e.target.closest('[data-cerrar]'))) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+  document.addEventListener('click', bloquearCierre, true);
+  document.addEventListener('keydown', bloquearCierre, true);
+
+  const delStand = () => datos.preguntas.filter(p => p.standId === standId);
+  const activas = () => delStand().filter(p => p.activo).length;
+
+  function mostrar() {
+    if (!datos) App.cargando(contenido);
+    cargar();
+  }
+
+  function cargar() {
+    return servidor('obtenerBancoPreguntas').then(r => {
+      datos = r;
+      if (!datos.stands.some(s => s.id === standId)) standId = datos.stands.length ? datos.stands[0].id : null;
+      pintar();
+    }).catch(() => { if (!datos) App.error(contenido, cargar); else toast('No pudimos actualizar las preguntas.'); });
+  }
+
+  function pintar() {
+    if (!datos.stands.length) {
+      contenido.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.llave, 32)}</div><h2>No tienes stands asignados</h2>
+        <p>Pide a un administrador que te asigne tu stand.</p></div>`;
+      return;
+    }
+    const stand = datos.stands.find(s => s.id === standId);
+    const tono = paleta(stand.indice);
+    const n = activas();
+    const animar = recien;
+    recien = null;
+    const chips = datos.stands.length > 1
+      ? `<div class="pg-chips" role="tablist" aria-label="Stands">${datos.stands.map(s => {
+          const t = paleta(s.indice);
+          return `<button class="pg-chip ${s.id === standId ? 'activo' : ''}" role="tab" aria-selected="${s.id === standId}" data-stand="${esc(s.id)}" style="--c:${t.color};--t:${t.tinte}">${esc(s.nombre)}</button>`;
+        }).join('')}</div>`
+      : `<div class="pg-stand"><span class="etiqueta-pab">${esc(stand.pabellon)}</span><b>${esc(stand.nombre)}</b></div>`;
+
+    contenido.innerHTML = `
+      <div class="pg-cab" style="--c:${tono.color};--t:${tono.tinte}">
+        ${chips}
+        <div class="pg-resumen">
+          <div class="pg-puntitos" aria-hidden="true">${Array.from({ length: datos.maximo }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>
+          <span class="tnum"><b>${n}</b> de ${datos.maximo} activas</span>
+          <button class="pg-nueva" data-nueva>${svg(ICONO.mas, 16)} Nueva</button>
+        </div>
+      </div>
+      <p class="pg-ayuda">Toca una pregunta para editarla.</p>
+      <ol class="pg-lista">${delStand().map((p, i) => tarjeta(p, i, animar)).join('') || '<li class="pg-vacio">Este stand todavía no tiene preguntas.</li>'}</ol>`;
+  }
+
+  function tarjeta(p, i, animar) {
+    return `
+      <li class="pg-pregunta ${p.activo ? '' : 'inactiva'} ${animar === p.id ? 'recien' : ''}">
+        <button class="pg-cabeza" data-editar="${esc(p.id)}">
+          <span class="pg-num">${i + 1}</span>
+          <span class="pg-texto">${esc(p.texto)}</span>
+          <span class="pg-flecha" aria-hidden="true">${svg(ICONO.flecha, 18)}</span>
+        </button>
+      </li>`;
+  }
+
+  /** Editor del enunciado, las opciones y la correcta de una pregunta, o de una nueva. */
+  function abrirEditor(p) {
+    const nueva = !p;
+    const base = p || { id: '', standId: standId, texto: '', opciones: ['', '', '', ''], correcta: 'A' };
+    const sinLugar = nueva && activas() >= datos.maximo;
+    const hoja = App.abrirHoja(`
+      <form class="pg-form" id="pg-form">
+        <h2>${nueva ? 'Nueva pregunta' : 'Editar pregunta'}</h2>
+        <label class="pg-campo"><span>Pregunta</span><textarea name="texto" rows="3" required>${esc(base.texto)}</textarea></label>
+        ${LETRAS.map((L, i) => `<label class="pg-campo"><span>Opción ${L}</span><input name="op${i}" value="${esc(base.opciones[i])}" required></label>`).join('')}
+        <fieldset class="pg-campo">
+          <legend>Respuesta correcta</legend>
+          <div class="pg-letras grande">${LETRAS.map(L => `<label><input type="radio" name="correcta" value="${L}" ${L === base.correcta ? 'checked' : ''}><span>${L}</span></label>`).join('')}</div>
+        </fieldset>
+        ${sinLugar ? `<p class="pg-aviso-form">Ya hay ${datos.maximo} preguntas activas en este stand: la nueva se guardará desactivada.</p>` : ''}
+        <p class="pg-aviso-form" id="pg-error" role="alert"></p>
+        <div class="pg-acciones">
+          <button class="btn" type="submit">Guardar</button>
+          <button class="btn texto" type="button" data-cerrar>Cancelar</button>
+        </div>
+      </form>`);
+
+    const form = hoja.querySelector('#pg-form');
+    form.onsubmit = e => {
+      e.preventDefault();
+      const f = form.elements;
+      const entrada = {
+        id: base.id,
+        standId: base.standId,
+        texto: f.texto.value,
+        opciones: [0, 1, 2, 3].map(i => f['op' + i].value),
+        correcta: form.querySelector('input[name="correcta"]:checked').value,
+      };
+      // Mientras se guarda, la animación ocupa el lugar de los botones y los campos se bloquean.
+      const acciones = form.querySelector('.pg-acciones');
+      const botones = acciones.innerHTML;
+      guardando = true;
+      form.classList.add('guardando');
+      form.querySelectorAll('input, textarea, fieldset').forEach(el => { el.disabled = true; });
+      acciones.innerHTML = '<div class="pg-guardando" role="status" aria-live="polite"><i class="giro"></i><span>Guardando…</span></div>';
+
+      servidor('guardarPreguntaLider', entrada).then(r => {
+        guardando = false;
+        datos = r;
+        if (base.id) recien = base.id;
+        App.cerrarHoja();
+        toast('Pregunta guardada.');
+        pintar();
+      }).catch(error => {
+        guardando = false;
+        form.classList.remove('guardando');
+        form.querySelectorAll('input, textarea, fieldset').forEach(el => { el.disabled = false; });
+        acciones.innerHTML = botones;
+        form.querySelector('#pg-error').textContent = error && error.message ? error.message : 'No se pudo guardar.';
+      });
+    };
+  }
+
+  contenido.addEventListener('click', e => {
+    if (!datos) return;
+    const chip = e.target.closest('[data-stand]');
+    if (chip) { standId = chip.dataset.stand; return pintar(); }
+    if (e.target.closest('[data-nueva]')) return abrirEditor(null);
+    const editar = e.target.closest('[data-editar]');
+    if (editar) abrirEditor(datos.preguntas.find(p => p.id === editar.dataset.editar));
+  });
+
+  App.registrar('preguntas', { alMostrar: mostrar, alRefrescar: cargar });
+})();
+</script>

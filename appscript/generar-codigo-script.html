@@ -111,18 +111,50 @@
     hoja.onclick = e => { if (e.target.closest('[data-accion="generar"]')) generar(); };
   }
 
+  /**
+   * Mientras el servidor crea el código, las casillas giran con caracteres al azar y se fijan
+   * una por una cuando llega el código real.
+   */
+  function animarGeneracion(nombre) {
+    const CARACTERES = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const LARGO = 4;
+    const PAUSA = 260;
+    const azar = () => CARACTERES[Math.floor(Math.random() * CARACTERES.length)];
+    tarjeta.innerHTML = `
+      <div class="disco-grande codigo-latido">${svg(ICONO.llave, 32)}</div>
+      <h2>Generando código</h2>
+      <div class="codigo-girando" aria-hidden="true">${Array.from({ length: LARGO }, () => '<span class="ranura"></span>').join('')}</div>
+      <p class="aviso">Lo estamos creando para ${esc(nombre)}.</p>`;
+    const ranuras = [...tarjeta.querySelectorAll('.ranura')];
+    const ciclo = setInterval(() => ranuras.forEach(r => { if (!r.classList.contains('fijada')) r.textContent = azar(); }), 70);
+    return {
+      fijar(codigo) {
+        ranuras.forEach((r, i) => setTimeout(() => {
+          r.textContent = codigo[i] || '';
+          r.classList.add('fijada');
+          if (i === LARGO - 1) clearInterval(ciclo);
+        }, 350 + i * PAUSA));
+        return 350 + (LARGO - 1) * PAUSA + 450;   // milisegundos hasta que termina de fijarse
+      },
+      cancelar() { clearInterval(ciclo); },
+    };
+  }
+
   function generar() {
     const s = stand();
     App.cerrarHoja();
-    const boton = tarjeta.querySelector('[data-accion="pedir"]');
-    if (boton) { boton.disabled = true; boton.innerHTML = '<i class="giro oscuro" style="width:18px;height:18px;vertical-align:-3px;margin-right:8px"></i>Generando…'; }
+    const animacion = animarGeneracion(s.nombre);
 
     servidor('generarCodigo', s.id).then(r => {
       desfase = r.ahora - Date.now();
-      s.activo = { codigo: r.codigo, expiraEn: r.expiraEn };
-      delete vencidos[s.id];
-      pintar();
+      const espera = animacion.fijar(r.codigo);
+      setTimeout(() => {
+        s.activo = { codigo: r.codigo, expiraEn: r.expiraEn };
+        delete vencidos[s.id];
+        pintar();
+      }, espera);
     }).catch(() => {
+      animacion.cancelar();
       toast('No pudimos generar el código. Inténtalo de nuevo.');
       pintar();
     });

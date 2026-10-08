@@ -25,4 +25,16 @@
   .vence { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 14px; color: var(--texto-2); }
   .vence b { font-size: 18px; color: var(--texto); }
   .vence.poco b { color: var(--rojo); }
+
+  /* Generando: la llave late y las casillas giran hasta fijar cada letra del código */
+  .codigo-latido { animation: codigo-latido 1.6s ease-in-out infinite; }
+  @keyframes codigo-latido { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1.06); } }
+  .codigo-girando { display: flex; justify-content: center; gap: 10px; margin: 14px 0 18px; }
+  .ranura {
+    width: 56px; height: 80px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--superficie); border: 1px solid var(--borde); color: var(--texto-2);
+    font: 500 40px/1 "Roboto Mono", ui-monospace, Consolas, monospace;
+  }
+  .ranura.fijada { background: var(--azul-suave); border-color: var(--azul); color: var(--azul); animation: codigo-golpe .45s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes codigo-golpe { from { transform: scale(1.25); } to { transform: scale(1); } }
 </style>

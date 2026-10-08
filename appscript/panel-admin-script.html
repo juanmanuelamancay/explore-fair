@@ -37,13 +37,17 @@
       { clave: 'orden', etiqueta: 'Orden', tipo: 'number' }, { clave: 'titulo', etiqueta: 'Título' }, { clave: 'descripcion', etiqueta: 'Descripción', tipo: 'textarea', ancho: true }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
     ] },
   };
+  // Stands y preguntas se editan desde cada pabellón, así que no tienen pestaña propia
+  const OCULTAS_EN_TABS = ['stands', 'preguntas'];
   const CONFIG_KEYS = ['minutos_vigencia_codigo', 'minutos_para_responder', 'puntos_por_defecto', 'segundos_refresco_board', 'segundos_cache_catalogo', 'feria_abierta', 'espera_activa', 'fecha_feria', 'lugar_feria', 'espera_mensaje'];
-  const VISTAS = ['MAPA', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PANEL_ADMIN', 'ESPERA'];
+  const VISTAS = ['MAPA', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN', 'ESPERA'];
   let conteos = null;
   let ultimo = null;
   let recien = null;
   let datos = {};
   let entidadActual = 'pabellones';
+  let pabellonesAbiertos = new Set();
+  let rolesAbiertos = new Set();
   let soloActivos = true;
   let busqueda = '';
 
@@ -64,7 +68,6 @@
   }
 
   function cargar() {
-    if (!conteos) App.cargando($('panel-conteos'));
     if (!Object.keys(datos).length) App.cargando($('panel-editor'));
     return Promise.all([servidor('obtenerPanel'), servidor('obtenerAdminCatalogo')]).then(r => {
       conteos = r[0].conteos;
@@ -72,7 +75,6 @@
       datos = r[1];
       pintar();
     }).catch(() => {
-      if (!conteos) App.error($('panel-conteos'), cargar);
       if (!Object.keys(datos).length) App.error($('panel-editor'), cargar);
     });
   }
@@ -86,8 +88,6 @@
 
   function pintar() {
     pintarGuia();
-    $('panel-conteos').innerHTML = HOJAS.map(h => `
-      <li class="fila"><span class="icono">${svg(h.icono, 22)}</span><span class="quien"><b>${h.nombre}</b><span>${h.detalle}</span></span><span class="cuanto tnum ${conteos[h.hoja] ? '' : 'cero'}">${conteos[h.hoja]}</span></li>`).join('');
     pintarTabs();
     pintarEditor();
     const boton = $('panel-abrir');
@@ -97,7 +97,7 @@
   }
 
   function pintarTabs() {
-    $('panel-tabs').innerHTML = Object.keys(ENTIDADES).map(clave => `<button class="panel-tab ${clave === entidadActual ? 'activa' : ''}" role="tab" aria-selected="${clave === entidadActual}" data-entidad="${clave}">${ENTIDADES[clave].titulo}</button>`).join('');
+    $('panel-tabs').innerHTML = Object.keys(ENTIDADES).filter(clave => !OCULTAS_EN_TABS.includes(clave)).map(clave => `<button class="panel-tab ${clave === entidadActual ? 'activa' : ''}" role="tab" aria-selected="${clave === entidadActual}" data-entidad="${clave}">${ENTIDADES[clave].titulo}</button>`).join('');
   }
 
   function resumen(fila, tipo = entidadActual) {
@@ -122,16 +122,38 @@
     }
     contenedor.innerHTML = `<div class="panel-resumen">${pabellones.length} ${pabellones.length === 1 ? 'pabellón' : 'pabellones'} visibles${soloActivos ? ' · solo activos' : ''}</div><div class="panel-arbol">${pabellones.map(pabellon => {
       const stands = (datos.stands || []).filter(s => s.pabellon_id === pabellon.pabellon_id && (!soloActivos || registroActivo(s)));
-      return `<article class="panel-arbol-pabellon ${registroActivo(pabellon) ? '' : 'inactivo'}"><header class="panel-arbol-cabecera"><span class="icono">${svg(ICONO.mapa, 19)}</span><span class="quien"><b>${esc(pabellon.nombre)}</b><span>${esc(pabellon.pabellon_id)} · ${stands.length} ${stands.length === 1 ? 'stand' : 'stands'}</span></span><span class="acciones"><button class="btn-mini" data-entidad="pabellones" data-editar="${pabellon._fila}" aria-label="Editar ${esc(pabellon.nombre)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-entidad="pabellones" data-borrar="${pabellon._fila}" aria-label="Eliminar ${esc(pabellon.nombre)}" title="Eliminar">${svg(ICONO.equis, 18)}</button></span></header><div class="panel-arbol-hijos">${stands.length ? stands.map(stand => {
+      const abierto = !!busqueda || pabellonesAbiertos.has(pabellon.pabellon_id);
+      return `<article class="panel-arbol-pabellon ${abierto ? 'abierto' : ''} ${registroActivo(pabellon) ? '' : 'inactivo'}"><header class="panel-arbol-cabecera"><button class="panel-arbol-toggle" data-toggle-pab="${esc(pabellon.pabellon_id)}" aria-expanded="${abierto}"><span class="icono">${svg(ICONO.mapa, 19)}</span><span class="quien"><b>${esc(pabellon.nombre)}</b><span>${esc(pabellon.pabellon_id)} · ${stands.length} ${stands.length === 1 ? 'stand' : 'stands'}</span></span><span class="chevron">${svg(ICONO.flecha, 18)}</span></button><span class="acciones"><button class="btn-mini" data-entidad="pabellones" data-editar="${pabellon._fila}" aria-label="Editar ${esc(pabellon.nombre)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-entidad="pabellones" data-borrar="${pabellon._fila}" aria-label="Eliminar ${esc(pabellon.nombre)}" title="Eliminar">${svg(ICONO.equis, 18)}</button></span></header>${abierto ? `<div class="panel-arbol-hijos">${stands.length ? stands.map(stand => {
         const preguntas = (datos.preguntas || []).filter(q => q.stand_id === stand.stand_id && (!soloActivos || registroActivo(q)));
         return `<article class="panel-arbol-stand ${registroActivo(stand) ? '' : 'inactivo'}"><div class="panel-arbol-linea"><span class="icono">${svg(ICONO.trofeo, 17)}</span><span class="quien"><b>${esc(stand.nombre)}</b><span>${esc(stand.stand_id)} · ${preguntas.length}/16 preguntas · quiz aleatorio de 4</span></span><span class="acciones"><button class="btn-mini" data-entidad="stands" data-editar="${stand._fila}" aria-label="Editar ${esc(stand.nombre)}" title="Editar">${svg(ICONO.flecha, 18)}</button><button class="btn-mini peligro" data-entidad="stands" data-borrar="${stand._fila}" aria-label="Eliminar ${esc(stand.nombre)}" title="Eliminar">${svg(ICONO.equis, 17)}</button></span></div><div class="panel-arbol-preguntas">${preguntas.map(pregunta => `<div class="panel-arbol-pregunta"><span>${esc(pregunta.texto)}</span><span class="acciones"><button class="btn-mini" data-entidad="preguntas" data-editar="${pregunta._fila}" aria-label="Editar pregunta" title="Editar">${svg(ICONO.flecha, 17)}</button><button class="btn-mini peligro" data-entidad="preguntas" data-borrar="${pregunta._fila}" aria-label="Eliminar pregunta" title="Eliminar">${svg(ICONO.equis, 16)}</button></span></div>`).join('') || '<p class="panel-arbol-vacio">Este stand todavía no tiene preguntas.</p>'}</div><div class="panel-arbol-acciones"><button class="btn-arbol" data-nuevo="preguntas" data-stand="${esc(stand.stand_id)}">${svg(ICONO.mas, 16)} Añadir pregunta</button><button class="btn-arbol" data-importar-preguntas="${esc(stand.stand_id)}" data-nombre="${esc(stand.nombre)}">${svg(ICONO.subir, 16)} Cargar JSON</button></div></article>`;
-      }).join('') : '<p class="panel-arbol-vacio">Este pabellón todavía no tiene stands.</p>'}<button class="btn-arbol" data-nuevo="stands" data-pabellon="${esc(pabellon.pabellon_id)}">${svg(ICONO.mas, 16)} Añadir stand</button></div></article>`;
+      }).join('') : '<p class="panel-arbol-vacio">Este pabellón todavía no tiene stands.</p>'}<button class="btn-arbol" data-nuevo="stands" data-pabellon="${esc(pabellon.pabellon_id)}">${svg(ICONO.mas, 16)} Añadir stand</button></div>` : ''}</article>`;
     }).join('')}</div>`;
+  }
+
+  /** Permisos agrupados por rol: una tarjeta por rol con sus vistas como chips. */
+  function pintarPermisos() {
+    const q = busqueda.toLowerCase();
+    const todos = datos.permisos || [];
+    const grupos = [...new Set(todos.map(p => p.rol))].map(rol => {
+      const del = todos.filter(p => p.rol === rol);
+      const visibles = del.filter(p => (!soloActivos || registroActivo(p)) && (!q || JSON.stringify([rol, p]).toLowerCase().indexOf(q) >= 0));
+      return { rol, visibles, activas: del.filter(registroActivo).length, abierto: !!q || rolesAbiertos.has(rol) };
+    }).filter(g => g.visibles.length);
+    const contenedor = $('panel-editor');
+    if (!grupos.length) {
+      contenedor.innerHTML = `<div class="panel-vacio"><strong>${busqueda ? 'No encontramos coincidencias' : 'Todavía no hay permisos'}</strong><span>${busqueda ? 'Prueba con otro texto.' : 'Agrega el primer permiso con el botón +.'}</span></div>`;
+      return;
+    }
+    contenedor.innerHTML = `<div class="panel-resumen">${grupos.length} ${grupos.length === 1 ? 'rol' : 'roles'} visibles${soloActivos ? ' · solo activos' : ''}</div><div class="panel-lista">${grupos.map(g => `<article class="panel-rol ${g.abierto ? 'abierto' : ''} ${g.activas ? '' : 'inactivo'}"><header class="panel-arbol-cabecera"><button class="panel-arbol-toggle" data-toggle-rol="${esc(g.rol)}" aria-expanded="${g.abierto}"><span class="icono">${svg(ENTIDADES.permisos.icono, 19)}</span><span class="quien"><b>${esc(g.rol)}</b><span>${g.activas} ${g.activas === 1 ? 'vista activa' : 'vistas activas'}</span></span><span class="chevron">${svg(ICONO.flecha, 18)}</span></button></header>${g.abierto ? `<div class="panel-rol-vistas">${g.visibles.map(p => `<div class="panel-vista-chip ${registroActivo(p) ? '' : 'inactivo'}"><span>${esc(p.vista)}</span><span class="acciones"><button class="btn-mini" data-entidad="permisos" data-editar="${p._fila}" aria-label="Editar vista ${esc(p.vista)}" title="Editar">${svg(ICONO.flecha, 17)}</button><button class="btn-mini peligro" data-entidad="permisos" data-borrar="${p._fila}" aria-label="Desactivar vista ${esc(p.vista)}" title="Desactivar">${svg(ICONO.equis, 16)}</button></span></div>`).join('')}</div><div class="panel-rol-acciones"><button class="btn-arbol" data-nuevo="permisos" data-rol="${esc(g.rol)}">${svg(ICONO.mas, 16)} Añadir vista</button></div>` : ''}</article>`).join('')}</div>`;
   }
 
   function pintarEditor() {
     if (entidadActual === 'pabellones') {
       pintarArbol();
+      return;
+    }
+    if (entidadActual === 'permisos') {
+      pintarPermisos();
       return;
     }
     const lista = (datos[entidadActual] || []).filter(f => (!soloActivos || registroActivo(f)) && (!busqueda || JSON.stringify(f).toLowerCase().indexOf(busqueda.toLowerCase()) >= 0));
@@ -248,7 +270,7 @@
   }
 
   $('panel-tabs').addEventListener('click', e => { const boton = e.target.closest('[data-entidad]'); if (!boton) return; entidadActual = boton.dataset.entidad; busqueda = ''; $('panel-buscar').value = ''; pintarTabs(); pintarEditor(); });
-  $('panel-editor').addEventListener('click', e => { const boton = e.target.closest('button'); if (!boton) return; if (boton.dataset.importarPreguntas) return abrirImportacionPreguntas(boton.dataset.importarPreguntas, boton.dataset.nombre || ''); if (boton.dataset.nuevo) return abrirFormulario(null, boton.dataset.nuevo, { pabellon_id: boton.dataset.pabellon || '', stand_id: boton.dataset.stand || '' }); const tipo = boton.dataset.entidad || entidadActual; const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.editar || boton.dataset.borrar)); if (!fila) return; if (boton.dataset.editar) abrirFormulario(fila, tipo); else abrirBorrado(fila, tipo); });
+  $('panel-editor').addEventListener('click', e => { const toggle = e.target.closest('[data-toggle-pab]'); if (toggle) { const id = toggle.dataset.togglePab; if (pabellonesAbiertos.has(id)) pabellonesAbiertos.delete(id); else pabellonesAbiertos.add(id); return pintarEditor(); } const toggleRol = e.target.closest('[data-toggle-rol]'); if (toggleRol) { const rol = toggleRol.dataset.toggleRol; if (rolesAbiertos.has(rol)) rolesAbiertos.delete(rol); else rolesAbiertos.add(rol); return pintarEditor(); } const boton = e.target.closest('button'); if (!boton) return; if (boton.dataset.importarPreguntas) return abrirImportacionPreguntas(boton.dataset.importarPreguntas, boton.dataset.nombre || ''); if (boton.dataset.nuevo) return abrirFormulario(null, boton.dataset.nuevo, { pabellon_id: boton.dataset.pabellon || '', stand_id: boton.dataset.stand || '', ...(boton.dataset.rol ? { rol: boton.dataset.rol } : {}) }); const tipo = boton.dataset.entidad || entidadActual; const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.editar || boton.dataset.borrar)); if (!fila) return; if (boton.dataset.editar) abrirFormulario(fila, tipo); else abrirBorrado(fila, tipo); });
   $('panel-nuevo').addEventListener('click', () => abrirFormulario(null));
   $('panel-buscar').addEventListener('input', e => { busqueda = e.target.value; pintarEditor(); });
   $('panel-solo-activos').addEventListener('change', e => { soloActivos = e.target.checked; pintarEditor(); });

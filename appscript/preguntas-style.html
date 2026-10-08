@@ -1,0 +1,115 @@
+<style>
+  /* Vista PREGUNTAS: lista compacta por stand, letras para marcar la correcta en un toque y editor completo. */
+  #pg-contenido { margin-top: 16px; }
+
+  /* Barra fija arriba: el stand y cuántas preguntas están activas quedan a la vista al desplazarse. */
+  .pg-cab {
+    position: sticky; top: 0; z-index: 4; background: var(--fondo);
+    padding: 6px 0 10px; margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+  }
+  .pg-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .pg-chips::-webkit-scrollbar { display: none; }
+  .pg-chip {
+    flex: none; min-height: 40px; padding: 0 14px; border-radius: 20px;
+    border: 1px solid var(--borde); font-size: 14px; font-weight: 500; color: var(--texto-2);
+  }
+  .pg-chip.activo { background: var(--t); border-color: var(--c); color: var(--c); }
+  .pg-stand { display: flex; flex-direction: column; }
+  .pg-stand b { font-size: 17px; }
+
+  .pg-resumen { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; color: var(--texto-2); }
+  .pg-resumen > span { flex: 1; min-width: 0; }
+  .pg-resumen b { color: var(--texto); font-weight: 500; }
+  .pg-puntitos { display: grid; grid-template-columns: repeat(8, 8px); gap: 4px; }
+  .pg-puntitos i { width: 8px; height: 8px; border-radius: 50%; background: var(--borde-suave); }
+  .pg-puntitos i.on { background: var(--c); }
+  .pg-nueva {
+    display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 14px; border-radius: 20px;
+    background: var(--azul); color: #fff; font-size: 14px; font-weight: 500; flex: none;
+  }
+  .pg-nueva:active { background: #1765cc; }
+
+  .pg-ayuda { font-size: 13px; color: var(--texto-2); margin: 4px 0 12px; }
+
+  /* Lista: cada tarjeta es compacta para que las 16 quepan sin cansar el scroll */
+  .pg-lista { list-style: none; display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
+  .pg-pregunta {
+    border: 1px solid var(--borde); border-radius: 16px; background: var(--fondo); overflow: hidden;
+  }
+  .pg-pregunta.inactiva { opacity: .6; }
+  .pg-cabeza {
+    display: flex; gap: 10px; align-items: center; width: 100%; min-height: 64px; text-align: left;
+    padding: 12px 14px;
+  }
+  .pg-cabeza:active { background: var(--superficie); }
+  .pg-flecha { color: var(--texto-2); flex: none; margin-left: auto; }
+
+  /* Cuando se guarda la pregunta: la tarjeta se marca con un destello, da un pequeño salto y el número rebota */
+  .pg-pregunta.recien { animation: pg-destello 1.2s ease both; }
+  .pg-pregunta.recien .pg-num { animation: pg-rebote .6s cubic-bezier(.3, 1.6, .5, 1) .15s both; }
+  @keyframes pg-destello {
+    0% { transform: scale(.97); background: var(--azul-suave); box-shadow: 0 0 0 3px var(--azul-suave); border-color: var(--azul); }
+    40% { transform: scale(1.02); }
+    100% { transform: none; background: var(--fondo); box-shadow: 0 0 0 0 transparent; border-color: var(--borde); }
+  }
+  @keyframes pg-rebote { 0% { transform: scale(.6); } 100% { transform: scale(1); } }
+  .pg-num {
+    width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    background: var(--azul-suave); color: var(--azul); font-size: 13px; font-weight: 500;
+  }
+  .pg-texto {
+    font-size: 15px; line-height: 1.35; min-width: 0;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .pg-letras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .pg-letra {
+    min-height: 44px; border-radius: 12px; border: 1px solid var(--borde);
+    font-size: 15px; font-weight: 500; color: var(--texto-2); background: var(--fondo);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .pg-letra:active { background: var(--superficie); }
+  .pg-letra.correcta { background: var(--verde); border-color: var(--verde); color: #fff; }
+
+  .pg-correcta { margin-top: 8px; font-size: 13px; color: var(--texto); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pg-correcta span { color: var(--verde); font-weight: 500; margin-right: 4px; }
+  .pg-pie { margin-top: 4px; font-size: 12px; color: var(--texto-2); }
+  .pg-vacio { padding: 24px 0; text-align: center; color: var(--texto-2); font-size: 14px; }
+
+  /* Editor en la hoja */
+  .pg-form { padding: 8px 16px 8px; display: flex; flex-direction: column; gap: 4px; max-width: 100%; overflow-x: hidden; }
+  /* El padding cuenta dentro del ancho: sin esto, los campos al 100% se salen de la hoja */
+  .pg-form, .pg-form * { box-sizing: border-box; }
+  .pg-form h2 { font-size: 22px; font-weight: 400; margin-bottom: 8px; }
+  .pg-campo { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; border: 0; padding: 0; min-width: 0; }
+  .pg-campo > span, .pg-campo legend { font-size: 13px; color: var(--texto-2); padding: 0; }
+  .pg-campo input, .pg-campo textarea {
+    width: 100%; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px;
+    font: inherit; font-size: 15px; color: var(--texto); background: var(--fondo); outline: none;
+  }
+  .pg-campo input:focus, .pg-campo textarea:focus { border-color: var(--azul); box-shadow: inset 0 0 0 1px var(--azul); }
+  .pg-campo textarea { resize: vertical; min-height: 80px; }
+  .pg-letras.grande { grid-template-columns: repeat(4, 1fr); }
+  .pg-letras.grande label { display: block; position: relative; min-width: 0; }
+  /* El radio queda oculto dentro de su etiqueta: si se sale de la hoja, aparece una barra horizontal */
+  .pg-letras.grande input { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
+  #hoja:has(.pg-form) { overflow-x: hidden; }
+  .pg-letras.grande span {
+    display: grid; place-items: center; min-height: 48px; border-radius: 12px;
+    border: 1px solid var(--borde); font-weight: 500; color: var(--texto-2); cursor: pointer;
+  }
+  .pg-letras.grande input:checked + span { background: var(--verde); border-color: var(--verde); color: #fff; }
+  .pg-letras.grande input:focus-visible + span { box-shadow: 0 0 0 2px var(--azul); }
+  .pg-aviso-form { font-size: 13px; color: var(--texto-2); margin-top: 12px; }
+  #pg-error { color: var(--rojo); min-height: 0; }
+  .pg-acciones { margin-top: 8px; }
+  .pg-form .btn { margin-top: 12px; }
+  /* Guardando: los campos se atenúan y la animación ocupa el lugar de los botones */
+  .pg-form.guardando .pg-campo { opacity: .6; }
+  .pg-guardando {
+    display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; margin-top: 12px;
+    border-radius: 26px; background: var(--superficie); color: var(--texto-2); font-size: 15px; font-weight: 500;
+    animation: pg-aparece .3s ease both;
+  }
+  @keyframes pg-aparece { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+</style>

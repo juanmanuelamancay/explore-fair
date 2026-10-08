@@ -1,11 +1,5 @@
 <style>
-  /* Vista PANEL_ADMIN: editor relacional, conteos y reinicio. */
-  #panel-conteos .fila { min-height: 64px; padding: 12px 16px; }
-  #panel-conteos .icono { width: 40px; height: 40px; border-radius: 50%; background: var(--superficie); color: var(--texto-2); display: grid; place-items: center; flex: none; }
-  #panel-conteos .quien b { white-space: normal; }
-  #panel-conteos .quien span { font-size: 13px; }
-  #panel-conteos .cuanto { font-weight: 500; font-size: 18px; flex: none; }
-  #panel-conteos .cuanto.cero { color: #9aa0a6; }
+  /* Vista PANEL_ADMIN: editor relacional y reinicio. */
 
   .panel-reinicio { padding: 20px; }
   .panel-reinicio h2 { font-size: 20px; font-weight: 400; }
@@ -52,6 +46,18 @@
   .panel-arbol-cabecera .quien b, .panel-arbol-linea .quien b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
   .panel-arbol-cabecera .quien span, .panel-arbol-linea .quien span { display: block; color: var(--texto-2); font-size: 12px; margin-top: 2px; }
   .panel-arbol-cabecera .acciones, .panel-arbol-linea .acciones { display: flex; gap: 2px; flex: none; }
+  .panel-arbol-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; }
+  .panel-arbol-toggle .chevron { color: var(--texto-2); flex: none; display: grid; place-items: center; transition: transform .2s ease; }
+  .panel-arbol-pabellon.abierto .chevron { transform: rotate(90deg); }
+  .panel-rol { border: 1px solid var(--borde); border-radius: 16px; overflow: hidden; background: var(--fondo); }
+  .panel-rol + .panel-rol { margin-top: 10px; }
+  .panel-rol.inactivo { opacity: .58; }
+  .panel-rol.abierto .chevron { transform: rotate(90deg); }
+  .panel-rol-vistas { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; }
+  .panel-vista-chip { display: flex; align-items: center; gap: 4px; padding: 2px 2px 2px 12px; border: 1px solid var(--borde); border-radius: 20px; font-size: 13px; }
+  .panel-vista-chip.inactivo { opacity: .58; text-decoration: line-through; }
+  .panel-vista-chip .acciones { display: flex; }
+  .panel-rol-acciones { padding: 0 12px 12px; display: flex; flex-wrap: wrap; gap: 4px; }
   .panel-arbol-hijos { padding: 8px 12px 12px 28px; }
   .panel-arbol-stand { border-left: 2px solid var(--borde-suave); padding-left: 10px; }
   .panel-arbol-stand + .panel-arbol-stand { margin-top: 8px; }

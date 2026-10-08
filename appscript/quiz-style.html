@@ -46,13 +46,49 @@
   .opcion.elegida { border-color: var(--azul); background: var(--azul-suave); box-shadow: inset 0 0 0 1px var(--azul); }
   .opcion.elegida .letra { background: var(--azul); border-color: var(--azul); color: #fff; }
 
-  .aro {
-    width: 128px; height: 128px; border-radius: 50%; margin: 4px auto 16px; display: grid; place-items: center;
-    background: conic-gradient(var(--verde) calc(var(--p) * 1%), var(--borde-suave) 0);
+  /* Resultado: sello que entra con onda, puntos que suben y filas del detalle que aparecen en cascada */
+  .sello {
+    position: relative; width: 112px; height: 112px; border-radius: 50%; margin: 8px auto 16px;
+    background: var(--verde); display: grid; place-items: center;
+    animation: sello-entrar .6s cubic-bezier(.3, 1.5, .5, 1) both;
   }
-  .aro div { width: 108px; height: 108px; border-radius: 50%; background: var(--fondo); display: grid; place-items: center; font-size: 32px; }
-  .ganado { font-size: 28px; color: var(--azul); }
+  .sello::after {
+    content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 3px solid var(--verde);
+    opacity: 0; animation: quiz-onda .9s ease-out .35s forwards;
+  }
+  .sello.perfecto { background: #f9ab00; }
+  .sello.perfecto::after { border-color: #f9ab00; }
+  @keyframes sello-entrar { from { transform: scale(0) rotate(-30deg); } to { transform: scale(1) rotate(0); } }
+  @keyframes quiz-onda { 0% { transform: scale(.95); opacity: .7; } 100% { transform: scale(1.45); opacity: 0; } }
+  .ganado { font-size: 28px; color: var(--azul); animation: quiz-subir .5s ease .2s both; }
+  @keyframes quiz-subir { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   .detalle { margin-top: 20px; border-top: 1px solid var(--borde-suave); text-align: left; }
-  .detalle li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--borde-suave); font-size: 14px; }
+  .detalle li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--borde-suave); font-size: 14px; animation: quiz-fila .4s ease both; animation-delay: calc(.8s + var(--i) * .12s); }
   .detalle svg { flex: none; margin-top: 1px; }
+  @keyframes quiz-fila { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+
+  /* Entrada de cada pregunta: la tarjeta sube, el enunciado y las opciones entran en cascada */
+  .pregunta-vista.entra > * { animation: quiz-entra .4s ease both; }
+  .pregunta-vista.entra .enunciado { animation-delay: .08s; }
+  .pregunta-vista.entra .opcion { animation: quiz-opcion .45s cubic-bezier(.2, .8, .3, 1) both; animation-delay: calc(.16s + var(--i) * .08s); }
+  .pregunta-vista.entra #quiz-siguiente { animation-delay: .5s; }
+  @keyframes quiz-entra { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes quiz-opcion { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+
+  /* Revisando: el aro gira alrededor del núcleo y cada pregunta se enciende en secuencia */
+  .enviando-quiz { padding-top: 28px; padding-bottom: 28px; }
+  .corrigiendo { position: relative; width: 128px; height: 128px; margin: 8px auto 20px; display: grid; place-items: center; }
+  .anillo-girando {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 6px solid var(--borde-suave); border-top-color: var(--c); animation: quiz-girar 1s linear infinite;
+  }
+  .nucleo {
+    width: 96px; height: 96px; border-radius: 50%; background: var(--t); display: grid; place-items: center;
+    animation: quiz-respirar 1.6s ease-in-out infinite;
+  }
+  @keyframes quiz-girar { to { transform: rotate(360deg); } }
+  @keyframes quiz-respirar { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1.04); } }
+  .revision { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+  .revision i { width: 12px; height: 12px; border-radius: 50%; background: var(--borde-suave); animation: quiz-encender 1.6s ease-in-out infinite; animation-delay: calc(var(--i) * .2s); }
+  @keyframes quiz-encender { 0%, 100% { background: var(--borde-suave); transform: scale(1); } 25% { background: var(--c); transform: scale(1.3); } }
 </style>
