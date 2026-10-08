@@ -30,6 +30,9 @@ const CONFIG_DEFECTO = {
   espera_mensaje: '',
 };
 
+const PREGUNTAS_POR_BANCO = 16;
+const PREGUNTAS_POR_QUIZ = 4;
+
 /** Cuánto tarda la app en notar un cambio hecho a mano en las hojas de catálogo. Se ajusta en Config. */
 function segundosDeCatalogo_(config) {
   return Math.min(21600, Math.max(5, Number(config.segundos_cache_catalogo) || 60));
@@ -229,7 +232,7 @@ function catalogo_() {
       })).sort(porOrden),
       stands: leerHoja_(HOJA.STANDS).filter(s => esVerdadero_(s.activo)).map(s => ({
         id: id_(s.stand_id), pabellonId: id_(s.pabellon_id), nombre: texto_(s.nombre),
-        requiereCodigo: esVerdadero_(s.requiere_codigo), numPreguntas: Number(s.num_preguntas) || 4,
+        requiereCodigo: esVerdadero_(s.requiere_codigo), numPreguntas: PREGUNTAS_POR_QUIZ,
         orden: Number(s.orden) || 0,
       })).sort(porOrden),
       staff: leerStaff_(),

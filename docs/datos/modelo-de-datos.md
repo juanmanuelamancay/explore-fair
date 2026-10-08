@@ -68,7 +68,7 @@ Google Sheets no valida relaciones; estas reglas las hace cumplir el Apps Script
 5. **Coherencia del código:** el `codigo` de un intento debe pertenecer al mismo `stand_id` del intento.
 6. **Preguntas del intento:** todos los IDs de `preguntas_json` deben ser preguntas activas del `stand_id` del intento al momento de crearlo.
 7. **Un código activo por stand:** al generar uno nuevo, el anterior de ese stand pasa a `ANULADO`.
-8. **Banco suficiente:** un stand necesita al menos `num_preguntas` preguntas activas para poder abrir su quiz.
+8. **Banco suficiente:** un stand necesita 16 preguntas activas para poder abrir su quiz. El servidor sortea 4 de esas 16 y solo esas 4 viajan al celular.
 9. **El quiz de entrada es un stand más:** `STD-000` en el pabellón `PAB-000`, con `requiere_codigo = FALSE`. No se muestra en la lista de pabellones a visitar.
 10. **Un permiso por rol y vista:** la combinación `rol` + `vista` es única en `Permisos`.
 11. **Roles válidos:** todo `rol` usado en `Staff` debe tener al menos una fila activa en `Permisos`. `USUARIO` no se escribe en `Staff`: es el rol de quien no aparece ahí.
@@ -96,7 +96,7 @@ Google Sheets no valida relaciones; estas reglas las hace cumplir el Apps Script
 | `nombre` | Texto | APX | Visible para el usuario |
 | `descripcion` | Texto | | Opcional |
 | `requiere_codigo` | Booleano | TRUE | FALSE solo en el quiz de entrada |
-| `num_preguntas` | Número | 4 | 5 en el quiz de entrada |
+| `num_preguntas` | Número | 4 | Cantidad fija que se muestra en cada quiz; el banco del stand debe tener 16 preguntas activas |
 | `orden` | Número | 1 | Orden dentro del pabellón |
 | `activo` | Booleano | TRUE | Baja lógica |
 | `creado_en` | Fecha/hora | | |

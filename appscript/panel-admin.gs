@@ -169,7 +169,7 @@ function adminNormalizar_(entidad, entrada) {
     registro.nombre = texto_(registro.nombre);
     registro.descripcion = texto_(registro.descripcion);
     registro.requiere_codigo = adminBooleano_(registro, 'requiere_codigo');
-    registro.num_preguntas = Number(registro.num_preguntas);
+    registro.num_preguntas = PREGUNTAS_POR_QUIZ;
     registro.orden = Number(registro.orden);
     registro.activo = adminBooleano_(registro, 'activo');
   } else if (entidad === 'preguntas') {
@@ -238,7 +238,6 @@ function adminValidarRelaciones_(entidad, registro, fila) {
   }
   if (entidad === 'stands') {
     if (!registro.nombre || !registro.pabellon_id || !pabellonActivo(registro.pabellon_id)) throw new Error('El stand necesita un pabellón activo válido.');
-    adminNumero_(registro, 'num_preguntas', 1);
     adminNumero_(registro, 'orden', 0);
   }
   if (entidad === 'preguntas') {
@@ -307,6 +306,47 @@ function guardarAdminRegistro(entidad, entrada) {
     bloqueo.releaseLock();
   }
   return obtenerAdminCatalogo();
+}
+
+/** Importa un arreglo JSON de preguntas en un stand, generando sus claves y fechas en el servidor. */
+function importarPreguntasAdmin(standId, preguntas) {
+  const sesion = exigirVista_('PANEL_ADMIN');
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede editar el catálogo.');
+  const stand = adminFilas_('stands').find(s => s.stand_id === id_(standId) && adminBooleano_(s, 'activo'));
+  if (!stand) throw new Error('El stand seleccionado no existe o está inactivo.');
+  if (!Array.isArray(preguntas) || !preguntas.length) throw new Error('El JSON debe contener un arreglo con al menos una pregunta.');
+  if (preguntas.length > 200) throw new Error('Puedes importar como máximo 200 preguntas por archivo.');
+
+  const camposEsperados = ['texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo'];
+  const registros = preguntas.map((entrada, indice) => {
+    if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) throw new Error('La pregunta ' + (indice + 1) + ' debe ser un objeto JSON.');
+    const faltan = camposEsperados.filter(campo => !Object.prototype.hasOwnProperty.call(entrada, campo));
+    if (faltan.length) throw new Error('La pregunta ' + (indice + 1) + ' no tiene: ' + faltan.join(', ') + '.');
+    const extras = Object.keys(entrada).filter(campo => camposEsperados.indexOf(campo) < 0);
+    if (extras.length) throw new Error('La pregunta ' + (indice + 1) + ' contiene campos no permitidos: ' + extras.join(', ') + '.');
+    if (typeof entrada.activo !== 'boolean') throw new Error('El campo activo de la pregunta ' + (indice + 1) + ' debe ser true o false.');
+    if (typeof entrada.puntos !== 'number' || !isFinite(entrada.puntos)) throw new Error('El campo puntos de la pregunta ' + (indice + 1) + ' debe ser numérico.');
+    const registro = adminNormalizar_('preguntas', Object.assign({}, entrada, { stand_id: stand.stand_id }));
+    try { adminValidarRelaciones_('preguntas', registro, null); } catch (error) { throw new Error('Pregunta ' + (indice + 1) + ': ' + error.message); }
+    return registro;
+  });
+
+  const bloqueo = LockService.getScriptLock();
+  bloqueo.waitLock(SEGUNDOS_BLOQUEO);
+  try {
+    registros.forEach(registro => {
+      const secuencia = adminSiguienteId_('preguntas', 'PRG');
+      registro.pregunta_id = secuencia.id;
+      registro.stand_id = stand.stand_id;
+      registro.creado_en = new Date();
+      agregarFila_(HOJA.PREGUNTAS, registro);
+      PropertiesService.getScriptProperties().setProperty(secuencia.propiedad, String(secuencia.numero));
+    });
+    limpiarCache();
+  } finally {
+    bloqueo.releaseLock();
+  }
+  return { datos: obtenerAdminCatalogo(), importadas: registros.length, stand_id: stand.stand_id };
 }
 
 function borrarAdminRegistro(entidad, numeroDeFila) {

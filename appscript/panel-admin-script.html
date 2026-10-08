@@ -14,7 +14,7 @@
     stands: { titulo: 'Stands', singular: 'stand', icono: ICONO.trofeo, campos: [
       { clave: 'stand_id', etiqueta: 'ID', readonlyNuevo: true }, { clave: 'pabellon_id', etiqueta: 'Pabellón', tipo: 'pabellon' },
       { clave: 'nombre', etiqueta: 'Nombre' }, { clave: 'descripcion', etiqueta: 'Descripción', tipo: 'textarea', ancho: true },
-      { clave: 'requiere_codigo', etiqueta: 'Requiere código', tipo: 'check' }, { clave: 'num_preguntas', etiqueta: 'Preguntas por quiz', tipo: 'number' },
+      { clave: 'requiere_codigo', etiqueta: 'Requiere código', tipo: 'check' },
       { clave: 'orden', etiqueta: 'Orden', tipo: 'number' }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
     ] },
     preguntas: { titulo: 'Preguntas', singular: 'pregunta', icono: ICONO.megafono, campos: [
@@ -124,7 +124,7 @@
       const stands = (datos.stands || []).filter(s => s.pabellon_id === pabellon.pabellon_id && (!soloActivos || registroActivo(s)));
       return `<article class="panel-arbol-pabellon ${registroActivo(pabellon) ? '' : 'inactivo'}"><header class="panel-arbol-cabecera"><span class="icono">${svg(ICONO.mapa, 19)}</span><span class="quien"><b>${esc(pabellon.nombre)}</b><span>${esc(pabellon.pabellon_id)} · ${stands.length} ${stands.length === 1 ? 'stand' : 'stands'}</span></span><span class="acciones"><button class="btn-mini" data-entidad="pabellones" data-editar="${pabellon._fila}" aria-label="Editar ${esc(pabellon.nombre)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-entidad="pabellones" data-borrar="${pabellon._fila}" aria-label="Eliminar ${esc(pabellon.nombre)}" title="Eliminar">${svg(ICONO.equis, 18)}</button></span></header><div class="panel-arbol-hijos">${stands.length ? stands.map(stand => {
         const preguntas = (datos.preguntas || []).filter(q => q.stand_id === stand.stand_id && (!soloActivos || registroActivo(q)));
-        return `<article class="panel-arbol-stand ${registroActivo(stand) ? '' : 'inactivo'}"><div class="panel-arbol-linea"><span class="icono">${svg(ICONO.trofeo, 17)}</span><span class="quien"><b>${esc(stand.nombre)}</b><span>${esc(stand.stand_id)} · ${preguntas.length} ${preguntas.length === 1 ? 'pregunta' : 'preguntas'}</span></span><span class="acciones"><button class="btn-mini" data-entidad="stands" data-editar="${stand._fila}" aria-label="Editar ${esc(stand.nombre)}" title="Editar">${svg(ICONO.flecha, 18)}</button><button class="btn-mini peligro" data-entidad="stands" data-borrar="${stand._fila}" aria-label="Eliminar ${esc(stand.nombre)}" title="Eliminar">${svg(ICONO.equis, 17)}</button></span></div><div class="panel-arbol-preguntas">${preguntas.map(pregunta => `<div class="panel-arbol-pregunta"><span>${esc(pregunta.texto)}</span><span class="acciones"><button class="btn-mini" data-entidad="preguntas" data-editar="${pregunta._fila}" aria-label="Editar pregunta" title="Editar">${svg(ICONO.flecha, 17)}</button><button class="btn-mini peligro" data-entidad="preguntas" data-borrar="${pregunta._fila}" aria-label="Eliminar pregunta" title="Eliminar">${svg(ICONO.equis, 16)}</button></span></div>`).join('') || '<p class="panel-arbol-vacio">Este stand todavía no tiene preguntas.</p>'}</div><button class="btn-arbol" data-nuevo="preguntas" data-stand="${esc(stand.stand_id)}">${svg(ICONO.mas, 16)} Añadir pregunta</button></article>`;
+        return `<article class="panel-arbol-stand ${registroActivo(stand) ? '' : 'inactivo'}"><div class="panel-arbol-linea"><span class="icono">${svg(ICONO.trofeo, 17)}</span><span class="quien"><b>${esc(stand.nombre)}</b><span>${esc(stand.stand_id)} · ${preguntas.length}/16 preguntas · quiz aleatorio de 4</span></span><span class="acciones"><button class="btn-mini" data-entidad="stands" data-editar="${stand._fila}" aria-label="Editar ${esc(stand.nombre)}" title="Editar">${svg(ICONO.flecha, 18)}</button><button class="btn-mini peligro" data-entidad="stands" data-borrar="${stand._fila}" aria-label="Eliminar ${esc(stand.nombre)}" title="Eliminar">${svg(ICONO.equis, 17)}</button></span></div><div class="panel-arbol-preguntas">${preguntas.map(pregunta => `<div class="panel-arbol-pregunta"><span>${esc(pregunta.texto)}</span><span class="acciones"><button class="btn-mini" data-entidad="preguntas" data-editar="${pregunta._fila}" aria-label="Editar pregunta" title="Editar">${svg(ICONO.flecha, 17)}</button><button class="btn-mini peligro" data-entidad="preguntas" data-borrar="${pregunta._fila}" aria-label="Eliminar pregunta" title="Eliminar">${svg(ICONO.equis, 16)}</button></span></div>`).join('') || '<p class="panel-arbol-vacio">Este stand todavía no tiene preguntas.</p>'}</div><div class="panel-arbol-acciones"><button class="btn-arbol" data-nuevo="preguntas" data-stand="${esc(stand.stand_id)}">${svg(ICONO.mas, 16)} Añadir pregunta</button><button class="btn-arbol" data-importar-preguntas="${esc(stand.stand_id)}" data-nombre="${esc(stand.nombre)}">${svg(ICONO.subir, 16)} Cargar JSON</button></div></article>`;
       }).join('') : '<p class="panel-arbol-vacio">Este pabellón todavía no tiene stands.</p>'}<button class="btn-arbol" data-nuevo="stands" data-pabellon="${esc(pabellon.pabellon_id)}">${svg(ICONO.mas, 16)} Añadir stand</button></div></article>`;
     }).join('')}</div>`;
   }
@@ -176,10 +176,47 @@
     return `<label class="campo-admin ${campo.ancho ? 'ancho' : ''}"><span>${campo.etiqueta}${campo.opcional ? ' · opcional' : ''}</span><input type="${type}" name="${campo.clave}" value="${esc(actual)}" ${campo.readonlyNuevo && nuevo ? 'readonly placeholder="Se asigna al guardar"' : ''} ${campo.opcional || (campo.readonlyNuevo && nuevo) ? '' : 'required'}></label>`;
   }
 
+  function abrirImportacionPreguntas(standId, standNombre) {
+    App.abrirHoja(`<form class="formulario-admin" id="admin-json-form"><h2>Cargar preguntas</h2><p>Stand: <b>${esc(standNombre)}</b>. El sistema asignará el mismo stand y generará las IDs.</p><label class="campo-admin"><span>Archivo JSON</span><input id="admin-json-archivo" type="file" accept=".json,application/json" required></label><p class="json-ayuda">El archivo debe ser un arreglo de objetos con: texto, opcion_a, opcion_b, opcion_c, opcion_d, correcta, puntos y activo.</p><p class="json-estado" id="admin-json-estado">Selecciona un archivo para validarlo.</p><div class="acciones-form"><button class="btn" id="admin-json-guardar" type="submit" disabled>Cargar preguntas</button><button class="btn texto" type="button" data-cerrar>Cancelar</button></div></form>`);
+    const form = $('admin-json-form');
+    const archivo = $('admin-json-archivo');
+    const estado = $('admin-json-estado');
+    const boton = $('admin-json-guardar');
+    let preguntas = null;
+    archivo.onchange = () => {
+      preguntas = null;
+      boton.disabled = true;
+      const seleccionado = archivo.files && archivo.files[0];
+      if (!seleccionado) { estado.textContent = 'Selecciona un archivo para validarlo.'; return; }
+      const lector = new FileReader();
+      lector.onload = () => {
+        try {
+          const contenido = String(lector.result || '').replace(/^\uFEFF/, '');
+          const json = JSON.parse(contenido);
+          if (!Array.isArray(json) || !json.length) throw new Error('El JSON debe ser un arreglo con al menos una pregunta.');
+          preguntas = json;
+          estado.textContent = json.length + (json.length === 1 ? ' pregunta lista para cargar.' : ' preguntas listas para cargar.');
+          boton.disabled = false;
+        } catch (error) {
+          estado.textContent = error.message || 'El archivo no contiene un JSON válido.';
+        }
+      };
+      lector.onerror = () => { estado.textContent = 'No se pudo leer el archivo.'; };
+      lector.readAsText(seleccionado, 'UTF-8');
+    };
+    form.onsubmit = e => {
+      e.preventDefault();
+      if (!preguntas) return;
+      boton.disabled = true;
+      boton.innerHTML = '<i class="giro"></i>Cargando…';
+      servidor('importarPreguntasAdmin', standId, preguntas).then(resultado => { datos = resultado.datos; App.cerrarHoja(); toast('Se cargaron ' + resultado.importadas + ' preguntas.'); pintar(); }).catch(error => { toast(error && error.message ? error.message : 'No se pudo cargar el JSON.'); boton.disabled = false; boton.textContent = 'Cargar preguntas'; });
+    };
+  }
+
   function abrirFormulario(fila, tipo = entidadActual, iniciales = {}) {
     const nuevo = !fila;
     const verboNuevo = tipo === 'preguntas' ? 'Nueva' : 'Nuevo';
-    const baseDefecto = tipo === 'pabellones' ? { orden: (datos.pabellones || []).length + 1, activo: true } : tipo === 'stands' ? { num_preguntas: 4, orden: 1, requiere_codigo: true, activo: true } : tipo === 'preguntas' ? { puntos: 10, correcta: 'A', activo: true } : tipo === 'staff' ? { activo: true, rol: 'LIDER' } : tipo === 'permisos' ? { activo: true, rol: 'LIDER', vista: 'RANKING' } : tipo === 'premios' ? { orden: (datos.premios || []).length + 1, activo: true } : {};
+    const baseDefecto = tipo === 'pabellones' ? { orden: (datos.pabellones || []).length + 1, activo: true } : tipo === 'stands' ? { orden: 1, requiere_codigo: true, activo: true } : tipo === 'preguntas' ? { puntos: 10, correcta: 'A', activo: true } : tipo === 'staff' ? { activo: true, rol: 'LIDER' } : tipo === 'permisos' ? { activo: true, rol: 'LIDER', vista: 'RANKING' } : tipo === 'premios' ? { orden: (datos.premios || []).length + 1, activo: true } : {};
     const base = fila || Object.assign(baseDefecto, iniciales);
     const campos = ENTIDADES[tipo].campos;
     App.abrirHoja(`<form class="formulario-admin" id="admin-form"><h2>${nuevo ? verboNuevo + ' ' + ENTIDADES[tipo].singular : 'Editar ' + ENTIDADES[tipo].singular}</h2><p>Los cambios se validan antes de tocar el Sheet.</p><div class="form-grid">${campos.map(c => inputCampo(c, base, nuevo)).join('')}</div>${(tipo === 'stands' || tipo === 'preguntas' || tipo === 'staff' || tipo === 'permisos') ? '<p class="nota-relacion">Las referencias se limitan a registros activos para evitar datos huérfanos.</p>' : ''}<div class="acciones-form"><button class="btn" type="submit">Guardar cambios</button><button class="btn texto" type="button" data-cerrar>Cancelar</button></div></form>`);
@@ -211,7 +248,7 @@
   }
 
   $('panel-tabs').addEventListener('click', e => { const boton = e.target.closest('[data-entidad]'); if (!boton) return; entidadActual = boton.dataset.entidad; busqueda = ''; $('panel-buscar').value = ''; pintarTabs(); pintarEditor(); });
-  $('panel-editor').addEventListener('click', e => { const boton = e.target.closest('button'); if (!boton) return; if (boton.dataset.nuevo) return abrirFormulario(null, boton.dataset.nuevo, { pabellon_id: boton.dataset.pabellon || '', stand_id: boton.dataset.stand || '' }); const tipo = boton.dataset.entidad || entidadActual; const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.editar || boton.dataset.borrar)); if (!fila) return; if (boton.dataset.editar) abrirFormulario(fila, tipo); else abrirBorrado(fila, tipo); });
+  $('panel-editor').addEventListener('click', e => { const boton = e.target.closest('button'); if (!boton) return; if (boton.dataset.importarPreguntas) return abrirImportacionPreguntas(boton.dataset.importarPreguntas, boton.dataset.nombre || ''); if (boton.dataset.nuevo) return abrirFormulario(null, boton.dataset.nuevo, { pabellon_id: boton.dataset.pabellon || '', stand_id: boton.dataset.stand || '' }); const tipo = boton.dataset.entidad || entidadActual; const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.editar || boton.dataset.borrar)); if (!fila) return; if (boton.dataset.editar) abrirFormulario(fila, tipo); else abrirBorrado(fila, tipo); });
   $('panel-nuevo').addEventListener('click', () => abrirFormulario(null));
   $('panel-buscar').addEventListener('input', e => { busqueda = e.target.value; pintarEditor(); });
   $('panel-solo-activos').addEventListener('change', e => { soloActivos = e.target.checked; pintarEditor(); });

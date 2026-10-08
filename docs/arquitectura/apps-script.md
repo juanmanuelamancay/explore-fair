@@ -21,7 +21,7 @@ Cada vista tiene cuatro archivos con el mismo prefijo:
 | `QUIZ` | `quiz` | `iniciarQuiz`, `enviarQuiz` |
 | `RANKING` | `ranking` | `obtenerRanking` |
 | `GENERAR_CODIGO` | `generar-codigo` | `obtenerCodigos`, `generarCodigo` |
-| `PANEL_ADMIN` | `panel-admin` | `obtenerPanel`, `obtenerAdminCatalogo`, `guardarAdminRegistro`, `borrarAdminRegistro`, `eliminarAdminPabellon`, `actualizarCatalogo`, `reiniciarDatos` |
+| `PANEL_ADMIN` | `panel-admin` | `obtenerPanel`, `obtenerAdminCatalogo`, `guardarAdminRegistro`, `importarPreguntasAdmin`, `borrarAdminRegistro`, `eliminarAdminPabellon`, `actualizarCatalogo`, `reiniciarDatos` |
 | `ESPERA` (no va en `Permisos`) | `espera` | `obtenerEspera` |
 
 La vista `BOARD` todavía no está programada. Puede estar en `Permisos` sin causar error: la app ignora las vistas que no conoce.

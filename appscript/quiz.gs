@@ -52,8 +52,8 @@ function iniciarQuiz_(standId, codigo) {
 
   // Puede ser la caché de antes de cargar las preguntas en el Sheet: se relee una vez antes de fallar.
   if (banco.length < stand.numPreguntas) banco = preguntasDeStand_(stand.id, true);
-  if (banco.length < stand.numPreguntas) {
-    return falla_('SIN_PREGUNTAS', 'Este stand todavía no tiene sus preguntas listas: tiene ' + banco.length + ' activas y necesita ' + stand.numPreguntas + '.');
+  if (banco.length < PREGUNTAS_POR_BANCO) {
+    return falla_('SIN_PREGUNTAS', 'Este stand todavía no tiene sus preguntas listas: tiene ' + banco.length + ' activas y necesita ' + PREGUNTAS_POR_BANCO + '.');
   }
   const sorteadas = sortear_(banco, stand.numPreguntas);
   const venceEn = new Date(ahora.getTime() + catalogo.config.minutos_para_responder * 60000);

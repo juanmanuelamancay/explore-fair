@@ -81,7 +81,7 @@ function datosDeEjemplo() {
   ];
   const preguntas = [];
   stands.forEach(([id, , nombre]) => {
-    for (let n = 1; n <= (id === 'STD-000' ? 8 : 6); n++) {
+    for (let n = 1; n <= 16; n++) {
       const correcta = 'ABCD'[(n - 1) % 4];
       preguntas.push(['PRG-' + String(preguntas.length + 1).padStart(3, '0'), id, `Pregunta ${n} de ejemplo sobre ${nombre}: ¿cuál es la opción correcta?`,
         ...'ABCD'.split('').map(l => (l === correcta ? 'Esta es la opción correcta' : `Opción ${l} de ejemplo, incorrecta`)), correcta, 10, true, hoy]);

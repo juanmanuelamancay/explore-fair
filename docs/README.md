@@ -8,6 +8,7 @@ Esta carpeta es la fuente de verdad del diseño. Sirve para que una persona o un
 
 | Documento | Contenido | Estado |
 |---|---|---|
+| [producto-funcional.md](producto-funcional.md) | Propósito del producto y funcionamiento del área de preguntas | Vigente |
 | [datos/modelo-de-datos.md](datos/modelo-de-datos.md) | Hojas del Sheet, campos y relaciones entre tablas | Vigente |
 | [reglas/ux-ui.md](reglas/ux-ui.md) | Estilo visual, reglas para celular y comportamiento de las pantallas del usuario, el líder y el admin | Vigente |
 | [arquitectura/apps-script.md](arquitectura/apps-script.md) | Archivos del proyecto Apps Script, reglas del servidor, caché, despliegue y simulador local | Vigente |
@@ -24,6 +25,7 @@ Prototipos navegables, con datos de ejemplo:
 - [../prototipo/usuario.html](../prototipo/usuario.html): vistas `MAPA`, `QUIZ` y `RANKING`.
 - [../prototipo/lider.html](../prototipo/lider.html): vistas `GENERAR_CODIGO` y `RANKING`.
 - [../prototipo/admin.html](../prototipo/admin.html): prototipo visual de `PANEL_ADMIN` y `RANKING`; la vista real administra el catálogo desde Apps Script.
+- [datos/formato-preguntas-json.md](datos/formato-preguntas-json.md): formato para cargar preguntas JSON dentro de un stand.
 
 Carpetas y documentos previstos, se crean cuando tengan contenido:
 
