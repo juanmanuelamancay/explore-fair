@@ -22,6 +22,40 @@
   .fila.yo .avatar:not(.oro):not(.plata):not(.bronce) { background: var(--azul); border-color: var(--azul); color: #fff; }
   .fila.con-corona { padding-top: 18px; }   /* deja sitio a la corona sobre el avatar */
 
+  /* Claridad de cada fila: puesto en círculo, nombre con sus stands, y puntos a la derecha con su unidad */
+  #vista-ranking .fila { padding: 10px 16px 10px 12px; }
+  #vista-ranking .fila .pos {
+    width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    background: var(--superficie); border: 1px solid var(--borde-suave); color: var(--texto-2); font-size: 14px; font-weight: 500;
+  }
+  #vista-ranking .fila.yo .pos { background: var(--azul); border-color: var(--azul); color: #fff; }
+  #vista-ranking .fila .puntos-fila { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
+  #vista-ranking .fila .puntos-fila b { font-size: 22px; font-weight: 500; color: var(--azul); }
+  #vista-ranking .fila .puntos-fila small { margin-top: 3px; font-size: 11px; color: var(--texto-2); text-transform: uppercase; letter-spacing: .04em; }
+  #vista-ranking .fila.yo .puntos-fila b { color: var(--azul); }
+
+  /* Cambios desde el último refresco: la fila destella y aparece un "+N" que se desvanece.
+     Solo se anima quien subió; en cada refresco sin cambios no pasa nada. */
+  .fila.subio { animation: rank-destello 1.6s ease both; }
+  @keyframes rank-destello { 0% { background-color: var(--verde-suave); box-shadow: inset 4px 0 0 var(--verde); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
+  /* El "+N" va en absoluto: no ocupa lugar y no deja hueco cuando se desvanece */
+  .fila { position: relative; }
+  .lugar { position: relative; }
+  .fila .delta { position: absolute; right: 60px; top: 50%; margin-top: -11px; }
+  .lugar .delta { top: -26px; left: 50%; margin-left: -20px; }
+  .delta {
+    white-space: nowrap; pointer-events: none; padding: 2px 8px; border-radius: 10px;
+    background: var(--verde-suave); color: var(--verde); font-size: 13px; font-style: normal; font-weight: 500;
+    animation: rank-sube 2.4s ease both;
+  }
+  @keyframes rank-sube {
+    0% { opacity: 0; transform: translateY(6px) scale(.8); }
+    20% { opacity: 1; transform: none; }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-6px); }
+  }
+  @media (prefers-reduced-motion: reduce) { .fila.subio, .delta { animation: none; } }
+
   .mi-puesto { position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); z-index: 4; pointer-events: none; }
   .mi-puesto .fila {
     max-width: 448px; margin: 0 16px 8px; border: 0; border-radius: 16px;

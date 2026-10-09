@@ -143,17 +143,23 @@
     if (!p) return;
     const tono = paleta(p.indice);
     const completo = p.stands.every(s => s.estado === 'COMPLETADO');
+    // Todos los stands tienen las mismas preguntas y puntos, así que la fila solo dice el estado.
+    // El círculo muestra ese estado (no la sigla), y el nombre aparece una sola vez.
     const filas = p.stands.map(s => {
-      const abr = `<span class="abr">${esc(abreviatura(s.nombre))}</span>`;
-      if (s.estado === 'COMPLETADO') return `<li><div class="item hecho">${abr}
+      if (s.estado === 'COMPLETADO') return `<li><div class="item hecho">
+        <span class="estado-stand hecho">${svg(ICONO.check, 20, '#fff', 3)}</span>
         <span class="nom"><b>${esc(s.nombre)}</b><span>${s.correctas} de ${s.total} correctas</span></span>
-        <span class="fin tnum">${svg(ICONO.check, 18, '#188038', 3)}${s.puntaje} pts</span></div></li>`;
-      if (s.estado === 'VENCIDO') return `<li><div class="item vencido">${abr}
+        <span class="fin tnum">${s.puntaje} pts</span></div></li>`;
+      if (s.estado === 'VENCIDO') return `<li><div class="item vencido">
+        <span class="estado-stand vencido">${svg(ICONO.equis, 18)}</span>
         <span class="nom"><b>${esc(s.nombre)}</b><span>Se venció el tiempo</span></span>
         <span class="fin tnum">0 pts</span></div></li>`;
-      const detalle = s.estado === 'EN_CURSO' ? 'En curso · toca para continuar' : `${s.numPreguntas} preguntas · hasta ${s.puntosMax} pts`;
-      return `<li><button class="item" data-stand="${esc(s.id)}">${abr}
-        <span class="nom"><b>${esc(s.nombre)}</b><span>${detalle}</span></span>
+      const enCurso = s.estado === 'EN_CURSO';
+      // Pendiente no lleva subtítulo: el reloj ya dice que aún no se empieza.
+      const detalle = enCurso ? '<span>En curso · toca para continuar</span>' : '';
+      return `<li><button class="item" data-stand="${esc(s.id)}">
+        <span class="estado-stand ${enCurso ? 'en-curso' : 'pendiente'}">${svg(enCurso ? ICONO.play : ICONO.reloj, 20)}</span>
+        <span class="nom"><b>${esc(s.nombre)}</b>${detalle}</span>
         <span class="fin">${svg(ICONO.flecha, 20)}</span></button></li>`;
     }).join('');
 
@@ -163,7 +169,7 @@
           <span class="icono">${svg(tono.icono)}</span>
           <div><p class="sec chico">Pabellón${completo ? ' completo' : ''}</p><h2>${esc(p.nombre)}</h2></div>
         </div>
-        <p class="hoja-seccion">Stands de este pabellón</p>
+        <p class="hoja-seccion">Descubre los stands, responde aquí y gana puntos</p>
         <ul>${filas}</ul>
         <p class="aviso" style="margin:8px 16px 4px">Necesitas el código que da el líder al terminar la charla.</p>
       </div>`);

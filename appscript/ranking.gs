@@ -39,8 +39,69 @@ function puestoDe_(email) {
   return indice < 0 ? null : indice + 1;
 }
 
-function obtenerRanking() {
+/** Con forzar = true (botón de actualizar) se descarta la caché antes de leer, para traer lo que hay en el Sheet ahora. */
+function obtenerRanking(forzar) {
   const sesion = exigirVista_('RANKING');
+  if (forzar) limpiarCache();
+  return rankingParaSesion_(sesion);
+}
+
+/** Misma lista para la vista de pantalla grande, con su propio permiso (solo admin, en Permisos). Trae también el preset. */
+function obtenerRankingPantalla(forzar) {
+  const sesion = exigirVista_('RANKING_PANTALLA');
+  if (forzar) limpiarCache();
+  return { ...rankingParaSesion_(sesion), ajustes: ajustesPantalla_(catalogo_().config) };
+}
+
+/** Rangos permitidos para cada clave del preset: lo que llegue fuera de aquí se corrige al guardar. */
+const RANGOS_PANTALLA_ = {
+  rp_personas: [0, 300], rp_columnas: [1, 8], rp_alto: [40, 120], rp_espacio: [4, 24],
+  rp_fuente: [12, 30], rp_puntos: [14, 40], rp_escala: [60, 160], rp_ancho_top: [40, 100],
+};
+
+/** Preset en el formato que usa la pantalla (los valores de Config, o los de CONFIG_DEFECTO si no hay nada guardado). */
+function ajustesPantalla_(config) {
+  return {
+    personas: config.rp_personas, columnas: config.rp_columnas, alto: config.rp_alto, espacio: config.rp_espacio,
+    fuente: config.rp_fuente, puntos: config.rp_puntos, escala: config.rp_escala, anchoTop: config.rp_ancho_top,
+    ocultarMenu: config.rp_ocultar_menu === true,
+    modoOscuro: config.rp_modo_oscuro === true,
+  };
+}
+
+/** Guarda el preset en la hoja Config. Solo escribe valores numéricos, dentro de rango. */
+function guardarAjustesPantalla(ajustes) {
+  exigirVista_('RANKING_PANTALLA');
+  const entrada = ajustes || {};
+  const campos = { personas: 'rp_personas', columnas: 'rp_columnas', alto: 'rp_alto', espacio: 'rp_espacio',
+    fuente: 'rp_fuente', puntos: 'rp_puntos', escala: 'rp_escala', anchoTop: 'rp_ancho_top' };
+  const bloqueo = LockService.getScriptLock();
+  bloqueo.waitLock(SEGUNDOS_BLOQUEO);
+  try {
+    if (typeof entrada.ocultarMenu === 'boolean') configPonerRanking_('rp_ocultar_menu', entrada.ocultarMenu);
+    if (typeof entrada.modoOscuro === 'boolean') configPonerRanking_('rp_modo_oscuro', entrada.modoOscuro);
+    Object.keys(campos).forEach(campo => {
+      const clave = campos[campo];
+      const valor = Number(entrada[campo]);
+      if (!isFinite(valor)) return;
+      const [minimo, maximo] = RANGOS_PANTALLA_[clave];
+      configPonerRanking_(clave, Math.round(Math.min(maximo, Math.max(minimo, valor))));
+    });
+    limpiarCache();
+  } finally {
+    bloqueo.releaseLock();
+  }
+  return ajustesPantalla_(catalogo_().config);
+}
+
+/** Actualiza la fila de la clave en Config, o la agrega si todavía no existe. */
+function configPonerRanking_(clave, valor) {
+  const fila = leerHoja_(HOJA.CONFIG).find(f => normal_(f.clave) === clave);
+  if (fila) actualizarFila_(HOJA.CONFIG, fila._fila, { valor: valor });
+  else agregarFila_(HOJA.CONFIG, { clave: clave, valor: valor, descripcion: 'Preset de la pantalla de ranking' });
+}
+
+function rankingParaSesion_(sesion) {
   return {
     filas: rankingCompleto_().map(f => ({ nombre: f.nombre, puntos: f.puntos, stands: f.stands, yo: f.email === sesion.email })),
   };

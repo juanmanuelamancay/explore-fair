@@ -28,6 +28,17 @@ const CONFIG_DEFECTO = {
   fecha_feria: 0,
   lugar_feria: '',
   espera_mensaje: '',
+  // Preset de la pantalla de ranking (vista RANKING_PANTALLA). Se edita desde su panel de ajustes.
+  rp_personas: 0,        // personas por pantalla; 0 = lo que quepa
+  rp_columnas: 6,
+  rp_alto: 64,           // px por fila
+  rp_espacio: 10,        // px entre filas
+  rp_fuente: 16,         // px de los nombres
+  rp_puntos: 22,         // px de los puntos
+  rp_escala: 100,        // % del top (podio)
+  rp_ancho_top: 66,      // % del ancho de la pantalla que ocupa el top
+  rp_ocultar_menu: false, // TRUE oculta la barra de navegación en la vista de ranking de pantalla
+  rp_modo_oscuro: false,  // TRUE pinta la vista de ranking de pantalla en oscuro
 };
 
 const PREGUNTAS_POR_BANCO = 16;

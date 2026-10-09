@@ -32,19 +32,20 @@
     pantalla.innerHTML = `
       ${cabecera()}
       <div class="tarjeta centro" style="--c:${q.color};--t:${q.tinte}">
-        <div class="disco-grande">${esc(abreviatura(s.nombre))}</div>
-        <h2>${esc(s.nombre)}</h2>
+        <div class="disco-grande">${svg(s.requiereCodigo ? ICONO.llave : ICONO.play, 32)}</div>
+        <h2>${s.requiereCodigo ? 'Ingresa el código' : 'Listo para empezar'}</h2>
         <div class="datos">
           <span class="chip">${s.numPreguntas} preguntas</span>
           <span class="chip">${INICIO.minutosParaResponder} minutos</span>
           <span class="chip">Hasta ${s.puntosMax} pts</span>
         </div>
         ${s.requiereCodigo ? `
-          <label class="campo" for="quiz-codigo">Código que te dio el líder del stand</label>
-          <input id="quiz-codigo" maxlength="4" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="····" aria-describedby="quiz-error">
+          <div class="campo-codigo">
+            <input id="quiz-codigo" maxlength="4" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="····" aria-label="Código del líder" aria-describedby="quiz-error">
+          </div>
           <p class="msg-error" id="quiz-error" role="alert"></p>` : ''}
         <button class="btn" id="quiz-empezar" ${s.requiereCodigo ? 'disabled' : ''}>Empezar</button>
-        <p class="aviso">El tiempo corre desde que empiezas y solo tienes un intento.</p>
+        <p class="aviso">Solo tienes un intento.</p>
       </div>`;
 
     const boton = $('quiz-empezar');

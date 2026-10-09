@@ -12,6 +12,7 @@ const ARCHIVO_DE_VISTA = {
   MAPA: 'mapa',
   QUIZ: 'quiz',
   RANKING: 'ranking',
+  RANKING_PANTALLA: 'ranking-pantalla',
   GENERAR_CODIGO: 'generar-codigo',
   PREGUNTAS: 'preguntas',
   PANEL_ADMIN: 'panel-admin',

@@ -7,6 +7,7 @@
   let desfase = 0;          // hora del servidor menos hora del celular
   let intervalo = null;
   const vencidos = {};      // stand -> último código que venció mientras se veía, hasta generar otro
+  const pendientes = {};    // stand -> true mientras el servidor crea su código (la animación ocupa la tarjeta)
 
   const stand = () => stands.find(s => s.id === elegido);
   const restante = activo => Math.max(0, Math.ceil((activo.expiraEn - (Date.now() + desfase)) / 1000));
@@ -58,6 +59,9 @@
                        ${esc(x.nombre)}${x.activo ? '<i title="Código activo"></i>' : ''}</button>`;
            }).join('')}
          </div>`;
+
+    // Mientras se genera, la tarjeta sigue mostrando la animación; no se repinta hasta terminar.
+    if (pendientes[s.id]) return;
 
     if (activo) {
       const r = restante(activo), poco = r <= SEGUNDOS_EN_ROJO;
@@ -142,19 +146,27 @@
 
   function generar() {
     const s = stand();
+    const id = s.id;
     App.cerrarHoja();
+    pendientes[id] = true;
     const animacion = animarGeneracion(s.nombre);
 
-    servidor('generarCodigo', s.id).then(r => {
+    servidor('generarCodigo', id).then(r => {
       desfase = r.ahora - Date.now();
       const espera = animacion.fijar(r.codigo);
       setTimeout(() => {
-        s.activo = { codigo: r.codigo, expiraEn: r.expiraEn };
-        delete vencidos[s.id];
+        delete pendientes[id];
+        // Se busca el stand por su id: la lista pudo recargarse mientras se generaba.
+        const actual = stands.find(x => x.id === id);
+        if (actual) {
+          actual.activo = { codigo: r.codigo, expiraEn: r.expiraEn };
+          delete vencidos[id];
+        }
         pintar();
       }, espera);
     }).catch(() => {
       animacion.cancelar();
+      delete pendientes[id];
       toast('No pudimos generar el código. Inténtalo de nuevo.');
       pintar();
     });

@@ -158,4 +158,10 @@
   .item .fin { font-size: 14px; font-weight: 500; flex: none; display: flex; align-items: center; gap: 4px; color: var(--texto-2); }
   .item.hecho .fin { color: var(--verde); }
   .item.vencido { opacity: .6; }
+  /* Círculo de estado de cada stand: pendiente, en curso, completado o vencido */
+  .estado-stand { width: 44px; height: 44px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--t); color: var(--c); }
+  .estado-stand.en-curso { background: var(--azul-suave); color: var(--azul); }
+  .estado-stand.hecho { background: var(--verde); color: #fff; animation: estado-aparece .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+  @keyframes estado-aparece { from { transform: scale(.4); } to { transform: scale(1); } }
+  .estado-stand.vencido { background: #f1f3f4; color: #9aa0a6; }
 </style>
