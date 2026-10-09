@@ -81,7 +81,8 @@ Google Sheets no valida relaciones; estas reglas las hace cumplir el Apps Script
 | Campo | Tipo | Ejemplo | Nota |
 |---|---|---|---|
 | `pabellon_id` | Texto | `PAB-001` | Clave |
-| `nombre` | Texto | Backend | Visible para el usuario |
+| `nombre` | Texto | Fábricas de servicios y backend | Visible en la hoja del pabellón |
+| `nombre_corto` | Texto | Backend | Opcional. Es el rótulo del mapa; si está vacío se usa `nombre` |
 | `descripcion` | Texto | | Opcional |
 | `orden` | Número | 1 | Orden en la app |
 | `activo` | Booleano | TRUE | Baja lógica |

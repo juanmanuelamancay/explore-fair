@@ -9,7 +9,8 @@
   let animandoHasta = 0;
 
   function cargar() {
-    $('mapa-saludo').textContent = 'Hola, ' + INICIO.nombre.split(' ')[0];
+    const primerNombre = INICIO.nombre.split(' ')[0];
+    $('mapa-saludo').textContent = 'Hola, ' + primerNombre.charAt(0).toUpperCase() + primerNombre.slice(1);
     if (!datos) App.cargando($('mapa-lienzo'));
     else aplicarResultadoReciente();
     return servidor('obtenerMapa').then(respuesta => {
@@ -113,7 +114,7 @@
                 style="left:${x}%;top:${y}%;--c:${tono.color};--t:${tono.tinte};--p:${esSumando ? sumando.desde : hechos.length / p.stands.length * 100};--retraso:${APERTURA.inicioMs + i * APERTURA.pasoMs}ms;--duracion:${APERTURA.duracionMs}ms"
                 aria-label="Pabellón ${esc(p.nombre)}${entradaHecha ? '' : ', bloqueado hasta responder el quiz de entrada'}${completo ? ' completo' : ''}${hechos.length ? ', ' + puntos + ' puntos' : ''}">
           <span class="disco"><span>${svg(tono.icono, 26)}</span>${completo ? `<i class="hecho ${esSumando ? 'recien' : ''}">${svg(ICONO.check, 13, '#fff', 3)}</i>` : ''}${entradaHecha && !abriendo ? '' : `<i class="candado">${svg(ICONO.candado, 12, '#5f6368', 2.5)}</i>`}${esSumando && sumando.puntos ? `<i class="sumado">+${sumando.puntos}</i>` : ''}</span>
-          <span class="rot">${esc(p.nombre)}${hechos.length ? `<small>${puntos} pts</small>` : ''}</span>
+          <span class="rot">${esc(p.nombreCorto || p.nombre)}${hechos.length ? `<small>${puntos} pts</small>` : ''}</span>
         </button>`;
     }).join('');
 
@@ -158,7 +159,7 @@
       // Pendiente no lleva subtítulo: el reloj ya dice que aún no se empieza.
       const detalle = enCurso ? '<span>En curso · toca para continuar</span>' : '';
       return `<li><button class="item" data-stand="${esc(s.id)}">
-        <span class="estado-stand ${enCurso ? 'en-curso' : 'pendiente'}">${svg(enCurso ? ICONO.play : ICONO.reloj, 20)}</span>
+        <span class="estado-stand ${enCurso ? 'en-curso' : 'pendiente'}">${svg(enCurso ? ICONO.play : ICONO.check, 20)}</span>
         <span class="nom"><b>${esc(s.nombre)}</b>${detalle}</span>
         <span class="fin">${svg(ICONO.flecha, 20)}</span></button></li>`;
     }).join('');

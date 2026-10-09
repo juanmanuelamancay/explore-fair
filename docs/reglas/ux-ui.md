@@ -52,7 +52,7 @@ Cada pabellón tiene un color y un tinte claro del mismo tono. El color identifi
 | Quality | `#188038` | `#e6f4ea` |
 | Seguridad | `#e37400` | `#fef7e0` |
 | Data | `#9334e6` | `#f3e8fd` |
-| Host | `#129eaf` | `#e4f7fb` |
+| Host | `#c2185b` | `#fce4ec` |
 
 Un pabellón nuevo necesita un color propio de la misma familia (tono saturado más tinte claro) que no se confunda con los existentes. Hoy los colores están en el código del prototipo; si los pabellones se administran desde el panel, el color debe pasar a ser un campo de `Pabellones`.
 

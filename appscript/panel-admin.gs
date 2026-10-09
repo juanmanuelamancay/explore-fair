@@ -73,7 +73,7 @@ function reiniciarDatos(palabra) {
 /* ---------- Editor del catálogo ---------- */
 
 const ADMIN_DEFINICIONES = {
-  pabellones: { hoja: HOJA.PABELLONES, campos: ['pabellon_id', 'nombre', 'descripcion', 'orden', 'activo'] },
+  pabellones: { hoja: HOJA.PABELLONES, campos: ['pabellon_id', 'nombre', 'nombre_corto', 'descripcion', 'orden', 'activo'] },
   stands: { hoja: HOJA.STANDS, campos: ['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'requiere_codigo', 'num_preguntas', 'orden', 'activo'] },
   preguntas: { hoja: HOJA.PREGUNTAS, campos: ['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo'] },
   staff: { hoja: HOJA.STAFF, campos: ['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'activo'] },
@@ -160,6 +160,7 @@ function adminNormalizar_(entidad, entrada) {
   if (entidad === 'pabellones') {
     registro.pabellon_id = id_(registro.pabellon_id);
     registro.nombre = texto_(registro.nombre);
+    registro.nombre_corto = texto_(registro.nombre_corto);
     registro.descripcion = texto_(registro.descripcion);
     registro.orden = Number(registro.orden);
     registro.activo = adminBooleano_(registro, 'activo');
@@ -287,6 +288,10 @@ function guardarAdminRegistro(entidad, entrada) {
   if (entidad === 'premios' && !hojaSiExiste_(def.hoja)) throw new Error('Crea primero la hoja Premios con sus encabezados.');
   const original = entrada && entrada._fila ? adminFilas_(entidad).find(f => f._fila === Number(entrada._fila)) : null;
   const registro = adminNormalizar_(entidad, entrada || {});
+  // Sin la columna, actualizarFila_ y agregarFila_ descartan el valor en silencio: avisa antes de guardar.
+  if (entidad === 'pabellones' && registro.nombre_corto && encabezados_(def.hoja).indexOf('nombre_corto') < 0) {
+    throw new Error('Agrega la columna nombre_corto en la hoja Pabellones para guardar un nombre corto.');
+  }
   adminValidarRelaciones_(entidad, registro, original);
   const bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(SEGUNDOS_BLOQUEO);

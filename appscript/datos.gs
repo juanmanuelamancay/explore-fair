@@ -239,7 +239,7 @@ function catalogo_() {
     catalogo = {
       config: config,
       pabellones: leerHoja_(HOJA.PABELLONES).filter(p => esVerdadero_(p.activo)).map(p => ({
-        id: id_(p.pabellon_id), nombre: texto_(p.nombre), orden: Number(p.orden) || 0,
+        id: id_(p.pabellon_id), nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), orden: Number(p.orden) || 0,
       })).sort(porOrden),
       stands: leerHoja_(HOJA.STANDS).filter(s => esVerdadero_(s.activo)).map(s => ({
         id: id_(s.stand_id), pabellonId: id_(s.pabellon_id), nombre: texto_(s.nombre),
@@ -261,7 +261,7 @@ function catalogo_() {
  */
 function pabellonesDelMapa_(catalogo) {
   return catalogo.pabellones
-    .map(p => ({ id: p.id, nombre: p.nombre, stands: catalogo.stands.filter(s => s.pabellonId === p.id && s.requiereCodigo) }))
+    .map(p => ({ id: p.id, nombre: p.nombre, nombreCorto: p.nombreCorto, stands: catalogo.stands.filter(s => s.pabellonId === p.id && s.requiereCodigo) }))
     .filter(p => p.stands.length)
     .map((p, i) => Object.assign(p, { indice: i }));
 }

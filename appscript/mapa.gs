@@ -40,7 +40,7 @@ function obtenerMapa() {
   const entrada = catalogo.stands.find(s => !s.requiereCodigo);
   const entradaParaElMapa = entrada ? paraElMapa(entrada) : null;
   const pabellones = pabellonesDelMapa_(catalogo).map(p => ({
-    id: p.id, nombre: p.nombre, indice: p.indice, stands: p.stands.map(paraElMapa),
+    id: p.id, nombre: p.nombre, nombreCorto: p.nombreCorto, indice: p.indice, stands: p.stands.map(paraElMapa),
   }));
 
   return { puntos: puntos, puesto: puestoDe_(sesion.email), entrada: entradaParaElMapa, pabellones: pabellones };
