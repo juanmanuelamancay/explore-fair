@@ -1,5 +1,6 @@
 /**
- * Vista MAPA: puntaje y puesto del usuario, y los pabellones con el estado de cada stand para esa persona.
+ * Vista MAPA: puntaje del usuario, y los pabellones con el estado de cada stand para esa persona.
+ * Lee sus intentos del índice (indice.gs), no de la hoja Intentos.
  */
 
 function obtenerMapa() {
@@ -7,10 +8,8 @@ function obtenerMapa() {
   const catalogo = catalogo_();
   const ahora = Date.now();
 
-  const mios = {};
-  leerHoja_(HOJA.INTENTOS).forEach(i => {
-    if (texto_(i.email).toLowerCase() === sesion.email) mios[id_(i.stand_id)] = i;
-  });
+  const mios = miIndice_(sesion);
+  sincronizarPendientes_(sesion, mios);
 
   let puntos = 0;
   const paraElMapa = stand => {
@@ -22,16 +21,15 @@ function obtenerMapa() {
     };
     if (!intento) return vista;
 
-    const estado = texto_(intento.estado).toUpperCase();
-    if (estado === 'COMPLETADO') {
+    if (intento.e === 'COMPLETADO') {
       vista.estado = 'COMPLETADO';
-      vista.correctas = Number(intento.correctas) || 0;
-      vista.puntaje = Number(intento.puntaje) || 0;
-      try { vista.total = JSON.parse(intento.preguntas_json).length; } catch (e) { /* se queda con numPreguntas */ }
+      vista.correctas = intento.c;
+      vista.puntaje = intento.p;
+      vista.total = intento.q.length;
       puntos += vista.puntaje;
     } else {
-      // Un intento EN_CURSO cuyo tiempo ya pasó cuenta como vencido aunque la hoja no lo diga.
-      vista.estado = estado === 'EN_CURSO' && ms_(intento.vence_en) > ahora ? 'EN_CURSO' : 'VENCIDO';
+      // Un intento EN_CURSO cuyo tiempo ya pasó cuenta como vencido aunque nadie lo haya enviado.
+      vista.estado = intento.e === 'EN_CURSO' && intento.v > ahora ? 'EN_CURSO' : 'VENCIDO';
     }
     return vista;
   };
@@ -43,5 +41,5 @@ function obtenerMapa() {
     id: p.id, nombre: p.nombre, nombreCorto: p.nombreCorto, indice: p.indice, stands: p.stands.map(paraElMapa),
   }));
 
-  return { puntos: puntos, puesto: puestoDe_(sesion.email), entrada: entradaParaElMapa, pabellones: pabellones };
+  return { puntos: puntos, entrada: entradaParaElMapa, pabellones: pabellones };
 }

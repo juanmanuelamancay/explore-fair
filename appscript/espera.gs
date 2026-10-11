@@ -1,6 +1,6 @@
 /**
  * Vista ESPERA: lo que ve el usuario antes del evento, mientras espera_activa está en TRUE.
- * Solo lee: no registra a nadie ni escribe en ninguna hoja.
+ * Esta vista solo lee. A quien entra lo registra en Usuarios el navegador, en segundo plano (registro.gs).
  */
 
 /** Premios activos, en orden. La hoja Premios es opcional: sin ella, la lista sale vacía. */

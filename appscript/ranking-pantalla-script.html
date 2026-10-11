@@ -170,9 +170,8 @@
   const subio = p => (comparando && comparando.has(p.nombre) ? Math.max(0, p.puntos - comparando.get(p.nombre)) : 0);
   const etiqueta = n => (n > 0 ? `<i class="delta">+${n}</i>` : '');
 
-  /** El podio toma a los tres primeros; la cuadrícula empieza en el 4.º. Con menos de tres, no hay podio. */
-  const conPodio = () => filas.length >= 3;
-  const inicioCuadricula = () => (conPodio() ? 3 : 0);
+  // El podio toma a los tres primeros; la cuadrícula empieza en el 4.º.
+  const PUESTOS_DEL_PODIO = 3;
 
   /**
    * Cuántas personas se muestran: las que se definan en "Personas por pantalla", sin pasar de lo que cabe
@@ -211,24 +210,21 @@
 
   function pintar() {
     // Hasta tener el podio completo (3 personas) no se muestra el ranking: solo un mensaje de espera.
-    if (filas.length < 3) {
-      const faltan = 3 - filas.length;
+    if (filas.length < PUESTOS_DEL_PODIO) {
+      const faltan = PUESTOS_DEL_PODIO - filas.length;
       contenido.innerHTML = `<div class="tarjeta estado"><div class="icono">${svg(ICONO.trofeo, 32)}</div>
         <h2>Esperando los primeros puntajes</h2>
         <p>${filas.length} de 3 ${filas.length === 1 ? 'persona tiene' : 'personas tienen'} puntaje. Faltan ${faltan} para mostrar el ranking.</p></div>`;
       return;
     }
-    const podio = conPodio()
-      ? `<div class="podio">${lugar(filas[1], 1)}${lugar(filas[0], 0)}${lugar(filas[2], 2)}</div>`
-      : '';
 
     contenido.innerHTML = `
-      ${podio}
+      <div class="podio">${lugar(filas[1], 1)}${lugar(filas[0], 0)}${lugar(filas[2], 2)}</div>
       <div class="rp-cuerpo"><div class="rp-rejilla" id="rp-rejilla"></div></div>
       <p class="rp-pie" id="rp-pie"></p>`;
 
     // Primero se dibuja la rejilla vacía para medir cuánto cabe, y luego se llena con esa cantidad.
-    const inicio = inicioCuadricula();
+    const inicio = PUESTOS_DEL_PODIO;
     const cuantas = cuantasMostrar();
     const visibles = filas.slice(inicio, inicio + cuantas);
     $('rp-rejilla').innerHTML = visibles.map((p, k) => celda(p, inicio + k + 1)).join('');

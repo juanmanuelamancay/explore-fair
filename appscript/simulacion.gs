@@ -3,8 +3,9 @@
  *
  * 200 personas (correos @simulacion.ejemplo, sin registro en Staff, así que son usuarios de la feria)
  * responden el quiz de entrada y después stands con código, a distintas horas, durante 30 minutos.
- * Sigue las reglas de la app: un quiz en curso a la vez, el quiz de entrada primero, 4 preguntas,
- * 10 puntos (o lo que diga el banco) por respuesta correcta, códigos vigentes y tiempo de respuesta de Config.
+ * Sigue las reglas de la app: el quiz de entrada primero, 4 preguntas, 10 puntos (o lo que diga el banco)
+ * por respuesta correcta, códigos vigentes y tiempo de respuesta de Config. Cada persona simulada lleva
+ * un solo quiz en curso a la vez; eso es de la simulación, la app no lo exige.
  *
  * Uso:
  *  1. iniciarSimulacion()  -> arranca; un disparador corre cada minuto durante 30 minutos.
@@ -25,22 +26,25 @@ const SIM_APELLIDOS = ['García', 'Pérez', 'López', 'Ramos', 'Torres', 'Díaz'
 
 /** Arranca la simulación. Solo una a la vez. */
 function iniciarSimulacion() {
+  exigirAdmin_();
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('SIM_INICIO')) throw new Error('La simulación ya está corriendo. Usa detenerSimulacion() para pararla.');
   props.setProperty('SIM_INICIO', String(Date.now()));
   borrarDisparadoresSimulacion_();
-  ScriptApp.newTrigger('pasoSimulacion').timeBased().everyMinutes(1).create();
-  pasoSimulacion();
+  ScriptApp.newTrigger('pasoSimulacion_').timeBased().everyMinutes(1).create();
+  pasoSimulacion_();
 }
 
 /** Para la simulación. Lo ya escrito se queda; para borrarlo usa limpiarSimulacion(). */
 function detenerSimulacion() {
+  exigirAdmin_();
   borrarDisparadoresSimulacion_();
   PropertiesService.getScriptProperties().deleteProperty('SIM_INICIO');
 }
 
 /** Borra todo lo simulado de Usuarios, Intentos y Codigos. Los datos reales no se tocan. */
 function limpiarSimulacion() {
+  exigirAdmin_();
   detenerSimulacion();
   const bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(SEGUNDOS_BLOQUEO);
@@ -50,7 +54,9 @@ function limpiarSimulacion() {
       Usuarios: borrarFilasSim_(HOJA.USUARIOS, esSimulado_),
       Codigos: borrarFilasSim_(HOJA.CODIGOS, f => texto_(f.generado_por) === SIM_GENERADOR),
     };
-    limpiarCache();
+    // Los números de orden de las personas simuladas quedan libres de marcador: si vuelven, se registran de nuevo.
+    borrarMarcadores_(email => email.endsWith(SIM_DOMINIO));
+    limpiarCache_();
     console.log('Simulación borrada: ' + JSON.stringify(borrados));
     return borrados;
   } finally {
@@ -59,7 +65,7 @@ function limpiarSimulacion() {
 }
 
 /** Lo que corre cada minuto. Termina sola al cumplirse los 30 minutos. */
-function pasoSimulacion() {
+function pasoSimulacion_() {
   const props = PropertiesService.getScriptProperties();
   const inicio = Number(props.getProperty('SIM_INICIO'));
   if (!inicio) return borrarDisparadoresSimulacion_();
@@ -83,12 +89,15 @@ function pasoSimulacion() {
     const intentos = leerHoja_(HOJA.INTENTOS).filter(esSimulado_);
     const cerrados = completarQuizzes_(intentos, ahora);
 
-    // 2. Llegan personas nuevas, repartidas a lo largo de los 30 minutos.
+    // 2. Llegan personas nuevas, repartidas a lo largo de los 30 minutos. Se registran con su número de orden, como en la app.
     const yaLlegaron = leerHoja_(HOJA.USUARIOS).filter(esSimulado_).length;
     const llegan = llegadasSim_(yaLlegaron, transcurridos);
+    const nuevas = [];
     for (let i = yaLlegaron + 1; i <= yaLlegaron + llegan; i++) {
-      agregarFila_(HOJA.USUARIOS, { email: correoSim_(i), nombre: nombreSim_(i), registrado_en: new Date(ahora) });
+      nuevas.push({ email: correoSim_(i), nombre: nombreSim_(i), registrado_en: new Date(ahora) });
     }
+    numerarYEscribir_(nuevas, buzon_().getProperties());
+    const enUsuarios = usuariosEnHoja_();
     const personas = yaLlegaron + llegan;
 
     // 3. Códigos vigentes por stand. El líder los genera en la app real; aquí se crean igual.
@@ -97,9 +106,11 @@ function pasoSimulacion() {
     // 4. Cada persona decide si empieza otro quiz en este minuto. Los bancos se leen una sola vez por corrida.
     const bancos = {};
     [entrada, ...conCodigo].forEach(s => { bancos[s.id] = preguntasDeStand_(s.id); });
+    const encabezados = encabezados_(HOJA.INTENTOS);
     let iniciados = 0;
     for (let i = 1; i <= personas; i++) {
       const email = correoSim_(i);
+      if (!tieneOrden_(enUsuarios, email)) continue;
       const suyos = intentos.filter(x => texto_(x.email).toLowerCase() === email);
       if (suyos.some(x => texto_(x.estado).toUpperCase() === 'EN_CURSO')) continue;
 
@@ -116,7 +127,10 @@ function pasoSimulacion() {
         if (pendientes.length) siguiente = pendientes[Math.floor(Math.random() * pendientes.length)];
       }
       if (!siguiente) continue;
-      iniciarQuizSim_(email, siguiente, codigos[siguiente.id], bancos[siguiente.id], config, ahora);
+      // Cada persona escribe en su bloque de Intentos, en la primera fila que no usó.
+      const fila = filaLibreSegun_(enUsuarios[email].orden, suyos.map(x => x._fila));
+      if (!fila) continue;
+      iniciarQuizSim_(fila, encabezados, email, siguiente, codigos[siguiente.id], bancos[siguiente.id], config, ahora);
       iniciados++;
     }
 
@@ -130,7 +144,8 @@ function pasoSimulacion() {
 
 function borrarDisparadoresSimulacion_() {
   ScriptApp.getProjectTriggers()
-    .filter(t => t.getHandlerFunction() === 'pasoSimulacion')
+    // Incluye el nombre anterior: un disparador creado antes del cambio tiene que poder borrarse.
+    .filter(t => ['pasoSimulacion', 'pasoSimulacion_'].indexOf(t.getHandlerFunction()) >= 0)
     .forEach(t => ScriptApp.deleteTrigger(t));
 }
 
@@ -184,16 +199,16 @@ function codigosVigentesSim_(stands, config, ahora) {
   return mapa;
 }
 
-function iniciarQuizSim_(email, stand, codigo, banco, config, ahora) {
+function iniciarQuizSim_(fila, encabezados, email, stand, codigo, banco, config, ahora) {
   const sorteadas = sortear_(banco, PREGUNTAS_POR_QUIZ);
-  agregarFila_(HOJA.INTENTOS, {
-    intento_id: 'INT-' + String(hoja_(HOJA.INTENTOS).getLastRow()).padStart(4, '0'),
+  escribirFila_(HOJA.INTENTOS, fila, {
+    intento_id: nuevoIntentoId_(),
     email: email, stand_id: stand.id, pabellon_id: stand.pabellonId,
     codigo: stand.requiereCodigo ? codigo : '',
     preguntas_json: JSON.stringify(sorteadas.map(p => p.id)),
     iniciado_en: new Date(ahora), vence_en: new Date(ahora + config.minutos_para_responder * 60000),
     estado: 'EN_CURSO',
-  });
+  }, encabezados);
 }
 
 /**
@@ -244,7 +259,13 @@ function hashSim_(texto) {
   return h;
 }
 
-/** Borra las filas que cumplen el criterio, dejando intactos los encabezados y las demás filas. */
+/**
+ * Borra las filas que cumplen el criterio, dejando intactos los encabezados y las demás filas.
+ * En Intentos y en Usuarios las filas se vacían en su lugar: cada persona tiene su bloque de filas en Intentos
+ * (indice.gs) y su fila fija en Usuarios (registro.gs), y subir las que quedan las sacaría de su sitio. Tampoco se
+ * reescriben las demás, que otra persona puede estar escribiendo en ese momento.
+ * En las otras hojas, las filas que quedan se juntan arriba.
+ */
 function borrarFilasSim_(nombre, criterio) {
   const hoja = hoja_(nombre);
   const ultima = hoja.getLastRow();
@@ -253,15 +274,26 @@ function borrarFilasSim_(nombre, criterio) {
   const valores = hoja.getRange(1, 1, ultima, columnas).getValues();
   const encabezados = valores[0].map(normal_);
   const conservadas = [];
-  let borradas = 0;
+  const aBorrar = [];   // números de fila, en orden
   for (let r = 1; r < valores.length; r++) {
     const fila = {};
     encabezados.forEach((e, c) => { if (e) fila[e] = valores[r][c]; });
-    if (criterio(fila)) borradas++;
+    if (criterio(fila)) aBorrar.push(r + 1);
     else conservadas.push(valores[r]);
   }
+  if (!aBorrar.length) return 0;
+
+  if (nombre === HOJA.INTENTOS || nombre === HOJA.USUARIOS) {
+    // Las filas seguidas se vacían de una vez.
+    for (let i = 0; i < aBorrar.length;) {
+      let j = i;
+      while (j + 1 < aBorrar.length && aBorrar[j + 1] === aBorrar[j] + 1) j++;
+      hoja.getRange(aBorrar[i], 1, j - i + 1, columnas).clearContent();
+      i = j + 1;
+    }
+    return aBorrar.length;
+  }
   if (conservadas.length) hoja.getRange(2, 1, conservadas.length, columnas).setValues(conservadas);
-  const sobran = ultima - 1 - conservadas.length;
-  if (sobran > 0) hoja.getRange(2 + conservadas.length, 1, sobran, columnas).clearContent();
-  return borradas;
+  hoja.getRange(2 + conservadas.length, 1, aBorrar.length, columnas).clearContent();
+  return aBorrar.length;
 }

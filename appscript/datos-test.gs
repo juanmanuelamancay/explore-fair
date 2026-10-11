@@ -12,7 +12,7 @@ const ENCABEZADOS_ESPERADOS = {
   Staff: ['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'activo'],
   Permisos: ['rol', 'vista', 'activo'],
   Config: ['clave', 'valor'],
-  Usuarios: ['email', 'nombre', 'registrado_en'],
+  Usuarios: ['email', 'nombre', 'registrado_en', 'orden'],
   Codigos: ['codigo', 'stand_id', 'generado_por', 'creado_en', 'expira_en', 'estado'],
   Premios: ['orden', 'titulo', 'descripcion', 'activo'],
   Intentos: ['intento_id', 'email', 'stand_id', 'pabellon_id', 'codigo', 'preguntas_json', 'iniciado_en', 'vence_en', 'estado', 'respuestas_json', 'correctas', 'puntaje', 'completado_en'],
@@ -31,6 +31,7 @@ function paso_(titulo, accion) {
 }
 
 function probarTodo() {
+  exigirAdmin_();
   console.log('===== Diagnóstico de Explore Fair =====');
   console.log('Versión del código: ' + (typeof VERSION_DEL_CODIGO === 'undefined' ? '(main.gs sin actualizar)' : VERSION_DEL_CODIGO));
   if (probarSheet()) {
@@ -45,6 +46,7 @@ function probarTodo() {
 
 /** ¿El script encuentra y puede abrir el Sheet? */
 function probarSheet() {
+  exigirAdmin_();
   console.log('--- Sheet ---');
   paso_('ID_DEL_SHEET definido en datos.gs', () => {
     if (typeof ID_DEL_SHEET === 'undefined') throw new Error('No existe ID_DEL_SHEET: datos.gs sigue con la versión anterior.');
@@ -62,8 +64,9 @@ function probarSheet() {
   });
 }
 
-/** ¿Están las nueve hojas, con sus encabezados? */
+/** ¿Están las diez hojas, con sus encabezados? */
 function probarHojas() {
+  exigirAdmin_();
   console.log('--- Hojas ---');
   paso_('Pestañas del archivo', () => libro_().getSheets().map(h => h.getName()).join(', '));
   Object.keys(ENCABEZADOS_ESPERADOS).forEach(nombre => {
@@ -76,12 +79,29 @@ function probarHojas() {
       return Math.max(0, hoja.getLastRow() - 1) + ' filas';
     });
   });
+  paso_('Filas propias en Intentos', () => {
+    const enHoja = usuariosEnHoja_();
+    const correos = Object.keys(enHoja);
+    const sinNumero = correos.filter(email => !enHoja[email].orden);
+    const numeros = correos.map(email => enHoja[email].orden).filter(Boolean);
+    const repetidos = numeros.filter((n, i) => numeros.indexOf(n) !== i);
+    if (repetidos.length) throw new Error('números de orden repetidos en Usuarios: ' + repetidos.join(', '));
+    // El número que manda es el del marcador de cada correo en las propiedades del script; la columna es su copia.
+    const todas = buzon_().getProperties();
+    const marcadores = Object.keys(todas).filter(clave => clave.indexOf(PREFIJO_ORDEN) === 0);
+    const distintos = correos.filter(email => enHoja[email].orden && parseInt(todas[PREFIJO_ORDEN + email], 10) !== enHoja[email].orden);
+    if (distintos.length) throw new Error('la columna orden no coincide con el número entregado para: ' + distintos.slice(0, 10).join(', ') + '. Con Intentos vacía, ejecuta prepararFeria.');
+    const total = hoja_(HOJA.INTENTOS).getMaxRows();
+    return 'bloques de ' + FILAS_POR_PERSONA + ' filas · último número de orden entregado: ' + ultimoOrden_() + ' · personas con número: ' + marcadores.length +
+      ' · con número y sin fila en Usuarios: ' + marcadores.filter(clave => !(clave.slice(PREFIJO_ORDEN.length) in enHoja)).length + ' · filas de Usuarios sin número: ' + sinNumero.length + ' · Intentos tiene ' + total + ' filas, para ' + Math.floor((total - 1) / FILAS_POR_PERSONA) + ' personas sin agrandarse';
+  });
 }
 
 /** ¿El catálogo se lee como espera la app? */
 function probarCatalogo() {
+  exigirAdmin_();
   console.log('--- Catálogo (leído directo de las hojas, sin caché) ---');
-  limpiarCache();
+  CATALOGO_ = leerCatalogo_();
   paso_('Config', () => JSON.stringify(catalogo_().config));
   paso_('Pabellones activos', () => catalogo_().pabellones.map(p => p.id + ' ' + p.nombre).join(' | ') || 'NINGUNO');
   paso_('Stands activos', () => catalogo_().stands.length + ' en total');
@@ -106,13 +126,14 @@ function probarCatalogo() {
 
 /** ¿Cada stand tiene suficientes preguntas activas y bien marcadas? */
 function probarPreguntas() {
+  exigirAdmin_();
   console.log('--- Preguntas ---');
   catalogo_().stands.forEach(stand => {
     paso_(stand.id + ' ' + stand.nombre, () => {
       const banco = preguntasDeStand_(stand.id);
       const malas = banco.filter(p => 'ABCD'.indexOf(p.correcta) < 0 || p.correcta.length !== 1).map(p => p.id);
       if (malas.length) throw new Error('columna "correcta" inválida en: ' + malas.join(', '));
-      if (banco.length < stand.numPreguntas) throw new Error('tiene ' + banco.length + ' preguntas activas y necesita ' + stand.numPreguntas);
+      if (banco.length < PREGUNTAS_POR_BANCO) throw new Error('tiene ' + banco.length + ' preguntas activas y necesita ' + PREGUNTAS_POR_BANCO);
       return banco.length + ' preguntas, usa ' + stand.numPreguntas;
     });
   });
@@ -120,6 +141,7 @@ function probarPreguntas() {
 
 /** ¿La app reconoce a quien ejecuta y le asigna rol, vistas y nombre? */
 function probarSesion() {
+  exigirAdmin_();
   console.log('--- Sesión (la tuya, al ejecutar desde el editor) ---');
   paso_('Correo de quien ejecuta', () => {
     const email = Session.getActiveUser().getEmail();
@@ -137,6 +159,7 @@ function probarSesion() {
 
 /** ¿Funcionan la caché y el bloqueo? */
 function probarCache() {
+  exigirAdmin_();
   console.log('--- Caché y bloqueo ---');
   paso_('Caché', () => {
     cachePoner_('prueba', { ok: true }, 30);
@@ -149,4 +172,5 @@ function probarCache() {
     bloqueo.waitLock(5000);
     bloqueo.releaseLock();
   });
+  paso_('Registros pendientes de escribir en Usuarios', () => leerBuzon_().length + ' cartas en el buzón');
 }

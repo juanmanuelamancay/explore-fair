@@ -66,13 +66,12 @@
   function iniciar(codigo) {
     pantallaEspera('Preparando tu quiz', 'Estamos armando tus preguntas.', q.stand.numPreguntas);
 
-    servidor('iniciarQuiz', q.stand.id, codigo).then(r => {
+    servidorInsistente('iniciarQuiz', q.stand.id, codigo).then(r => {
       if (!r.ok) {
         // La pantalla del código ya no está: si hace falta, se vuelve a mostrar para corregirlo.
         if (r.motivo === 'CODIGO') pantallaCodigo();
         return inicioRechazado(r);
       }
-      if (r.aviso) toast(r.aviso);
       q.intentoId = r.intentoId;
       q.preguntas = r.preguntas;
       q.respuestas = {};
@@ -82,7 +81,7 @@
       pantallaPregunta(true);
       q.intervalo = setInterval(tic, 250);
     }).catch(() => {
-      toast('No pudimos empezar el quiz. Revisa tu conexión.');
+      toast('No pudimos empezar el quiz. Inténtalo de nuevo.');
       if (q.stand.estado === 'EN_CURSO') App.ir('mapa'); else pantallaCodigo();
     });
   }
@@ -90,12 +89,9 @@
   function inicioRechazado(r) {
     const campo = $('quiz-codigo');
     if (r.motivo === 'CODIGO' && campo) {
-      const boton = $('quiz-empezar');
-      boton.textContent = 'Empezar';
-      boton.disabled = false;
+      // La pantalla del código se acaba de volver a dibujar: el campo está vacío y el botón espera los 4 caracteres.
       campo.classList.add('error');
       $('quiz-error').textContent = r.mensaje;
-      campo.select();
       return;
     }
     if (r.motivo === 'VENCIDO') return pantallaVencido();
@@ -157,17 +153,31 @@
     clearInterval(q.intervalo);
     pantallaEnviando();
 
-    servidor('enviarQuiz', q.intentoId, q.respuestas).then(r => {
+    servidorInsistente('enviarQuiz', q.intentoId, q.respuestas).then(r => {
       if (r.ok) return pantallaResultado(r);
       if (r.motivo === 'VENCIDO') return pantallaVencido();
       toast(r.mensaje);
       App.ir('mapa');
     }).catch(() => {
-      toast('No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.');
+      // Las respuestas siguen en memoria: no se reanuda el reloj ni se vuelve a las preguntas.
       q.enviando = false;
-      pantallaPregunta(true);
-      q.intervalo = setInterval(tic, 250);
+      pantallaNoGuardado();
     });
+  }
+
+  /** Si ni los reintentos llegan al servidor, se ofrece volver a enviar desde la misma pantalla. */
+  function pantallaNoGuardado() {
+    clearInterval(q.intervalo);
+    pantalla.innerHTML = `
+      ${cabecera()}
+      <div class="tarjeta centro">
+        <div class="disco-grande">${svg(ICONO.nube, 36)}</div>
+        <h2>No pudimos guardar tus respuestas</h2>
+        <p class="sec" style="margin-top:8px">Tus respuestas siguen aquí. Vuelve a intentarlo cuando tengas señal.</p>
+      </div>
+      <button class="btn" data-reintentar>Reintentar</button>`;
+    pantalla.querySelector('[data-reintentar]').onclick = enviar;
+    window.scrollTo(0, 0);
   }
 
   /* ---------- Revisando (mientras el servidor corrige) ---------- */
@@ -190,22 +200,16 @@
 
   /* ---------- Resultado ---------- */
   function pantallaResultado(r) {
-    const antes = App.estado.puesto;
-    App.estado.puesto = r.puesto;
     // El mapa lo usa para mostrar el resultado al instante, sin esperar al servidor.
-    App.estado.recien = { standId: q.stand.id, estado: 'COMPLETADO', correctas: r.correctas, total: r.total, puntaje: r.puntaje, puesto: r.puesto };
-    let puesto = '';
-    if (r.puesto) {
-      const subio = antes ? antes - r.puesto : 0;
-      puesto = subio > 0 ? `Subiste ${subio} ${subio === 1 ? 'puesto' : 'puestos'}. Ahora vas #${r.puesto}.`
-        : antes === r.puesto ? `Te mantienes en el puesto #${r.puesto}.` : `Vas en el puesto #${r.puesto}.`;
-    }
+    App.estado.recien = { standId: q.stand.id, estado: 'COMPLETADO', correctas: r.correctas, total: r.total, puntaje: r.puntaje };
+    // App.estado.puntos es el total antes de este quiz; el mapa lo suma al volver.
+    const total = (App.estado.puntos || 0) + r.puntaje;
     pantalla.innerHTML = `
       ${cabecera()}
       <div class="tarjeta centro">
         <div class="sello ${r.correctas === r.total ? 'perfecto' : ''}">${svg(r.correctas === r.total ? ICONO.trofeo : ICONO.check, 44, '#fff', 3)}</div>
         <p class="ganado tnum" id="quiz-ganado">+0 puntos</p>
-        <p class="sec" style="margin-top:6px">${puesto}</p>
+        <p class="sec" style="margin-top:6px">Llevas ${total} puntos en total.</p>
         <ul class="detalle">
           ${q.preguntas.map((p, i) => `<li style="--i:${i}">${r.aciertos[i] ? svg(ICONO.check, 20, '#188038', 3) : svg(ICONO.equis, 20, '#d93025', 2.5)}<span>${esc(p.texto)}</span></li>`).join('')}
         </ul>
@@ -231,7 +235,7 @@
 
   function pantallaVencido() {
     clearInterval(q.intervalo);
-    App.estado.recien = { standId: q.stand.id, estado: 'VENCIDO', correctas: 0, total: q.stand.numPreguntas, puntaje: 0, puesto: App.estado.puesto };
+    App.estado.recien = { standId: q.stand.id, estado: 'VENCIDO', correctas: 0, total: q.stand.numPreguntas, puntaje: 0 };
     pantalla.innerHTML = `
       ${cabecera()}
       <div class="tarjeta centro">

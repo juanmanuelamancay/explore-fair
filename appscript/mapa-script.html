@@ -13,9 +13,9 @@
     $('mapa-saludo').textContent = 'Hola, ' + primerNombre.charAt(0).toUpperCase() + primerNombre.slice(1);
     if (!datos) App.cargando($('mapa-lienzo'));
     else aplicarResultadoReciente();
-    return servidor('obtenerMapa').then(respuesta => {
+    return servidorInsistente('obtenerMapa').then(respuesta => {
       datos = respuesta;
-      App.estado.puesto = respuesta.puesto;
+      App.estado.puntos = respuesta.puntos;
       // Lo que diga el servidor manda, pero se pinta al terminar la animación para no cortarla.
       const espera = animandoHasta - Date.now();
       if (espera > 0) setTimeout(() => { if (datos === respuesta) pintar(); }, espera);
@@ -46,7 +46,7 @@
     const desde = pabellon ? progreso(pabellon) : 0;
     Object.assign(stand, { estado: reciente.estado, correctas: reciente.correctas, total: reciente.total, puntaje: reciente.puntaje });
     datos.puntos += reciente.puntaje;
-    datos.puesto = reciente.puesto;
+    App.estado.puntos = datos.puntos;
 
     const sumando = pabellon ? { pabId: pabellon.id, desde: desde, puntos: reciente.puntaje } : null;
     pintar(esEntrada, sumando);
@@ -64,7 +64,7 @@
     return p.stands.filter(s => s.estado === 'COMPLETADO').length / p.stands.length * 100;
   }
 
-  /** Anillo que se llena hasta el nuevo progreso, puntos que suben y contador del puesto que se mueve. */
+  /** Anillo que se llena hasta el nuevo progreso y los puntos que suben. */
   function sumar(sumando, pabellon, stand) {
     const kpi = $('mapa-puntos');
     kpi.classList.remove('sube');
@@ -85,16 +85,6 @@
     const entradaHecha = !entrada || entrada.estado === 'COMPLETADO' || entrada.estado === 'VENCIDO';
 
     $('mapa-puntos').textContent = datos.puntos;
-    $('mapa-puesto').textContent = datos.puesto ? '#' + datos.puesto : '–';
-    const kpiPuesto = $('mapa-puesto').parentElement;
-    kpiPuesto.classList.remove('oro', 'plata', 'bronce', 'celebra');
-    kpiPuesto.querySelectorAll('.corona').forEach(c => c.remove());
-    if (metalDe(datos.puesto)) {
-      kpiPuesto.classList.add(metalDe(datos.puesto));
-      kpiPuesto.insertAdjacentHTML('afterbegin', CORONA);
-      // La corona solo se celebra al volver de un quiz o al abrir los pabellones, no en cada refresco.
-      if (abriendo || sumando) kpiPuesto.classList.add('celebra');
-    }
     $('mapa-guia-icono').innerHTML = `
       <span class="guia-icono-cara guia-icono-mano">${svg(ICONO.toque, 20)}</span>
       <span class="guia-icono-cara guia-icono-pregunta" aria-hidden="true">?</span>`;
@@ -156,7 +146,7 @@
         <span class="nom"><b>${esc(s.nombre)}</b><span>Se venció el tiempo</span></span>
         <span class="fin tnum">0 pts</span></div></li>`;
       const enCurso = s.estado === 'EN_CURSO';
-      // Pendiente no lleva subtítulo: el reloj ya dice que aún no se empieza.
+      // Pendiente no lleva subtítulo: basta con el nombre y la flecha.
       const detalle = enCurso ? '<span>En curso · toca para continuar</span>' : '';
       return `<li><button class="item" data-stand="${esc(s.id)}">
         <span class="estado-stand ${enCurso ? 'en-curso' : 'pendiente'}">${svg(enCurso ? ICONO.play : ICONO.check, 20)}</span>
@@ -190,7 +180,7 @@
   }
 
 function abrirComoJugar() {
-  const hoja = App.abrirHoja(`
+  const modal = App.abrirHoja(`
     <div class="hoja-texto">
       <h2 id="como-jugar-titulo">Cómo participar</h2>
 
@@ -240,8 +230,8 @@ function abrirComoJugar() {
           <div>
             <b>Responde y suma puntos</b>
             <span>
-              Completa el quiz para sumar puntos. Después podrás ver
-              tu posición actualizada en el ranking.
+              Completa el quiz para sumar puntos. Los puestos se ven
+              en la pantalla grande de la feria.
             </span>
           </div>
         </li>
@@ -250,7 +240,6 @@ function abrirComoJugar() {
     </div>
   `);
 
-  const modal = $('hoja');
   modal.setAttribute('aria-labelledby', 'como-jugar-titulo');
   modal.setAttribute('tabindex', '-1');
   modal.focus();

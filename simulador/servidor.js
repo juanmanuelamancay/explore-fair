@@ -6,7 +6,9 @@
  *
  * Para entrar como otra persona: http://localhost:8123/?como=lider.apx@demo.com
  * Cuentas de ejemplo: ana.torres@demo.com (usuario), lider.apx@demo.com (líder de un stand),
- * lider.backend@demo.com (líder de pabellón), admin@demo.com (admin).
+ * lider.backend@demo.com (líder de pabellón) y admin@demo.com (admin),
+ * y sin.vistas@demo.com (rol sin permisos, para ver la página de error).
+ * Variables de entorno: PORT, ESPERA=1 o ESPERA=0 (sala de espera) y DESORDEN=1 (datos escritos a mano).
  * Los datos se pierden al detener el servidor. No se sube a Apps Script.
  */
 
@@ -37,21 +39,47 @@ class Rango {
     });
     return this;
   }
+  setValue(valor) { return this.setValues([[valor]]); }
   clearContent() { return this.setValues(Array.from({ length: this.filas }, () => Array(this.columnas).fill(''))); }
+  // Busca en esta columna las celdas que coinciden, sin distinguir mayúsculas (como TextFinder de Sheets).
+  createTextFinder(texto) {
+    const rango = this;
+    return {
+      matchEntireCell() { return this; },
+      findAll() {
+        const valores = rango.getValues();
+        const hallazgos = [];
+        for (let f = 0; f < valores.length; f++) {
+          if (String(valores[f][0]).toUpperCase() === String(texto).toUpperCase()) hallazgos.push({ getRow: () => rango.fila + f });
+        }
+        return hallazgos;
+      },
+      findNext() {
+        const valores = rango.getValues();
+        for (let f = 0; f < valores.length; f++) {
+          if (String(valores[f][0]).toUpperCase() === String(texto).toUpperCase()) return { getRow: () => rango.fila + f };
+        }
+        return null;
+      },
+    };
+  }
 }
 
 class Hoja {
   constructor(libro, nombre, datos) { Object.assign(this, { libro, nombre, datos, oculta: false }); }
-  getLastColumn() { return Math.max(0, ...this.datos.map(f => f.length)); }
+  // Intentos se escribe por bloques de filas, así que entre medio hay filas que nunca se tocaron (huecos del arreglo).
+  getLastColumn() { return Math.max(0, ...Array.from(this.datos, f => (f ? f.length : 0))); }
   getLastRow() {
-    for (let i = this.datos.length - 1; i >= 0; i--) if (this.datos[i].some(v => v !== '' && v != null)) return i + 1;
+    for (let i = this.datos.length - 1; i >= 0; i--) if (this.datos[i] && this.datos[i].some(v => v !== '' && v != null)) return i + 1;
     return 0;
   }
   getDataRange() { return new Rango(this, 1, 1, Math.max(1, this.getLastRow()), Math.max(1, this.getLastColumn())); }
   getRange(fila, columna, filas = 1, columnas = 1) { return new Rango(this, fila, columna, filas, columnas); }
   appendRow(fila) { this.datos.length = this.getLastRow(); this.datos.push(fila.slice()); return this; }
+  getMaxRows() { return this.datos.length; }
+  insertRowsAfter(fila, cuantas) { for (let i = 0; i < cuantas; i++) this.datos.splice(fila, 0, []); return this; }
   deleteRow(fila) { this.datos.splice(fila - 1, 1); return this; }
-  copyTo(libro) { const copia = new Hoja(libro, 'Copia de ' + this.nombre, this.datos.map(f => f.slice())); libro.hojas.push(copia); return copia; }
+  copyTo(libro) { const copia = new Hoja(libro, 'Copia de ' + this.nombre, Array.from(this.datos, f => (f ? f.slice() : []))); libro.hojas.push(copia); return copia; }
   setName(nombre) { this.nombre = nombre; return this; }
   getName() { return this.nombre; }
   hideSheet() { this.oculta = true; return this; }
@@ -71,7 +99,7 @@ function datosDeEjemplo() {
   const hoy = new Date();
   const pabellones = [['PAB-000', 'General'], ['PAB-001', 'Backend'], ['PAB-002', 'Frontend'], ['PAB-003', 'Quality'], ['PAB-004', 'Seguridad'], ['PAB-005', 'Data'], ['PAB-006', 'Host']];
   const stands = [
-    ['STD-000', 'PAB-000', 'Quiz de entrada', false, 5],
+    ['STD-000', 'PAB-000', 'Quiz de entrada', false],
     ['STD-001', 'PAB-001', 'APX'], ['STD-002', 'PAB-001', 'ASO / APIs'], ['STD-003', 'PAB-001', 'LRA / LRBA'],
     ['STD-004', 'PAB-002', 'Cells'], ['STD-005', 'PAB-002', 'Glomo'], ['STD-006', 'PAB-002', 'Emailing'],
     ['STD-007', 'PAB-003', 'Testing'], ['STD-008', 'PAB-003', 'QE'], ['STD-009', 'PAB-003', 'Code Review'],
@@ -90,20 +118,18 @@ function datosDeEjemplo() {
   return {
     Pabellones: [['pabellon_id', 'nombre', 'descripcion', 'orden', 'activo', 'creado_en'], ...pabellones.map(([id, nombre], i) => [id, nombre, '', i, true, hoy])],
     Stands: [['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'requiere_codigo', 'num_preguntas', 'orden', 'activo', 'creado_en'],
-      ...stands.map(([id, pab, nombre, codigo = true, num = 4], i) => [id, pab, nombre, '', codigo, num, i, true, hoy])],
+      ...stands.map(([id, pab, nombre, codigo = true], i) => [id, pab, nombre, '', codigo, 4, i, true, hoy])],
     Preguntas: [['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo', 'creado_en'], ...preguntas],
     Staff: [['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'activo'],
       ['admin@demo.com', 'Marta Salinas', 'ADMIN', '', '', true],
       ['lider.apx@demo.com', 'Carlos Mendoza', 'LIDER', 'PAB-001', 'STD-001', true],
       ['lider.backend@demo.com', 'Rosa Quiroz', 'LIDER', 'PAB-001', '', true],
-      ['prueba@demo.com', 'Paula Prueba', 'PRUEBA', '', '', true],
       // Rol que no existe en Permisos, para ver la página de error.
       ['sin.vistas@demo.com', 'Invitado De Prueba', 'INVITADO', '', '', true]],
     Permisos: [['rol', 'vista', 'activo'],
-      ...['MAPA', 'QUIZ', 'RANKING'].map(v => ['USUARIO', v, true]),
-      ...['GENERAR_CODIGO', 'RANKING'].map(v => ['LIDER', v, true]),
-      ...['MAPA', 'QUIZ', 'RANKING'].map(v => ['PRUEBA', v, true]),
-      ...['MAPA', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PANEL_ADMIN', 'BOARD'].map(v => ['ADMIN', v, true])],
+      ...['MAPA', 'QUIZ'].map(v => ['USUARIO', v, true]),
+      ...['GENERAR_CODIGO', 'PREGUNTAS'].map(v => ['LIDER', v, true]),
+      ...['MAPA', 'QUIZ', 'RANKING', 'RANKING_PANTALLA', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'].map(v => ['ADMIN', v, true])],
     Config: [['clave', 'valor', 'descripcion'], ['minutos_vigencia_codigo', 5, ''], ['minutos_para_responder', 5, ''],
       ['puntos_por_defecto', 10, ''], ['segundos_refresco_board', 15, ''], ['feria_abierta', true, ''],
       // ESPERA=1 enciende la sala de espera; ESPERA=0 la deja con la fecha ya cumplida.
@@ -113,9 +139,9 @@ function datosDeEjemplo() {
     Premios: [['orden', 'titulo', 'descripcion', 'activo'],
       [1, 'Primer puesto', 'Audífonos inalámbricos', true], [2, 'Segundo puesto', 'Mochila', true],
       [3, 'Tercer puesto', 'Kit de la feria', true], [5, 'Cuarto puesto', 'Mención especial', true], [4, 'Premio retirado', 'No debe verse', false]],
-    Usuarios: [['email', 'nombre', 'registrado_en']],
+    Usuarios: [['email', 'nombre', 'registrado_en', 'orden']],
     Codigos: [['codigo', 'stand_id', 'generado_por', 'creado_en', 'expira_en', 'estado']],
-    Intentos: [['intento_id', 'email', 'stand_id', 'pabellon_id', 'codigo', 'preguntas_json', 'iniciado_en', 'vence_en', 'estado', 'respuestas_json', 'correctas', 'puntaje', 'completado_en']],
+    Intentos: [['intento_id', 'email', 'stand_id', 'estado', 'puntaje', 'completado_en', 'correctas', 'pabellon_id', 'codigo', 'iniciado_en', 'vence_en', 'preguntas_json', 'respuestas_json']],
   };
 }
 
@@ -169,22 +195,67 @@ function salida(contenido) {
   return { getContent: () => contenido, setTitle() { return this; }, addMetaTag() { return this; } };
 }
 
+// Caché propia de cada persona, separada por correo (como CacheService.getUserCache en Apps Script).
+const cachesDeUsuario = {};
+// Propiedades propias de cada persona (como PropertiesService.getUserProperties en Apps Script).
+const propiedadesDeUsuario = {};
+function propiedadesDe(email) {
+  const mias = propiedadesDeUsuario[email] || (propiedadesDeUsuario[email] = {});
+  return {
+    getProperty: k => (k in mias ? mias[k] : null),
+    getProperties: () => Object.assign({}, mias),
+    setProperty: (k, v) => { mias[k] = String(v); },
+    setProperties: (nuevas, borrarOtras) => {
+      if (borrarOtras) Object.keys(mias).forEach(k => { delete mias[k]; });
+      Object.keys(nuevas).forEach(k => { mias[k] = String(nuevas[k]); });
+    },
+    deleteProperty: k => { delete mias[k]; },
+  };
+}
+
 const contexto = vm.createContext({
   console,
-  SpreadsheetApp: { getActiveSpreadsheet: () => libro, openById: () => libro },
-  PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in propiedades ? propiedades[k] : null), setProperty: (k, v) => { propiedades[k] = String(v); } }) },
-  CacheService: { getScriptCache: () => ({
-    get: k => (cache[k] && cache[k].hasta > Date.now() ? cache[k].valor : null),
-    put: (k, valor, segundos) => { cache[k] = { valor, hasta: Date.now() + segundos * 1000 }; },
-    remove: k => { delete cache[k]; },
-  }) },
-  LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+  SpreadsheetApp: { getActiveSpreadsheet: () => libro, openById: () => libro, flush: () => {} },
+  PropertiesService: {
+    getScriptProperties: () => ({
+      getProperty: k => (k in propiedades ? propiedades[k] : null),
+      getProperties: () => Object.assign({}, propiedades),
+      setProperty: (k, v) => { propiedades[k] = String(v); },
+      setProperties: (nuevas, borrarOtras) => {
+        if (borrarOtras) Object.keys(propiedades).forEach(k => { delete propiedades[k]; });
+        Object.keys(nuevas).forEach(k => { propiedades[k] = String(nuevas[k]); });
+      },
+      deleteProperty: k => { delete propiedades[k]; },
+    }),
+    getUserProperties: () => propiedadesDe(emailActual),
+  },
+  CacheService: {
+    getScriptCache: () => ({
+      get: k => (cache[k] && cache[k].hasta > Date.now() ? cache[k].valor : null),
+      put: (k, valor, segundos) => { cache[k] = { valor, hasta: Date.now() + segundos * 1000 }; },
+      remove: k => { delete cache[k]; },
+    }),
+    getUserCache: () => {
+      const propia = cachesDeUsuario[emailActual] || (cachesDeUsuario[emailActual] = {});
+      return {
+        get: k => (propia[k] && propia[k].hasta > Date.now() ? propia[k].valor : null),
+        put: (k, valor, segundos) => { propia[k] = { valor, hasta: Date.now() + segundos * 1000 }; },
+        remove: k => { delete propia[k]; },
+      };
+    },
+  },
+  // En el simulador todo corre en un solo proceso, así que los bloqueos no hacen nada; la prueba de concurrencia es el punto 5.2.
+  LockService: {
+    getScriptLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }),
+    getUserLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }),
+  },
   Session: {
     getActiveUser: () => ({ getEmail: () => emailActual }),
-    getEffectiveUser: () => ({ getEmail: () => 'quien.despliega@demo.com' }),
+    // Igual que la app con executeAs USER_ACCESSING: la cuenta que ejecuta es la de quien entra.
+    getEffectiveUser: () => ({ getEmail: () => emailActual }),
     getScriptTimeZone: () => 'America/Lima',
   },
-  Utilities: { formatDate: fecha => { const p = n => String(n).padStart(2, '0'); return `${fecha.getFullYear()}-${p(fecha.getMonth() + 1)}-${p(fecha.getDate())}_${p(fecha.getHours())}${p(fecha.getMinutes())}`; } },
+  Utilities: { getUuid: () => require('crypto').randomUUID(), sleep: () => {}, formatDate: fecha => { const p = n => String(n).padStart(2, '0'); return `${fecha.getFullYear()}-${p(fecha.getMonth() + 1)}-${p(fecha.getDate())}_${p(fecha.getHours())}${p(fecha.getMinutes())}`; } },
   ScriptApp: { getService: () => ({ getUrl: () => 'http://localhost:' + PUERTO + '/?como=' + emailActual }) },
   HtmlService: {
     createTemplateFromFile: plantilla,
@@ -200,7 +271,7 @@ vm.runInContext(fuentes.join('\n'), contexto, { filename: 'appscript.gs' });
 /** Cada ejecución real empieza con las variables globales limpias; aquí se reinician a mano. */
 function ejecutar(email, funcion, argumentos) {
   emailActual = email;
-  vm.runInContext('GENERACION_ = null; CATALOGO_ = null;', contexto);
+  vm.runInContext('GENERACION_ = null; CATALOGO_ = null; MIS_PROPIEDADES_ = null; EPOCA_ = null;', contexto);
   return vm.runInContext(funcion, contexto)(...argumentos);
 }
 

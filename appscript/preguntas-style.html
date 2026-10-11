@@ -1,5 +1,5 @@
 <style>
-  /* Vista PREGUNTAS: lista compacta por stand, letras para marcar la correcta en un toque y editor completo. */
+  /* Vista PREGUNTAS: lista compacta por stand y editor completo en la hoja. */
   #pg-contenido { margin-top: 16px; }
 
   /* Barra fija arriba: el stand y cuántas preguntas están activas quedan a la vista al desplazarse. */
@@ -62,18 +62,6 @@
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
   }
 
-  .pg-letras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
-  .pg-letra {
-    min-height: 44px; border-radius: 12px; border: 1px solid var(--borde);
-    font-size: 15px; font-weight: 500; color: var(--texto-2); background: var(--fondo);
-    transition: background .15s, color .15s, border-color .15s;
-  }
-  .pg-letra:active { background: var(--superficie); }
-  .pg-letra.correcta { background: var(--verde); border-color: var(--verde); color: #fff; }
-
-  .pg-correcta { margin-top: 8px; font-size: 13px; color: var(--texto); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .pg-correcta span { color: var(--verde); font-weight: 500; margin-right: 4px; }
-  .pg-pie { margin-top: 4px; font-size: 12px; color: var(--texto-2); }
   .pg-vacio { padding: 24px 0; text-align: center; color: var(--texto-2); font-size: 14px; }
 
   /* Editor en la hoja */
@@ -89,7 +77,8 @@
   }
   .pg-campo input:focus, .pg-campo textarea:focus { border-color: var(--azul); box-shadow: inset 0 0 0 1px var(--azul); }
   .pg-campo textarea { resize: vertical; min-height: 80px; }
-  .pg-letras.grande { grid-template-columns: repeat(4, 1fr); }
+  /* Letras para marcar la respuesta correcta */
+  .pg-letras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
   .pg-letras.grande label { display: block; position: relative; min-width: 0; }
   /* El radio queda oculto dentro de su etiqueta: si se sale de la hoja, aparece una barra horizontal */
   .pg-letras.grande input { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }

@@ -19,7 +19,7 @@
     programar();
   }
 
-  // Mientras la vista está abierta se refresca sola, sin bajar de 15 segundos para no saturar el servidor.
+  // Mientras la vista está abierta se refresca sola, sin bajar del mínimo para no saturar el servidor.
   function programar() {
     clearInterval(intervalo);
     intervalo = setInterval(cargar, Math.max(SEGUNDOS_MINIMOS_DE_REFRESCO, INICIO.segundosRefresco) * 1000);

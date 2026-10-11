@@ -3,14 +3,17 @@
  */
 
 const PALABRA_DE_REINICIO = 'REINICIAR';
-// Hojas que la app escribe durante la feria. Las de catálogo nunca se tocan.
+const PALABRA_DE_PREPARACION = 'PREPARAR';
+// Hojas que borra el reinicio. Usuarios se conserva: quien ya se registró no vuelve a escribir al entrar.
+// Las de catálogo nunca se tocan.
 // Van como texto y no como HOJA.X porque el orden en que Apps Script carga los archivos no está garantizado.
-const HOJAS_A_REINICIAR = ['Intentos', 'Codigos', 'Usuarios'];
+const HOJAS_A_REINICIAR = ['Intentos', 'Codigos'];
 const SEGUNDOS_BLOQUEO_REINICIO = 30000;
 
 function conteos_() {
   const conteos = {};
-  HOJAS_A_REINICIAR.forEach(nombre => { conteos[nombre] = Math.max(0, hoja_(nombre).getLastRow() - 1); });
+  // Intentos tiene filas vacías entre los bloques de cada persona: se cuentan las que tienen dato.
+  HOJAS_A_REINICIAR.forEach(nombre => { conteos[nombre] = filasConDato_(nombre); });
   return conteos;
 }
 
@@ -19,15 +22,28 @@ function ultimoReinicio_() {
   return guardado ? JSON.parse(guardado) : null;
 }
 
+/** Personas con fila en Usuarios y cartas del buzón que todavía no llegaron a la hoja (registro.gs). */
+function registro_() {
+  return { registrados: filasConDato_('Usuarios'), pendientes: leerBuzon_().length };
+}
+
 function obtenerPanel() {
   exigirVista_('PANEL_ADMIN');
-  return { conteos: conteos_(), ultimo: ultimoReinicio_() };
+  return { conteos: conteos_(), ultimo: ultimoReinicio_(), registro: registro_() };
+}
+
+/** Escribe ahora en Usuarios las cartas pendientes, sin esperar a que entre otra persona. */
+function registrarPendientes() {
+  const sesion = exigirVista_('PANEL_ADMIN');
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede hacer esto.');
+  repartir_(true);
+  return registro_();
 }
 
 /** Descarta la caché para que la app relea ahora las hojas de catálogo, y devuelve qué encontró. */
 function actualizarCatalogo() {
   exigirVista_('PANEL_ADMIN');
-  limpiarCache();
+  limpiarCache_();
   const catalogo = catalogo_();
   return {
     pabellones: catalogo.pabellones.length,
@@ -37,8 +53,9 @@ function actualizarCatalogo() {
 }
 
 /**
- * Copia Intentos, Codigos y Usuarios a hojas de respaldo ocultas y luego borra sus filas.
- * Los encabezados se conservan.
+ * Copia Intentos y Codigos a hojas de respaldo ocultas y luego borra sus filas.
+ * Los encabezados se conservan. Usuarios no se toca: cada persona conserva su número de orden,
+ * y con él su mismo bloque de filas en Intentos.
  */
 function reiniciarDatos(palabra) {
   const sesion = exigirVista_('PANEL_ADMIN');
@@ -54,20 +71,38 @@ function reiniciarDatos(palabra) {
   try {
     HOJAS_A_REINICIAR.forEach(nombre => {
       const hoja = hoja_(nombre);
+      // Se borra hasta la última fila con dato; lo que se informa es cuántas filas tenían dato.
       const filas = Math.max(0, hoja.getLastRow() - 1);
-      borradas[nombre] = filas;
+      borradas[nombre] = filasConDato_(nombre);
       if (!filas) return;
-      hoja.copyTo(libro).setName('respaldo_' + nombre + '_' + sello).hideSheet();
+      // En Codigos las filas que solo traen stand_id no tienen nada que respaldar.
+      const hayQueRespaldar = nombre === HOJA.CODIGOS ? borradas[nombre] > 0 : true;
+      if (hayQueRespaldar) hoja.copyTo(libro).setName('respaldo_' + nombre + '_' + sello).hideSheet();
       hoja.getRange(2, 1, filas, hoja.getLastColumn()).clearContent();
     });
     const ultimo = { cuando: Date.now(), por: sesion.email };
     PropertiesService.getScriptProperties().setProperty('ULTIMO_REINICIO', JSON.stringify(ultimo));
-    // Invalida ranking, usuarios registrados y catálogo en caché.
-    limpiarCache();
+    EPOCA_ = null;
+    // Invalida ranking y catálogo en caché.
+    limpiarCache_();
+    // Codigos queda con exactamente una fila por stand con código, lista para generar sin turno (ver generar-codigo.gs).
+    crearFilasDeCodigos_(catalogo_());
     return { borradas: borradas, respaldo: 'respaldo_' + sello, conteos: conteos_(), ultimo: ultimo };
   } finally {
     bloqueo.releaseLock();
   }
+}
+
+/**
+ * Botón "Preparar feria" del panel: el mismo trabajo que prepararFeria() desde el editor, con la vista del panel y la
+ * palabra de confirmación. Renumera Usuarios desde 1, así que pide escribir PREPARAR antes de hacer nada.
+ */
+function prepararFeriaPanel(palabra) {
+  const sesion = exigirVista_('PANEL_ADMIN');
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede preparar la feria.');
+  if (texto_(palabra).toUpperCase() !== PALABRA_DE_PREPARACION) throw new Error('La palabra de confirmación no coincide.');
+  const preparada = prepararFeria();
+  return { preparada: preparada, conteos: conteos_(), ultimo: ultimoReinicio_(), registro: registro_() };
 }
 
 /* ---------- Editor del catálogo ---------- */
@@ -140,7 +175,6 @@ function adminSiguienteId_(entidad, prefijo) {
   return { id: candidato, numero: numero, propiedad: propiedad };
 }
 
-function adminTexto_(registro, campo) { return texto_(registro[campo]); }
 function adminNumero_(registro, campo, minimo) {
   const valor = Number(registro[campo]);
   if (!isFinite(valor) || valor < minimo || Math.floor(valor) !== valor) {
@@ -206,7 +240,6 @@ function adminNormalizar_(entidad, entrada) {
 
 function adminValidarUnicidad_(entidad, registro, fila) {
   const filas = adminFilas_(entidad);
-  const igual = (a, b) => fila && a._fila === fila._fila ? false : a === b;
   let campos = [];
   if (entidad === 'pabellones') campos = ['pabellon_id'];
   if (entidad === 'stands') campos = ['stand_id'];
@@ -219,7 +252,7 @@ function adminValidarUnicidad_(entidad, registro, fila) {
     }
   }
   campos.forEach(campo => {
-    if (filas.some(f => f._fila !== (fila && fila._fila) && igual(texto_(f[campo]).toUpperCase(), texto_(registro[campo]).toUpperCase()))) {
+    if (filas.some(f => f._fila !== (fila && fila._fila) && texto_(f[campo]).toUpperCase() === texto_(registro[campo]).toUpperCase())) {
       throw new Error('Ya existe un registro con ese valor en "' + campo + '".');
     }
   });
@@ -228,7 +261,6 @@ function adminValidarUnicidad_(entidad, registro, fila) {
 function adminValidarRelaciones_(entidad, registro, fila) {
   const pabellones = adminFilas_('pabellones');
   const stands = adminFilas_('stands');
-  const preguntas = adminFilas_('preguntas');
   const permisos = adminFilas_('permisos');
   const pabellonActivo = id => pabellones.some(p => p.pabellon_id === id && adminBooleano_(p, 'activo'));
   const standActivo = id => stands.some(s => s.stand_id === id && adminBooleano_(s, 'activo'));
@@ -306,7 +338,7 @@ function guardarAdminRegistro(entidad, entrada) {
     if (original) actualizarFila_(def.hoja, original._fila, registro);
     else agregarFila_(def.hoja, registro);
     if (secuencia) PropertiesService.getScriptProperties().setProperty(secuencia.propiedad, String(secuencia.numero));
-    limpiarCache();
+    limpiarCache_();
   } finally {
     bloqueo.releaseLock();
   }
@@ -347,7 +379,7 @@ function importarPreguntasAdmin(standId, preguntas) {
       agregarFila_(HOJA.PREGUNTAS, registro);
       PropertiesService.getScriptProperties().setProperty(secuencia.propiedad, String(secuencia.numero));
     });
-    limpiarCache();
+    limpiarCache_();
   } finally {
     bloqueo.releaseLock();
   }
@@ -363,7 +395,6 @@ function borrarAdminRegistro(entidad, numeroDeFila) {
   if (entidad === 'premios' && !hojaSiExiste_(def.hoja)) throw new Error('La hoja Premios no existe.');
   const fila = adminFilas_(entidad).find(f => f._fila === Number(numeroDeFila));
   if (!fila) throw new Error('El registro ya no existe. Actualiza la lista.');
-  if (entidad === 'pabellones' && adminFilas_('stands').some(s => s.pabellon_id === fila.pabellon_id && adminBooleano_(s, 'activo'))) throw new Error('No puedes desactivar un pabellón con stands activos. Desactiva primero sus stands.');
   if (entidad === 'stands' && adminFilas_('preguntas').some(p => p.stand_id === fila.stand_id && adminBooleano_(p, 'activo'))) throw new Error('No puedes desactivar un stand con preguntas activas. Desactiva primero sus preguntas.');
   if (entidad === 'staff' && texto_(fila.email).toLowerCase() === sesion.email) throw new Error('No puedes desactivar tu propio acceso de administrador.');
   if (entidad === 'permisos' && fila.rol === 'ADMIN' && fila.vista === 'PANEL_ADMIN' && adminFilas_('permisos').filter(p => p.rol === 'ADMIN' && p.vista === 'PANEL_ADMIN' && adminBooleano_(p, 'activo')).length < 2) throw new Error('Debe quedar al menos un permiso PANEL_ADMIN activo para ADMIN.');
@@ -373,7 +404,7 @@ function borrarAdminRegistro(entidad, numeroDeFila) {
   try {
     if (entidad === 'config') hoja_(def.hoja).deleteRow(fila._fila);
     else actualizarFila_(def.hoja, fila._fila, { activo: false });
-    limpiarCache();
+    limpiarCache_();
   } finally {
     bloqueo.releaseLock();
   }
@@ -400,11 +431,8 @@ function eliminarAdminPabellon(numeroDeFila) {
     const hojaStands = hoja_(HOJA.STANDS);
     stands.sort((a, b) => b._fila - a._fila).forEach(s => hojaStands.deleteRow(s._fila));
     hoja_(HOJA.PABELLONES).deleteRow(pabellon._fila);
-    if (codigos.length) {
-      const hojaCodigos = hoja_(HOJA.CODIGOS);
-      codigos.forEach(c => actualizarFila_(HOJA.CODIGOS, c._fila, { estado: 'ANULADO' }));
-    }
-    limpiarCache();
+    codigos.forEach(c => actualizarFila_(HOJA.CODIGOS, c._fila, { estado: 'ANULADO' }));
+    limpiarCache_();
   } finally {
     bloqueo.releaseLock();
   }

@@ -1,5 +1,6 @@
 /**
  * Quién está usando la app, qué rol tiene y qué vistas puede abrir.
+ * El registro en la hoja Usuarios está en registro.gs.
  */
 
 const SEGUNDOS_BLOQUEO = 20000;
@@ -15,7 +16,7 @@ function sesion_() {
   let vistas = catalogo.permisos.filter(p => p.rol === rol).map(p => p.vista);
   // Sala de espera: mientras está activa, quien tiene rol USUARIO solo ve esa vista y no puede
   // llamar a nada más. Da igual si no está en Staff o si está ahí con rol USUARIO.
-  // Líderes, admins y usuarios de prueba (cualquier otro rol de Staff) entran normal.
+  // Líderes y admins (roles de Staff) entran normal.
   const enEspera = catalogo.config.espera_activa && rol === 'USUARIO';
   if (enEspera) vistas = ['ESPERA'];
   // El admin la recibe como una vista más, para ver lo mismo que verán los usuarios.
@@ -27,6 +28,16 @@ function sesion_() {
 function exigirVista_(vista) {
   const sesion = sesion_();
   if (sesion.vistas.indexOf(vista) < 0) throw new Error('No tienes permiso para esta acción.');
+  return sesion;
+}
+
+/**
+ * Para funciones que solo el admin puede ejecutar. Desde el editor, la sesión es la de quien lo ejecuta:
+ * esa cuenta tiene que estar en Staff como ADMIN.
+ */
+function exigirAdmin_() {
+  const sesion = sesion_();
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede hacer esto.');
   return sesion;
 }
 
@@ -54,9 +65,7 @@ function nombreDesdeEmail_(email) {
 
 /**
  * Nombre de la persona según el directorio de la organización, o '' si no se pudo obtener.
- * La app corre con la cuenta de quien la desplegó, así que no sirve preguntar "quién soy"
- * (Drive, Session.getEffectiveUser): eso devolvería siempre al dueño. Aquí se busca el
- * perfil público de otra persona del dominio a partir de su correo.
+ * Session solo entrega el correo, así que se busca el perfil público del dominio a partir de él.
  * Requiere el servicio avanzado "Admin SDK API" y que el dominio comparta su directorio.
  */
 function nombreDeDirectorio_(email) {
@@ -80,35 +89,4 @@ function probarNombre() {
   console.log('Correo: ' + email);
   console.log('Nombre en el directorio: ' + (deDirectorio || '(no disponible)'));
   console.log('Nombre deducido del correo: ' + nombreDesdeEmail_(email));
-}
-
-/**
- * Registra a la persona en Usuarios la primera vez que entra y devuelve su nombre.
- * El nombre sale, en este orden, de Staff, del directorio de la organización o del correo.
- */
-function asegurarUsuario_(sesion) {
-  const email = sesion.email;
-  const clave = 'usuario:' + email;
-  const enCache = cacheLeer_(clave);
-  if (enCache) return enCache.nombre;
-
-  const esMio = u => texto_(u.email).toLowerCase() === email;
-  let fila = leerHoja_(HOJA.USUARIOS).find(esMio);
-  let nombre = fila ? texto_(fila.nombre) : '';
-
-  if (!nombre) {
-    // La consulta al directorio se hace fuera del bloqueo para no frenar a los demás.
-    nombre = (sesion.staff && sesion.staff.nombre) || nombreDeDirectorio_(email) || nombreDesdeEmail_(email);
-    const bloqueo = LockService.getScriptLock();
-    bloqueo.waitLock(SEGUNDOS_BLOQUEO);
-    try {
-      fila = leerHoja_(HOJA.USUARIOS).find(esMio);
-      if (!fila) agregarFila_(HOJA.USUARIOS, { email: email, nombre: nombre, registrado_en: new Date() });
-      else if (texto_(fila.nombre)) nombre = texto_(fila.nombre);
-    } finally {
-      bloqueo.releaseLock();
-    }
-  }
-  cachePoner_(clave, { nombre: nombre }, SEGUNDOS_CACHE_USUARIO);
-  return nombre;
 }

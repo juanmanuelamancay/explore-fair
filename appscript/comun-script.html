@@ -1,5 +1,5 @@
 <script>
-/* Utilidades y navegación compartidas. Cada vista se registra con App.registrar(nombre, { alMostrar, alOcultar, sinNav }). */
+/* Utilidades y navegación compartidas. Cada vista se registra con App.registrar(nombre, { alMostrar, alOcultar, alRefrescar, sinNav }). */
 
 const INICIO = window.INICIO;
 const $ = id => document.getElementById(id);
@@ -28,18 +28,17 @@ const ICONO = {
   megafono: 'M4 10v4h3l6 4V6l-6 4H4zM17 9a4 4 0 010 6',
   escudo: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z',
   nube: 'M7 18a4 4 0 01-.6-7.96A6 6 0 0118 9.5a4.25 4.25 0 01-.5 8.5H7zM3 3l18 18',
-    mas: 'M12 5v14M5 12h14',
-    buscar: 'M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35',
-    subir: 'M12 16V4m0 0L7 9m5-5 5 5M5 20h14',
+  mas: 'M12 5v14M5 12h14',
+  buscar: 'M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35',
+  subir: 'M12 16V4m0 0L7 9m5-5 5 5M5 20h14',
 };
 
-// Color, tinte e ícono de cada pabellón según su posición en el mapa. Se repiten si hay más de seis.
-/** Círculo con el número de puesto. Los tres primeros llevan corona de oro, plata o bronce. */
 const CORONA = '<svg class="corona" viewBox="0 0 24 18" aria-hidden="true"><path d="M2 5l5 4 5-7 5 7 5-4-2 11H4L2 5z"/></svg>';
 
 /** "oro", "plata" o "bronce" para los tres primeros puestos; vacío para el resto. */
 const metalDe = puesto => ['oro', 'plata', 'bronce'][puesto - 1] || '';
 
+/** Círculo con el número de puesto. Los tres primeros llevan corona de oro, plata o bronce. */
 function medalla(puesto) {
   const metal = metalDe(puesto);
   return `<span class="medalla ${metal}">${metal ? CORONA : ''}${puesto}</span>`;
@@ -51,6 +50,7 @@ function avatarDePuesto(nombre, puesto) {
   return `<span class="avatar ${metal}">${metal ? CORONA : ''}${esc(iniciales(nombre))}</span>`;
 }
 
+// Color, tinte e ícono de cada pabellón según su posición en el mapa. Se repiten si hay más de seis.
 const PALETA = [
   { color: '#1a73e8', tinte: '#e8f0fe', icono: 'M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01' },
   { color: '#d93025', tinte: '#fce8e6', icono: 'M3 4h18v12H3zM8 20h8M12 16v4' },
@@ -78,6 +78,20 @@ function servidor(nombre, ...argumentos) {
       mal(error);
     })[nombre](...argumentos);
   });
+}
+
+/**
+ * Como servidor(), pero reintenta sola si falla la conexión. Solo para llamadas que se pueden repetir
+ * sin efecto doble: el servidor reconoce el intento que ya existe. No usarla para crear algo nuevo cada vez.
+ */
+function servidorInsistente(nombre, ...argumentos) {
+  const ESPERAS_MS = [1500, 3000, 6000];
+  const intentar = n => servidor(nombre, ...argumentos).catch(error => {
+    const sinPermiso = /No tienes permiso/.test(String(error && error.message));
+    if (sinPermiso || n >= ESPERAS_MS.length) throw error;
+    return new Promise(listo => setTimeout(listo, ESPERAS_MS[n])).then(() => intentar(n + 1));
+  });
+  return intentar(0);
 }
 
 let temporizadorToast;
@@ -120,11 +134,6 @@ const App = (() => {
     if (vistas[nombre].alMostrar) vistas[nombre].alMostrar(datos || {});
   }
 
-  /**
-   * Vuelve a pedir al servidor los datos de la vista en pantalla, sin recargar la página.
-   * No toca la caché compartida: eso frenaría a todos. Los datos propios (puntaje, intentos,
-   * códigos) nunca se guardan en caché, así que siempre llegan al día.
-   */
   /** Si el rol o las vistas ya no son los de cuando se abrió la página, la vuelve a abrir. */
   function comprobarAcceso() {
     return servidor('obtenerAcceso').then(a => {
@@ -133,6 +142,11 @@ const App = (() => {
     }).catch(() => {});
   }
 
+  /**
+   * Vuelve a pedir al servidor los datos de la vista en pantalla, sin recargar la página.
+   * No vacía la caché compartida: eso frenaría a todos. El puntaje y los intentos de cada persona
+   * salen de su propio índice, así que siempre llegan al día.
+   */
   function refrescar(boton) {
     const vista = vistas[actual];
     if (!vista || !vista.alRefrescar || boton.disabled) return;
@@ -176,7 +190,7 @@ const App = (() => {
   }
   function error(contenedor, reintentar) {
     contenedor.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.nube, 32)}</div>
-      <h2>No pudimos cargar</h2><p>Revisa tu conexión e inténtalo de nuevo.</p>
+      <h2>No pudimos cargar</h2><p>Inténtalo de nuevo.</p>
       <button class="btn secundario">Reintentar</button></div>`;
     contenedor.querySelector('button').onclick = reintentar;
   }
@@ -186,10 +200,14 @@ const App = (() => {
     $('nav-dentro').innerHTML = destinos.map(d =>
       `<button data-ir="${d.nombre}"><span class="pastilla">${svg(d.icono)}</span>${d.texto}</button>`).join('');
     // "Explore Fair · Rol" en la cabecera de cada vista, para saber con qué rol se entró.
-    const ROLES = { USUARIO: 'Usuario', LIDER: 'Líder', ADMIN: 'Admin', PRUEBA: 'Prueba' };
+    const ROLES = { USUARIO: 'Usuario', LIDER: 'Líder', ADMIN: 'Admin' };
     const rol = ROLES[INICIO.rol] || INICIO.rol.charAt(0) + INICIO.rol.slice(1).toLowerCase();
     document.querySelectorAll('[data-marca]').forEach(p => { p.textContent = 'Explore Fair · ' + rol; });
-    document.querySelectorAll('[data-refrescar]').forEach(b => { b.innerHTML = svg(ICONO.refrescar, 22); });
+    // El usuario no tiene botón de actualizar: la app se pone al día sola (ver ux-ui.md). Solo lo ven líder y admin.
+    document.querySelectorAll('[data-refrescar]').forEach(b => {
+      if (INICIO.rol === 'USUARIO') b.remove();
+      else b.innerHTML = svg(ICONO.refrescar, 22);
+    });
     document.addEventListener('click', e => {
       if (e.target.closest('[data-cerrar]')) return cerrarHoja();
       const actualizar = e.target.closest('[data-refrescar]');
@@ -199,9 +217,24 @@ const App = (() => {
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
     if (destinos.length) ir(destinos[0].nombre);
+    if (INICIO.registrar) registrarEnSegundoPlano(0);
   }
 
-  // estado.puesto lo comparten mapa y quiz para decir cuánto subió la persona.
-  return { registrar, ir, abrirHoja, cerrarHoja, cargando, error, iniciar, comprobarAcceso, estado: { puesto: null } };
+  /**
+   * Registra a la persona en Usuarios sin que lo note. El servidor responde listo cuando su fila ya está
+   * en la hoja; si todavía no (otra persona tiene el turno de escritura), se vuelve a preguntar más tarde.
+   * Si se agotan los intentos no pasa nada: se retoma la próxima vez que abra la app o empiece un quiz.
+   */
+  function registrarEnSegundoPlano(n) {
+    const ESPERAS_S = [5, 10, 20, 40, 60];
+    servidor('registrarme').then(r => !!(r && r.listo), () => false).then(listo => {
+      if (listo || n >= ESPERAS_S.length) return;
+      // El azar reparte las consultas de quienes entraron a la vez.
+      setTimeout(() => registrarEnSegundoPlano(n + 1), (ESPERAS_S[n] + Math.random() * 5) * 1000);
+    });
+  }
+
+  // estado.puntos es el total de la persona: el resultado del quiz lo usa para mostrar el acumulado.
+  return { registrar, ir, abrirHoja, cerrarHoja, cargando, error, iniciar, comprobarAcceso, estado: { puntos: 0 } };
 })();
 </script>

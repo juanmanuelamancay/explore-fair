@@ -1,10 +1,11 @@
 <script>
 (() => {
   const PALABRA = 'REINICIAR';
+  const PALABRA_PREPARAR = 'PREPARAR';
+  // Hojas que borra el reinicio, con el nombre que se muestra en la confirmación.
   const HOJAS = [
-    { hoja: 'Intentos', nombre: 'Intentos', detalle: 'Quizzes respondidos y sus puntajes', icono: 'M9 11l3 3 8-8M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9' },
-    { hoja: 'Codigos', nombre: 'Códigos', detalle: 'Códigos generados por los líderes', icono: ICONO.llave },
-    { hoja: 'Usuarios', nombre: 'Usuarios', detalle: 'Personas que ingresaron a la app', icono: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0' },
+    { hoja: 'Intentos', nombre: 'Intentos' },
+    { hoja: 'Codigos', nombre: 'Códigos' },
   ];
   const ENTIDADES = {
     pabellones: { titulo: 'Pabellones', singular: 'pabellón', icono: ICONO.mapa, campos: [
@@ -41,8 +42,10 @@
   // Stands y preguntas se editan desde cada pabellón, así que no tienen pestaña propia
   const OCULTAS_EN_TABS = ['stands', 'preguntas'];
   const CONFIG_KEYS = ['minutos_vigencia_codigo', 'minutos_para_responder', 'puntos_por_defecto', 'segundos_refresco_board', 'segundos_cache_catalogo', 'feria_abierta', 'espera_activa', 'fecha_feria', 'lugar_feria', 'espera_mensaje'];
-  const VISTAS = ['MAPA', 'QUIZ', 'RANKING', 'RANKING_PANTALLA', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN', 'ESPERA'];
+  // ESPERA no va aquí: no se asigna por Permisos, la decide espera_activa en Config.
+  const VISTAS = ['MAPA', 'QUIZ', 'RANKING', 'RANKING_PANTALLA', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'];
   let conteos = null;
+  let registro = null;
   let ultimo = null;
   let recien = null;
   let datos = {};
@@ -72,6 +75,7 @@
     if (!Object.keys(datos).length) App.cargando($('panel-editor'));
     return Promise.all([servidor('obtenerPanel'), servidor('obtenerAdminCatalogo')]).then(r => {
       conteos = r[0].conteos;
+      registro = r[0].registro;
       ultimo = r[0].ultimo;
       datos = r[1];
       pintar();
@@ -94,15 +98,34 @@
     const boton = $('panel-abrir');
     boton.disabled = !hayDatos();
     boton.textContent = hayDatos() ? 'Reiniciar datos' : 'No hay datos que borrar';
+    // prepararFeria solo corre con Intentos vacía; el servidor lo vuelve a comprobar.
+    const intentosConDatos = !!conteos && conteos.Intentos > 0;
+    $('panel-preparar').disabled = !conteos || intentosConDatos;
+    $('panel-preparar-ayuda').textContent = intentosConDatos
+      ? 'Intentos todavía tiene ' + filas(conteos.Intentos) + '. Reinicia los datos antes de preparar la feria.'
+      : 'Intentos está vacía: la feria se puede preparar.';
+    pintarRegistro();
     $('panel-ultimo').textContent = ultimo ? 'Último reinicio: ' + new Date(ultimo.cuando).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' }) + ' por ' + ultimo.por : 'Aún no se ha hecho ningún reinicio';
+  }
+
+  /** Cuántas personas están en Usuarios y cuántas siguen en el buzón, esperando la siguiente escritura. */
+  function pintarRegistro() {
+    if (!registro) return;
+    const personas = n => n + (n === 1 ? ' persona' : ' personas');
+    $('panel-registro').textContent = personas(registro.registrados) + ' en la hoja Usuarios. ' + (registro.pendientes
+      ? personas(registro.pendientes) + ' por escribir; ' + (registro.pendientes === 1 ? 'se registra sola' : 'se registran solas') + ' en unos segundos.'
+      : 'Nadie por escribir.');
+    const boton = $('panel-registrar');
+    boton.disabled = !registro.pendientes;
+    boton.textContent = 'Registrar ahora';
   }
 
   function pintarTabs() {
     $('panel-tabs').innerHTML = Object.keys(ENTIDADES).filter(clave => !OCULTAS_EN_TABS.includes(clave)).map(clave => `<button class="panel-tab ${clave === entidadActual ? 'activa' : ''}" role="tab" aria-selected="${clave === entidadActual}" data-entidad="${clave}">${ENTIDADES[clave].titulo}</button>`).join('');
   }
 
+  /** Segunda línea de un registro en las listas y en la hoja de confirmación de baja. Los pabellones tienen su propio dibujo. */
   function resumen(fila, tipo = entidadActual) {
-    if (tipo === 'pabellones') return (datos.stands || []).filter(s => s.pabellon_id === fila.pabellon_id && registroActivo(s)).length + ' stands activos';
     if (tipo === 'stands') return (datos.preguntas || []).filter(p => p.stand_id === fila.stand_id && registroActivo(p)).length + ' preguntas activas · ' + nombrePabellon(fila.pabellon_id);
     if (tipo === 'preguntas') return nombreStand(fila.stand_id) + ' · respuesta ' + esc(fila.correcta) + ' · ' + esc(fila.puntos) + ' pts';
     if (tipo === 'staff') return esc(fila.rol) + (fila.stand_id ? ' · ' + nombreStand(fila.stand_id) : fila.pabellon_id ? ' · ' + nombrePabellon(fila.pabellon_id) : ' · acceso general');
@@ -165,9 +188,9 @@
     }
     const plural = entidad().plural || entidad().titulo.toLowerCase();
     contenedor.innerHTML = `<div class="panel-resumen">${lista.length} ${lista.length === 1 ? entidad().singular : plural} visibles${soloActivos ? ' · solo activos' : ''}</div><div class="panel-lista">${lista.map(fila => {
-      const titulo = entidadActual === 'config' ? fila.clave : entidadActual === 'premios' ? fila.titulo : entidadActual === 'staff' ? fila.nombre : entidadActual === 'permisos' ? fila.rol + ' · ' + fila.vista : fila.nombre || fila.texto;
-      const subtitulo = entidadActual === 'preguntas' ? nombreStand(fila.stand_id) : entidadActual === 'stands' ? nombrePabellon(fila.pabellon_id) : resumen(fila);
-      return `<article class="panel-registro ${registroActivo(fila) ? '' : 'inactivo'}"><span class="icono">${svg(entidad().icono, 19)}</span><span class="quien"><b>${esc(titulo || 'Sin título')}</b><span>${subtitulo}</span></span><span class="acciones"><button class="btn-mini" data-editar="${fila._fila}" aria-label="Editar ${esc(titulo)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-borrar="${fila._fila}" aria-label="Desactivar ${esc(titulo)}" title="Desactivar">${svg(ICONO.equis, 18)}</button></span></article>`;
+      // Aquí solo llegan Staff, Configuración y Premios: Pabellones y Permisos se dibujan aparte.
+      const titulo = entidadActual === 'config' ? fila.clave : entidadActual === 'premios' ? fila.titulo : fila.nombre;
+      return `<article class="panel-registro ${registroActivo(fila) ? '' : 'inactivo'}"><span class="icono">${svg(entidad().icono, 19)}</span><span class="quien"><b>${esc(titulo || 'Sin título')}</b><span>${resumen(fila)}</span></span><span class="acciones"><button class="btn-mini" data-editar="${fila._fila}" aria-label="Editar ${esc(titulo)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-borrar="${fila._fila}" aria-label="Desactivar ${esc(titulo)}" title="Desactivar">${svg(ICONO.equis, 18)}</button></span></article>`;
     }).join('')}</div>`;
   }
 
@@ -175,7 +198,7 @@
     let lista = [];
     if (campo.tipo === 'pabellon') lista = (datos.pabellones || []).filter(f => registroActivo(f)).map(f => [f.pabellon_id, f.nombre]);
     if (campo.tipo === 'stand') lista = (datos.stands || []).filter(f => registroActivo(f)).map(f => [f.stand_id, f.nombre + ' · ' + nombrePabellon(f.pabellon_id)]);
-    if (campo.tipo === 'rol') lista = [...new Set(['ADMIN', 'LIDER', 'PRUEBA'].concat((datos.staff || []).map(f => f.rol), (datos.permisos || []).map(f => f.rol)))].map(f => [f, f]);
+    if (campo.tipo === 'rol') lista = [...new Set(['ADMIN', 'LIDER'].concat((datos.staff || []).map(f => f.rol), (datos.permisos || []).map(f => f.rol)))].map(f => [f, f]);
     if (campo.tipo === 'vista') lista = VISTAS.map(f => [f, f]);
     if (campo.tipo === 'correcta') lista = ['A', 'B', 'C', 'D'].map(f => [f, 'Opción ' + f]);
     if (campo.clave === 'clave') lista = CONFIG_KEYS.map(f => [f, f]);
@@ -196,7 +219,7 @@
       return `<label class="campo-admin ancho"><span>${campo.etiqueta}</span><input name="valor" value="${esc(actual)}" required></label>`;
     }
     const type = campo.tipo === 'email' ? 'email' : campo.tipo === 'number' ? 'number' : 'text';
-    return `<label class="campo-admin ${campo.ancho ? 'ancho' : ''}"><span>${campo.etiqueta}${campo.opcional ? ' · opcional' : ''}</span><input type="${type}" name="${campo.clave}" value="${esc(actual)}" ${campo.readonlyNuevo && nuevo ? 'readonly placeholder="Se asigna al guardar"' : ''} ${campo.opcional || (campo.readonlyNuevo && nuevo) ? '' : 'required'}></label>`;
+    return `<label class="campo-admin ${campo.ancho ? 'ancho' : ''}"><span>${campo.etiqueta}${campo.opcional ? ' · opcional' : ''}</span><input type="${type}" name="${campo.clave}" value="${esc(actual)}" ${campo.opcional ? '' : 'required'}></label>`;
   }
 
   function abrirImportacionPreguntas(standId, standNombre) {
@@ -276,6 +299,13 @@
   $('panel-buscar').addEventListener('input', e => { busqueda = e.target.value; pintarEditor(); });
   $('panel-solo-activos').addEventListener('change', e => { soloActivos = e.target.checked; pintarEditor(); });
 
+  $('panel-registrar').addEventListener('click', () => {
+    const boton = $('panel-registrar'); boton.disabled = true; boton.textContent = 'Registrando…';
+    servidor('registrarPendientes').then(r => { registro = r; toast('Registro al día.'); })
+      .catch(error => toast(error && error.message ? error.message : 'No se pudo registrar. Inténtalo de nuevo.'))
+      .then(pintarRegistro);
+  });
+
   $('panel-actualizar').addEventListener('click', () => {
     const boton = $('panel-actualizar'); boton.disabled = true;
     servidor('actualizarCatalogo').then(r => toast(`Listo: ${r.pabellones} pabellones, ${r.stands} stands y ${r.preguntas} preguntas activas.`)).catch(error => toast(error && error.message ? error.message : 'No se pudo actualizar.')).then(() => { boton.disabled = false; });
@@ -286,11 +316,29 @@
     const campo = $('panel-confirmar'); const boton = $('panel-ejecutar');
     campo.oninput = () => { boton.disabled = campo.value.trim().toUpperCase() !== PALABRA; };
     campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
-    boton.onclick = () => { boton.disabled = true; campo.disabled = true; boton.innerHTML = '<i class="giro"></i>Reiniciando…'; servidor('reiniciarDatos', campo.value.trim()).then(r => { const partes = HOJAS.filter(h => r.borradas[h.hoja] > 0).map(h => r.borradas[h.hoja] + ' ' + h.nombre.toLowerCase()); recien = 'Se borraron ' + partes.join(', ').replace(/, ([^,]*)$/, ' y $1') + '. Copia guardada como ' + r.respaldo + '.'; conteos = r.conteos; ultimo = r.ultimo; App.estado.puesto = null; App.cerrarHoja(); pintar(); window.scrollTo(0, 0); }).catch(error => { toast(error && error.message ? error.message : 'No se pudo reiniciar. Inténtalo de nuevo.'); campo.disabled = false; boton.disabled = false; boton.textContent = 'Reiniciar datos'; }); };
+    boton.onclick = () => { boton.disabled = true; campo.disabled = true; boton.innerHTML = '<i class="giro"></i>Reiniciando…'; servidor('reiniciarDatos', campo.value.trim()).then(r => { const partes = HOJAS.filter(h => r.borradas[h.hoja] > 0).map(h => r.borradas[h.hoja] + ' ' + h.nombre.toLowerCase()); recien = 'Se borraron ' + partes.join(', ').replace(/, ([^,]*)$/, ' y $1') + '. Copia guardada como ' + r.respaldo + '.'; conteos = r.conteos; ultimo = r.ultimo; App.cerrarHoja(); pintar(); window.scrollTo(0, 0); }).catch(error => { toast(error && error.message ? error.message : 'No se pudo reiniciar. Inténtalo de nuevo.'); campo.disabled = false; boton.disabled = false; boton.textContent = 'Reiniciar datos'; }); };
+    setTimeout(() => campo.focus(), 250);
+  }
+
+  function abrirConfirmacionPreparar() {
+    App.abrirHoja(`<div class="hoja-texto"><h2>¿Preparar la feria?</h2><p>Renumera a las personas de la hoja Usuarios desde 1, en el orden en que aparecen. Intentos queda lista para 800 personas.</p><div class="resumen"><ul><li>Se quitan las filas repetidas y vacías de Usuarios</li><li>Si había huecos, quienes estaban después reciben un número más bajo</li><li>Quien no tenga fila en Usuarios pierde su número</li></ul></div><p class="chico">Esta acción no guarda copia de Usuarios. Haz una copia de la hoja antes de continuar.</p><label for="panel-confirmar-preparar">Escribe ${PALABRA_PREPARAR} para confirmar</label><input id="panel-confirmar-preparar" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn peligro" id="panel-ejecutar-preparar" disabled>Preparar feria</button><button class="btn texto" data-cerrar>Cancelar</button></div>`);
+    const campo = $('panel-confirmar-preparar'); const boton = $('panel-ejecutar-preparar');
+    campo.oninput = () => { boton.disabled = campo.value.trim().toUpperCase() !== PALABRA_PREPARAR; };
+    campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
+    boton.onclick = () => {
+      boton.disabled = true; campo.disabled = true; boton.innerHTML = '<i class="giro"></i>Preparando…';
+      servidor('prepararFeriaPanel', campo.value.trim()).then(r => {
+        conteos = r.conteos; ultimo = r.ultimo; registro = r.registro;
+        App.cerrarHoja();
+        toast('Feria preparada: ' + r.preparada.personas + ' personas numeradas desde 1. El siguiente número es el ' + r.preparada.siguiente + '.');
+        pintar();
+      }).catch(error => { toast(error && error.message ? error.message : 'No se pudo preparar la feria.'); campo.disabled = false; boton.disabled = false; boton.textContent = 'Preparar feria'; });
+    };
     setTimeout(() => campo.focus(), 250);
   }
 
   $('panel-abrir').addEventListener('click', abrirConfirmacion);
+  $('panel-preparar').addEventListener('click', abrirConfirmacionPreparar);
   App.registrar('panel-admin', { alMostrar: mostrar, alRefrescar: cargar });
 })();
 </script>

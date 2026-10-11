@@ -10,6 +10,9 @@
   const pendientes = {};    // stand -> true mientras el servidor crea su código (la animación ocupa la tarjeta)
 
   const stand = () => stands.find(s => s.id === elegido);
+  // Las mismas casillas que se ven mientras se genera: el código queda donde ya lo venían leyendo.
+  const casillas = (codigo, clase) => `<div class="codigo-girando" role="img" aria-label="Código ${esc(codigo.split('').join(' '))}">${
+    codigo.split('').map(c => `<span class="ranura ${clase}" aria-hidden="true">${esc(c)}</span>`).join('')}</div>`;
   const restante = activo => Math.max(0, Math.ceil((activo.expiraEn - (Date.now() + desfase)) / 1000));
   const totalSegundos = () => INICIO.minutosVigenciaCodigo * 60;
 
@@ -66,15 +69,17 @@
     if (activo) {
       const r = restante(activo), poco = r <= SEGUNDOS_EN_ROJO;
       tarjeta.innerHTML = `
-        <p class="sec chico">Código de ${esc(s.nombre)}</p>
-        <p class="codigo" aria-label="Código ${esc(activo.codigo.split('').join(' '))}">${esc(activo.codigo)}</p>
+        <div class="disco-grande">${svg(ICONO.llave, 32)}</div>
+        <h2>Código listo</h2>
+        ${casillas(activo.codigo, 'activa')}
         <div class="barra ${poco ? 'poco' : ''}" id="codigo-barra"><i style="width:${Math.min(100, r / totalSegundos() * 100)}%"></i></div>
         <div class="vence ${poco ? 'poco' : ''}" id="codigo-vence"><span>Se puede ingresar durante</span><b class="tnum" id="codigo-resta">${formatoReloj(r)}</b></div>
         <button class="btn secundario" data-accion="pedir">Generar uno nuevo</button>`;
     } else if (vencidos[s.id]) {
       tarjeta.innerHTML = `
-        <p class="sec chico">El código venció</p>
-        <p class="codigo vencido">${esc(vencidos[s.id])}</p>
+        <div class="disco-grande">${svg(ICONO.llave, 32)}</div>
+        <h2>El código venció</h2>
+        ${casillas(vencidos[s.id], 'vencida')}
         <button class="btn" data-accion="pedir">Generar código nuevo</button>
         <p class="aviso">Úsalo si alguien no alcanzó a ingresar o al terminar otra charla.</p>`;
     } else {

@@ -22,6 +22,7 @@ const CONFIG_DEFECTO = {
   puntos_por_defecto: 10,
   segundos_refresco_board: 15,
   segundos_cache_catalogo: 60,
+  segundos_cache_ranking: 60,
   feria_abierta: true,
   // Sala de espera previa al evento. fecha_feria queda en milisegundos (0 = sin fecha).
   espera_activa: false,
@@ -44,6 +45,10 @@ const CONFIG_DEFECTO = {
 const PREGUNTAS_POR_BANCO = 16;
 const PREGUNTAS_POR_QUIZ = 4;
 
+// Filas de Intentos que se reservan a cada persona: una por stand, con margen para stands que se agreguen.
+// No se cambia con la feria en curso: la fila de cada intento se calcula con este número (ver indice.gs).
+const FILAS_POR_PERSONA = 25;
+
 /** Cuánto tarda la app en notar un cambio hecho a mano en las hojas de catálogo. Se ajusta en Config. */
 function segundosDeCatalogo_(config) {
   return Math.min(21600, Math.max(5, Number(config.segundos_cache_catalogo) || 60));
@@ -54,14 +59,19 @@ const MAX_CARACTERES_CACHE = 90000;   // CacheService admite 100 KB por valor
 
 // ID del Sheet de la feria: lo que va entre /d/ y /edit en su dirección.
 // Hace falta porque el script es independiente (no se creó desde Extensiones > Apps Script del Sheet).
-const ID_DEL_SHEET = '1OrelUt3Hx-KelLfiWF596BW9QBVjSiDHK5CveHabfvc';
+const ID_DEL_SHEET = '1fm4WWndlnZMIx-FCUlNafp4KuHUJhKGU-9YFvMjC4fI';
 
 let LIBRO_ = null;
 
-/** El Sheet de la feria. La propiedad del script SPREADSHEET_ID, si existe, tiene prioridad sobre ID_DEL_SHEET. */
+/** ID del Sheet en uso. La propiedad del script SPREADSHEET_ID, si existe, tiene prioridad sobre ID_DEL_SHEET. */
+function idDelSheet_() {
+  return PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || ID_DEL_SHEET;
+}
+
+/** El Sheet de la feria. */
 function libro_() {
   if (LIBRO_) return LIBRO_;
-  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || ID_DEL_SHEET;
+  const id = idDelSheet_();
   LIBRO_ = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
   if (!LIBRO_) throw new Error('No se encontró el Sheet de la feria. Revisa ID_DEL_SHEET en datos.gs.');
   return LIBRO_;
@@ -79,9 +89,12 @@ function hoja_(nombre) {
   return hoja;
 }
 
-/** Devuelve las filas como objetos según los encabezados (en minúsculas y sin tildes). Cada objeto trae _fila con su número de fila en la hoja. */
-function leerHoja_(nombre) {
-  const valores = hoja_(nombre).getDataRange().getValues();
+/**
+ * Devuelve las filas como objetos según los encabezados (en minúsculas y sin tildes). Cada objeto trae _fila con su número de fila en la hoja.
+ * Con "campos", solo lee hasta la última de esas columnas: si las pedidas están al principio de la hoja, se leen menos datos.
+ */
+function leerHoja_(nombre, campos) {
+  const valores = rangoDeLectura_(nombre, campos).getValues();
   const encabezados = valores[0].map(normal_);
   const filas = [];
   for (let i = 1; i < valores.length; i++) {
@@ -93,6 +106,16 @@ function leerHoja_(nombre) {
   return filas;
 }
 
+/** Rango a leer: toda la hoja, o solo hasta la última de las columnas pedidas. Si falta alguna, se lee todo. */
+function rangoDeLectura_(nombre, campos) {
+  const hoja = hoja_(nombre);
+  if (!campos) return hoja.getDataRange();
+  const encabezados = encabezados_(nombre);
+  const posiciones = campos.map(c => encabezados.indexOf(c));
+  if (posiciones.some(p => p < 0)) return hoja.getDataRange();
+  return hoja.getRange(1, 1, Math.max(1, hoja.getLastRow()), Math.max(...posiciones) + 1);
+}
+
 function encabezados_(nombre) {
   const hoja = hoja_(nombre);
   return hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0].map(normal_);
@@ -102,6 +125,59 @@ function encabezados_(nombre) {
 function agregarFila_(nombre, objeto) {
   const fila = encabezados_(nombre).map(e => (objeto[e] === undefined ? '' : objeto[e]));
   hoja_(nombre).appendRow(fila);
+}
+
+/**
+ * Como agregarFila_, pero con un turno global: una escritura a la vez. Sin turno, dos personas que agregan
+ * filas al mismo tiempo pueden caer en la misma fila y perderse (prueba 0.4 del plan: 286 de 1.000 sobrevivieron).
+ * La app ya no la usa para los intentos: cada persona escribe en sus propias filas, sin agregar al final (indice.gs).
+ * Queda para la prueba de filas simultáneas (pruebas-carga.gs).
+ */
+function agregarFilaConTurno_(nombre, objeto) {
+  const turno = LockService.getScriptLock();
+  turno.waitLock(SEGUNDOS_BLOQUEO);
+  try {
+    agregarFila_(nombre, objeto);
+    SpreadsheetApp.flush();
+  } finally {
+    turno.releaseLock();
+  }
+}
+
+/**
+ * Escribe un objeto en una fila concreta, cada valor bajo su encabezado. Reemplaza la fila entera:
+ * es para filas que quien llama sabe vacías y suyas. No agranda la hoja ni necesita turno.
+ */
+function escribirFila_(nombre, numeroDeFila, objeto, encabezados) {
+  const columnas = encabezados || encabezados_(nombre);
+  hoja_(nombre).getRange(numeroDeFila, 1, 1, columnas.length).setValues([columnas.map(e => (objeto[e] === undefined ? '' : objeto[e]))]);
+}
+
+/**
+ * Filas con dato de una hoja, sin contar la cabecera. Intentos tiene filas vacías entre el bloque de una
+ * persona y el de la siguiente, así que ahí no sirve restarle uno a la última fila.
+ */
+function filasConDato_(nombre) {
+  const hoja = hoja_(nombre);
+  const ultima = hoja.getLastRow();
+  if (ultima < 2) return 0;
+  return hoja.getRange(2, 1, ultima - 1, 1).getValues().filter(v => v[0] !== '').length;
+}
+
+/**
+ * Agrega varias filas en una sola escritura, cada valor bajo su encabezado. Quien la llama debe tener el turno
+ * global: calcula la última fila y escribe debajo, así que dos ejecuciones a la vez caerían en las mismas filas.
+ */
+function agregarFilas_(nombre, objetos) {
+  if (!objetos.length) return;
+  const hoja = hoja_(nombre);
+  const encabezados = encabezados_(nombre);
+  const filas = objetos.map(objeto => encabezados.map(e => (objeto[e] === undefined ? '' : objeto[e])));
+  const desde = hoja.getLastRow() + 1;
+  // A diferencia de appendRow, setValues no agranda la hoja.
+  const faltan = desde + filas.length - 1 - hoja.getMaxRows();
+  if (faltan > 0) hoja.insertRowsAfter(hoja.getMaxRows(), faltan);
+  hoja.getRange(desde, 1, filas.length, encabezados.length).setValues(filas);
 }
 
 function actualizarFila_(nombre, numeroDeFila, cambios) {
@@ -176,14 +252,20 @@ function cacheQuitar_(clave) {
   CacheService.getScriptCache().remove(generacion_() + ':' + clave);
 }
 
-/**
- * Invalida toda la caché. Ejecutar desde el editor después de editar a mano
- * Pabellones, Stands, Preguntas, Staff, Permisos o Config, para no esperar a que venza la caché (un minuto por defecto).
- */
-function limpiarCache() {
+/** Invalida toda la caché. La app la usa cuando el admin cambia datos desde el panel o reinicia. */
+function limpiarCache_() {
   GENERACION_ = String(Date.now());
   PropertiesService.getScriptProperties().setProperty('GEN', GENERACION_);
   CATALOGO_ = null;
+}
+
+/**
+ * Versión para el editor; exige admin. Sirve después de editar a mano las hojas de catálogo,
+ * para no esperar a que venza la caché (un minuto por defecto).
+ */
+function limpiarCache() {
+  exigirAdmin_();
+  limpiarCache_();
 }
 
 /* ---------- Catálogo ---------- */
@@ -218,41 +300,58 @@ function leerConfig_() {
  * Lo que decide qué ve cada persona no puede esperar a que venza la caché: quien acaba de ser
  * nombrado líder, o la sala de espera recién encendida, deben notarse al recargar. Se llama al
  * abrir la app y al pulsar actualizar: compara Staff, Permisos y Config del Sheet con lo guardado
- * y, si cambiaron, descarta la caché. Cuesta tres lecturas chicas por llamada.
+ * y, si cambiaron, refresca el catálogo. Se revisa como mucho cada 30 segundos, así que un cambio a mano tarda hasta eso en notarse.
  */
 function sincronizarRoles_() {
-  const enCache = cacheLeer_("catalogo");
+  // Como mucho una vez cada 30 segundos, para toda la feria: no hace falta que cada carga lea tres hojas.
+  if (cacheLeer_('roles-al-dia')) return;
+  cachePoner_('roles-al-dia', 1, 30);
+  const enCache = cacheLeer_('catalogo');
   if (!enCache) return;
   const actual = JSON.stringify([leerStaff_(), leerPermisos_(), leerConfig_()]);
-  if (actual !== JSON.stringify([enCache.staff, enCache.permisos, enCache.config])) limpiarCache();
+  if (actual !== JSON.stringify([enCache.staff, enCache.permisos, enCache.config])) refrescarCatalogo_();
 }
 
 let CATALOGO_ = null;
+
+/** Lee pabellones, stands, staff, permisos y configuración de las hojas. No toca la caché. */
+function leerCatalogo_() {
+  const porOrden = (a, b) => a.orden - b.orden;
+  return {
+    config: leerConfig_(),
+    pabellones: leerHoja_(HOJA.PABELLONES).filter(p => esVerdadero_(p.activo)).map(p => ({
+      id: id_(p.pabellon_id), nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), orden: Number(p.orden) || 0,
+    })).sort(porOrden),
+    stands: leerHoja_(HOJA.STANDS).filter(s => esVerdadero_(s.activo)).map(s => ({
+      id: id_(s.stand_id), pabellonId: id_(s.pabellon_id), nombre: texto_(s.nombre),
+      requiereCodigo: esVerdadero_(s.requiere_codigo), numPreguntas: PREGUNTAS_POR_QUIZ,
+      orden: Number(s.orden) || 0,
+    })).sort(porOrden),
+    staff: leerStaff_(),
+    permisos: leerPermisos_(),
+  };
+}
 
 /** Pabellones, stands, staff, permisos y configuración activos. Se lee una vez y queda en caché. */
 function catalogo_() {
   if (CATALOGO_) return CATALOGO_;
   let catalogo = cacheLeer_('catalogo');
   if (!catalogo) {
-    const porOrden = (a, b) => a.orden - b.orden;
-    const config = leerConfig_();
-    catalogo = {
-      config: config,
-      pabellones: leerHoja_(HOJA.PABELLONES).filter(p => esVerdadero_(p.activo)).map(p => ({
-        id: id_(p.pabellon_id), nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), orden: Number(p.orden) || 0,
-      })).sort(porOrden),
-      stands: leerHoja_(HOJA.STANDS).filter(s => esVerdadero_(s.activo)).map(s => ({
-        id: id_(s.stand_id), pabellonId: id_(s.pabellon_id), nombre: texto_(s.nombre),
-        requiereCodigo: esVerdadero_(s.requiere_codigo), numPreguntas: PREGUNTAS_POR_QUIZ,
-        orden: Number(s.orden) || 0,
-      })).sort(porOrden),
-      staff: leerStaff_(),
-      permisos: leerPermisos_(),
-    };
-    cachePoner_('catalogo', catalogo, segundosDeCatalogo_(config));
+    catalogo = leerCatalogo_();
+    cachePoner_('catalogo', catalogo, segundosDeCatalogo_(catalogo.config));
   }
   CATALOGO_ = catalogo;
   return catalogo;
+}
+
+/**
+ * Relee el catálogo y reemplaza solo esa clave de la caché. Preguntas, ranking y códigos se conservan:
+ * cambiar Config o Staff no obliga a todos a releer lo demás.
+ */
+function refrescarCatalogo_() {
+  CATALOGO_ = leerCatalogo_();
+  cachePoner_('catalogo', CATALOGO_, segundosDeCatalogo_(CATALOGO_.config));
+  return CATALOGO_;
 }
 
 /**

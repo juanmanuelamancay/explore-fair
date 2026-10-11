@@ -6,9 +6,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-  <?!= incluir('comun-style') ?>
+  <?!= incluir_('comun-style') ?>
   <? for (var i = 0; i < archivos.length; i++) { ?>
-    <?!= incluir(archivos[i] + '-style') ?>
+    <?!= incluir_(archivos[i] + '-style') ?>
   <? } ?>
 </head>
 <body>
@@ -17,7 +17,7 @@
 
   <main id="app">
     <? for (var i = 0; i < archivos.length; i++) { ?>
-      <?!= incluir(archivos[i] + '-view') ?>
+      <?!= incluir_(archivos[i] + '-view') ?>
     <? } ?>
   </main>
 
@@ -29,9 +29,9 @@
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script>window.INICIO = <?!= inicio ?>;</script>
-  <?!= incluir('comun-script') ?>
+  <?!= incluir_('comun-script') ?>
   <? for (var i = 0; i < archivos.length; i++) { ?>
-    <?!= incluir(archivos[i] + '-script') ?>
+    <?!= incluir_(archivos[i] + '-script') ?>
   <? } ?>
   <script>App.iniciar();</script>
 

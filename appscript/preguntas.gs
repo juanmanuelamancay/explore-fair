@@ -72,7 +72,7 @@ function guardarPreguntaLider(entrada) {
       agregarFila_(HOJA.PREGUNTAS, registro);
       PropertiesService.getScriptProperties().setProperty(secuencia.propiedad, String(secuencia.numero));
     }
-    limpiarCache();
+    cacheQuitar_('preguntas:' + standId);
   } finally {
     bloqueo.releaseLock();
   }

@@ -34,22 +34,37 @@
     <button class="btn secundario" id="panel-actualizar">Actualizar ahora</button>
   </section>
 
+  <h2 class="titulo-seccion">Registro</h2>
+  <section class="tarjeta panel-reinicio">
+    <h2>Usuarios registrados</h2>
+    <p id="panel-registro"></p>
+    <button class="btn secundario" id="panel-registrar" disabled>Registrar ahora</button>
+  </section>
+
+  <h2 class="titulo-seccion">Preparación</h2>
+  <section class="tarjeta panel-reinicio">
+    <h2>Preparar la feria</h2>
+    <p>Renumera a los usuarios de la hoja Usuarios desde 1, sin quitar a nadie, y deja Intentos lista para 800 personas. Úsalo después de las pruebas, con Intentos vacía.</p>
+    <p class="aviso" id="panel-preparar-ayuda"></p>
+    <button class="btn secundario" id="panel-preparar" disabled>Preparar feria</button>
+  </section>
+
   <h2 class="titulo-seccion">Reinicio</h2>
   <section class="tarjeta panel-reinicio">
     <h2>Reiniciar la feria</h2>
-    <p>Deja la app como al inicio: sin usuarios, sin puntajes y sin códigos. Úsalo después de las pruebas y antes de abrir la feria.</p>
+    <p>Deja la app sin puntajes y sin códigos. Los usuarios ya registrados se conservan. Úsalo después de las pruebas y antes de abrir la feria.</p>
 
     <div class="grupo">
       <h3>Se borra</h3>
       <ul>
         <li><span class="marca borra"></span><div>Intentos<span>Todos los puntajes y el ranking vuelven a cero</span></div></li>
         <li><span class="marca borra"></span><div>Códigos<span>Los códigos activos dejan de funcionar</span></div></li>
-        <li><span class="marca borra"></span><div>Usuarios<span>Se registran de nuevo, solos, al volver a entrar</span></div></li>
       </ul>
     </div>
     <div class="grupo">
       <h3>Se conserva</h3>
       <ul>
+        <li><span class="marca queda"></span><div>Usuarios<span>Quien ya se registró sigue registrado</span></div></li>
         <li><span class="marca queda"></span><div>Pabellones, stands y preguntas</div></li>
         <li><span class="marca queda"></span><div>Líderes, admins, permisos y configuración</div></li>
       </ul>

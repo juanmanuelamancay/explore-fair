@@ -16,13 +16,11 @@
   .lugar.yo .nombre { color: var(--azul); }
 
   .fila .pos { width: 24px; text-align: center; font-weight: 500; color: var(--texto-2); flex: none; }
-  .fila .total { font-weight: 500; }
   .fila.yo { background: var(--azul-suave); }
-  .fila.yo .pos, .fila.yo .total { color: var(--azul); }
-  .fila.yo .avatar:not(.oro):not(.plata):not(.bronce) { background: var(--azul); border-color: var(--azul); color: #fff; }
+  .fila.yo .pos { color: var(--azul); }
   .fila.con-corona { padding-top: 18px; }   /* deja sitio a la corona sobre el avatar */
 
-  /* Claridad de cada fila: puesto en círculo, nombre con sus stands, y puntos a la derecha con su unidad */
+  /* Claridad de cada fila: puesto en círculo, nombre, y puntos a la derecha con su unidad */
   #vista-ranking .fila { padding: 10px 16px 10px 12px; }
   #vista-ranking .fila .pos {
     width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center;
@@ -32,7 +30,6 @@
   #vista-ranking .fila .puntos-fila { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
   #vista-ranking .fila .puntos-fila b { font-size: 22px; font-weight: 500; color: var(--azul); }
   #vista-ranking .fila .puntos-fila small { margin-top: 3px; font-size: 11px; color: var(--texto-2); text-transform: uppercase; letter-spacing: .04em; }
-  #vista-ranking .fila.yo .puntos-fila b { color: var(--azul); }
 
   /* Cambios desde el último refresco: la fila destella y aparece un "+N" que se desvanece.
      Solo se anima quien subió; en cada refresco sin cambios no pasa nada. */

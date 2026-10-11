@@ -1,11 +1,11 @@
 # Formato JSON para preguntas
 
 El panel admin permite cargar varias preguntas directamente dentro de un stand.
-El archivo debe contener un **arreglo JSON** codificado en UTF-8.
+El archivo debe contener un **arreglo JSON** codificado en UTF-8, con entre 1 y 200 preguntas.
 
 ## Campos esperados
 
-Cada elemento del arreglo debe tener exactamente estos campos:
+Cada elemento del arreglo debe tener exactamente estos campos. Si falta uno o sobra otro, el archivo se rechaza.
 
 | Campo | Tipo | Obligatorio | Descripción |
 |---|---|---:|---|
@@ -15,8 +15,8 @@ Cada elemento del arreglo debe tener exactamente estos campos:
 | `opcion_c` | Texto | Sí | Tercera alternativa. |
 | `opcion_d` | Texto | Sí | Cuarta alternativa. |
 | `correcta` | Texto | Sí | Letra de la respuesta correcta: `A`, `B`, `C` o `D`. |
-| `puntos` | Número | Sí | Puntos otorgados. Debe ser mayor o igual a cero. |
-| `activo` | Booleano | Sí | `true` para publicar la pregunta o `false` para dejarla inactiva. |
+| `puntos` | Número | Sí | Puntos otorgados. Entero, mayor o igual a cero. Con `0` la pregunta vale `puntos_por_defecto` de `Config`. |
+| `activo` | Booleano | Sí | `true` para publicar la pregunta o `false` para dejarla inactiva. Debe ser un booleano, no un texto. |
 
 ## Ejemplo
 
@@ -50,12 +50,15 @@ Cada elemento del arreglo debe tener exactamente estos campos:
 El archivo no debe incluir estos campos:
 
 - `pregunta_id`: el sistema genera una ID correlativa como `PRG-001`.
-- `stand_id`: se toma del stand desde donde se seleccionó el archivo.
+- `stand_id`: se toma del stand desde donde se seleccionó el archivo. El stand debe estar activo.
 - `creado_en`: se asigna con la fecha y hora del servidor.
 
 El sistema valida todas las preguntas antes de escribirlas. Si una pregunta es inválida,
-no se carga ninguna del archivo y se muestra la fila que debe corregirse.
+no se carga ninguna del archivo y el mensaje indica el número de la pregunta que debe corregirse.
 
-Para cargarlo, abre el árbol del panel admin, localiza el stand y pulsa **Cargar JSON**.
+La carga agrega filas a la hoja `Preguntas`: no reemplaza las que el stand ya tenía ni revisa duplicados.
+Cargar dos veces el mismo archivo deja las preguntas repetidas.
 
-Cada stand debe tener un banco de 16 preguntas activas. Al iniciar un quiz, el servidor selecciona 4 al azar y no envía las otras 12 al celular.
+Para cargarlo, abre el panel admin, despliega el pabellón en la pestaña Pabellones, localiza el stand y pulsa **Cargar JSON**.
+
+Cada stand necesita al menos 16 preguntas activas. Al iniciar un quiz, el servidor selecciona 4 al azar entre las activas y no envía las demás al celular.

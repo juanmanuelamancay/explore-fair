@@ -7,17 +7,16 @@ function rankingCompleto_() {
   let ranking = cacheLeer_('ranking');
   if (ranking) return ranking;
 
-  const catalogo = catalogo_();
-  const esEntrada = {};
-  catalogo.stands.forEach(s => { if (!s.requiereCodigo) esEntrada[s.id] = true; });
-
   const porEmail = {};
-  leerHoja_(HOJA.INTENTOS).forEach(i => {
+  const vistos = {};   // persona + stand: una fila repetida no suma dos veces
+  leerHoja_(HOJA.INTENTOS, ['email', 'stand_id', 'estado', 'puntaje', 'completado_en']).forEach(i => {
     if (texto_(i.estado).toUpperCase() !== 'COMPLETADO') return;
     const email = texto_(i.email).toLowerCase();
-    const fila = porEmail[email] || (porEmail[email] = { email: email, puntos: 0, stands: 0, ultimo: 0 });
+    const clave = email + '|' + id_(i.stand_id);
+    if (vistos[clave]) return;
+    vistos[clave] = true;
+    const fila = porEmail[email] || (porEmail[email] = { email: email, puntos: 0, ultimo: 0 });
     fila.puntos += Number(i.puntaje) || 0;
-    if (!esEntrada[id_(i.stand_id)]) fila.stands++;
     fila.ultimo = Math.max(fila.ultimo, ms_(i.completado_en) || 0);
   });
 
@@ -27,29 +26,23 @@ function rankingCompleto_() {
   // En empate va primero quien llegó antes a ese puntaje.
   ranking = Object.keys(porEmail).map(email => porEmail[email])
     .sort((a, b) => b.puntos - a.puntos || a.ultimo - b.ultimo)
-    .map(f => ({ email: f.email, nombre: nombres[f.email] || nombreDesdeEmail_(f.email), puntos: f.puntos, stands: f.stands }));
+    .map(f => ({ email: f.email, nombre: nombres[f.email] || nombreDesdeEmail_(f.email), puntos: f.puntos }));
 
-  cachePoner_('ranking', ranking, Math.max(5, catalogo.config.segundos_refresco_board));
+  cachePoner_('ranking', ranking, Math.max(5, Number(catalogo_().config.segundos_cache_ranking) || 60));
   return ranking;
-}
-
-/** Puesto de una persona, o null si todavía no tiene puntaje. */
-function puestoDe_(email) {
-  const indice = rankingCompleto_().findIndex(f => f.email === email);
-  return indice < 0 ? null : indice + 1;
 }
 
 /** Con forzar = true (botón de actualizar) se descarta la caché antes de leer, para traer lo que hay en el Sheet ahora. */
 function obtenerRanking(forzar) {
   const sesion = exigirVista_('RANKING');
-  if (forzar) limpiarCache();
+  if (forzar) cacheQuitar_('ranking');
   return rankingParaSesion_(sesion);
 }
 
 /** Misma lista para la vista de pantalla grande, con su propio permiso (solo admin, en Permisos). Trae también el preset. */
 function obtenerRankingPantalla(forzar) {
   const sesion = exigirVista_('RANKING_PANTALLA');
-  if (forzar) limpiarCache();
+  if (forzar) cacheQuitar_('ranking');
   return { ...rankingParaSesion_(sesion), ajustes: ajustesPantalla_(catalogo_().config) };
 }
 
@@ -87,7 +80,7 @@ function guardarAjustesPantalla(ajustes) {
       const [minimo, maximo] = RANGOS_PANTALLA_[clave];
       configPonerRanking_(clave, Math.round(Math.min(maximo, Math.max(minimo, valor))));
     });
-    limpiarCache();
+    refrescarCatalogo_();
   } finally {
     bloqueo.releaseLock();
   }
@@ -103,6 +96,6 @@ function configPonerRanking_(clave, valor) {
 
 function rankingParaSesion_(sesion) {
   return {
-    filas: rankingCompleto_().map(f => ({ nombre: f.nombre, puntos: f.puntos, stands: f.stands, yo: f.email === sesion.email })),
+    filas: rankingCompleto_().map(f => ({ nombre: f.nombre, puntos: f.puntos, yo: f.email === sesion.email })),
   };
 }

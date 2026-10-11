@@ -5,7 +5,7 @@
 
 // Se muestra en la página de error y en el diagnóstico, para saber qué código está corriendo de verdad.
 // Cambiarla en cada entrega: si la app publicada muestra otra, falta crear una nueva versión de la implementación.
-const VERSION_DEL_CODIGO = '2026-10-08.1';
+const VERSION_DEL_CODIGO = '2026-10-10.5';
 
 // Vista de la hoja Permisos -> prefijo de sus archivos. Una vista que no esté aquí aún no está programada.
 const ARCHIVO_DE_VISTA = {
@@ -26,16 +26,14 @@ function doGet() {
     let vistas = sesion.vistas.filter(v => ARCHIVO_DE_VISTA[v]);
     if (!vistas.length) {
       // Puede ser la caché con datos anteriores a una corrección en el Sheet: se relee una vez antes de fallar.
-      limpiarCache();
+      refrescarCatalogo_();
       sesion = sesion_();
       vistas = sesion.vistas.filter(v => ARCHIVO_DE_VISTA[v]);
     }
     if (!vistas.length) throw new Error('Tu rol no tiene vistas asignadas. Avisa a un administrador.');
 
-    // Solo quien puede responder quizzes se registra en Usuarios; el líder no compite.
-    const nombre = vistas.indexOf('QUIZ') >= 0
-      ? asegurarUsuario_(sesion)
-      : (sesion.staff && sesion.staff.nombre) || nombreDeDirectorio_(sesion.email) || nombreDesdeEmail_(sesion.email);
+    // Abrir la app no lee ni escribe Usuarios: el registro lo pide el navegador en segundo plano (registro.gs).
+    const nombre = nombreDe_(sesion);
 
     const config = catalogo_().config;
     const plantilla = HtmlService.createTemplateFromFile('index');
@@ -47,6 +45,7 @@ function doGet() {
       minutosParaResponder: config.minutos_para_responder,
       minutosVigenciaCodigo: config.minutos_vigencia_codigo,
       segundosRefresco: config.segundos_refresco_board,
+      registrar: debeRegistrarse_(sesion) && !registroConfirmado_(),
     }).replace(/</g, '\\u003c');
 
     return plantilla.evaluate()
@@ -54,7 +53,7 @@ function doGet() {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   } catch (error) {
     // El recuadro de diagnóstico debe mostrar lo que hay en el Sheet ahora, no una copia guardada.
-    try { limpiarCache(); } catch (ignorado) { /* sin acceso al Sheet: se muestra lo que se pueda */ }
+    try { CATALOGO_ = leerCatalogo_(); } catch (ignorado) { /* sin acceso al Sheet: se muestra lo que se pueda */ }
     return paginaDeError_(error.message, quienEntra_());
   }
 }
@@ -98,7 +97,7 @@ function quienEntra_() {
 }
 
 /** Inserta el contenido de otro archivo HTML del proyecto. Se usa desde index.html. */
-function incluir(nombre) {
+function incluir_(nombre) {
   return HtmlService.createHtmlOutputFromFile(nombre).getContent();
 }
 
