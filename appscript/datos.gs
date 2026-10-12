@@ -29,7 +29,7 @@ const CONFIG_DEFECTO = {
   fecha_feria: 0,
   lugar_feria: '',
   espera_mensaje: '',
-  // Preset de la pantalla de ranking (vista RANKING_PANTALLA). Se edita desde su panel de ajustes.
+  // Preset de la pantalla de ranking (vista RANKING). Se edita desde su panel de ajustes.
   rp_personas: 0,        // personas por pantalla; 0 = lo que quepa
   rp_columnas: 6,
   rp_alto: 64,           // px por fila
@@ -38,8 +38,8 @@ const CONFIG_DEFECTO = {
   rp_puntos: 22,         // px de los puntos
   rp_escala: 100,        // % del top (podio)
   rp_ancho_top: 66,      // % del ancho de la pantalla que ocupa el top
-  rp_ocultar_menu: false, // TRUE oculta la barra de navegación en la vista de ranking de pantalla
-  rp_modo_oscuro: false,  // TRUE pinta la vista de ranking de pantalla en oscuro
+  rp_ocultar_menu: false, // TRUE oculta la barra de navegación en la vista de ranking
+  rp_modo_oscuro: false,  // TRUE pinta la vista de ranking en oscuro
 };
 
 const PREGUNTAS_POR_BANCO = 16;
@@ -94,6 +94,14 @@ function hoja_(nombre) {
  * Con "campos", solo lee hasta la última de esas columnas: si las pedidas están al principio de la hoja, se leen menos datos.
  */
 function leerHoja_(nombre, campos) {
+  return leerHojaCompleta_(nombre, campos).filas;
+}
+
+/**
+ * Como leerHoja_, pero entrega además los encabezados y los valores tal como salieron de la hoja (valores[0] es la
+ * cabecera; la fila n está en valores[n - 1]). Con eso, agregarFila_ y actualizarFila_ no vuelven a leer la hoja.
+ */
+function leerHojaCompleta_(nombre, campos) {
   const valores = rangoDeLectura_(nombre, campos).getValues();
   const encabezados = valores[0].map(normal_);
   const filas = [];
@@ -103,7 +111,7 @@ function leerHoja_(nombre, campos) {
     encabezados.forEach((e, c) => { if (e) objeto[e] = valores[i][c]; });
     filas.push(objeto);
   }
-  return filas;
+  return { encabezados: encabezados, valores: valores, filas: filas };
 }
 
 /** Rango a leer: toda la hoja, o solo hasta la última de las columnas pedidas. Si falta alguna, se lee todo. */
@@ -121,9 +129,12 @@ function encabezados_(nombre) {
   return hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0].map(normal_);
 }
 
-/** Agrega una fila ubicando cada valor bajo su encabezado, sin depender del orden de las columnas. */
-function agregarFila_(nombre, objeto) {
-  const fila = encabezados_(nombre).map(e => (objeto[e] === undefined ? '' : objeto[e]));
+/**
+ * Agrega una fila ubicando cada valor bajo su encabezado, sin depender del orden de las columnas.
+ * Quien ya leyó la hoja completa puede pasar sus encabezados para no leerlos otra vez.
+ */
+function agregarFila_(nombre, objeto, encabezados) {
+  const fila = (encabezados || encabezados_(nombre)).map(e => (objeto[e] === undefined ? '' : objeto[e]));
   hoja_(nombre).appendRow(fila);
 }
 
@@ -180,10 +191,15 @@ function agregarFilas_(nombre, objetos) {
   hoja.getRange(desde, 1, filas.length, encabezados.length).setValues(filas);
 }
 
-function actualizarFila_(nombre, numeroDeFila, cambios) {
-  const encabezados = encabezados_(nombre);
+/**
+ * Cambia solo las columnas indicadas en "cambios"; el resto de la fila se conserva.
+ * "lectura" es el resultado de leerHojaCompleta_ de esa hoja: con él, la fila no se lee de nuevo. Solo vale si
+ * quien llama tiene el turno global desde esa lectura, porque los valores se toman de ahí.
+ */
+function actualizarFila_(nombre, numeroDeFila, cambios, lectura) {
+  const encabezados = lectura ? lectura.encabezados : encabezados_(nombre);
   const rango = hoja_(nombre).getRange(numeroDeFila, 1, 1, encabezados.length);
-  const valores = rango.getValues()[0];
+  const valores = lectura ? lectura.valores[numeroDeFila - 1].slice(0, encabezados.length) : rango.getValues()[0];
   encabezados.forEach((e, c) => { if (e in cambios) valores[c] = cambios[e]; });
   rango.setValues([valores]);
 }

@@ -10,7 +10,7 @@ Reglas de diseño de la aplicación. Nacieron de los tres prototipos y hoy descr
 | [prototipo/lider.html](../../prototipo/lider.html) | `LIDER` | Generar código y ranking |
 | [prototipo/admin.html](../../prototipo/admin.html) | `ADMIN` | Reinicio de datos y ranking |
 
-Diferencias principales de la app real: el usuario y el líder no tienen ranking, el celular no muestra el puesto, y existen cuatro vistas sin prototipo: la pantalla de ranking (`RANKING_PANTALLA`), las preguntas del líder (`PREGUNTAS`), el editor del catálogo del panel y la sala de espera (`ESPERA`).
+Diferencias principales de la app real: el usuario y el líder no tienen ranking, el celular no muestra el puesto, y existen cuatro vistas sin prototipo: la pantalla de ranking (`RANKING`), las preguntas del líder (`PREGUNTAS`), el editor del catálogo del panel y la sala de espera (`ESPERA`).
 
 ## Principios
 
@@ -72,7 +72,7 @@ Los colores no están atados al nombre: salen de la lista `PALETA` de `comun-scr
 - **Tarjetas:** borde de 1 px, radio de 24 px, sin sombra.
 - **Listas:** radio de 20 px. **Opciones y filas tocables:** radio de 16 px.
 - **Círculos:** para todo lo que representa a una persona, un pabellón o un stand.
-- **Sombra:** solo en elementos que flotan sobre el contenido (el círculo del usuario y la fila propia fija del ranking).
+- **Sombra:** solo en elementos que flotan sobre el contenido (el círculo del usuario).
 
 ### Medallas de puesto
 
@@ -86,7 +86,7 @@ Los tres primeros puestos se muestran siempre igual, en cualquier vista:
 
 - **Forma:** el mismo círculo de siempre, con borde de 2 px del metal, un anillo blanco fino por dentro y una corona pequeña y plana encima, sin brillos ni degradados.
 - **Del cuarto puesto en adelante:** círculo neutro, sin corona.
-- **Dónde se usa:** lista de premios de la sala de espera, y podio y lista de las dos vistas de ranking.
+- **Dónde se usa:** lista de premios de la sala de espera, y podio y cuadrícula del ranking.
 - **En el código:** clases `oro`, `plata` y `bronce`, y las funciones `medalla` y `avatarDePuesto` de `comun-script.html`.
 
 ### Iconos
@@ -227,7 +227,7 @@ Vista `PREGUNTAS`. El líder revisa y edita el banco de sus stands.
 
 ## Pantallas del admin
 
-El admin tiene en la barra inferior todas las vistas que `Permisos` le dé: Mapa, Código, Preguntas, Panel, Ranking, Pantalla y, con la sala de espera activa, Espera.
+El admin tiene en la barra inferior todas las vistas que `Permisos` le dé: Mapa, Código, Preguntas, Panel, Ranking y, con la sala de espera activa, Espera.
 
 ### Panel
 
@@ -257,28 +257,15 @@ Sincronización y reinicio:
 
 ### Ranking
 
-Vista `RANKING`, en tamaño de celular.
-
-- **Podio** con los tres primeros en oro, plata y bronce: el avatar con las iniciales toma el metal y lleva una corona encima, y la base del podio se pinta del mismo metal.
-- **Lista** del cuarto en adelante: puesto, nombre y puntos.
-- **Con menos de tres personas no hay podio:** todos van en la lista, con el avatar, el metal y la corona de su puesto.
-- **Cambios:** quien sumó puntos desde la última actualización destella en verde y muestra un "+N" que se desvanece.
-- **La fila propia** va resaltada en azul suave y con "(tú)". Aparece solo si quien mira tiene puntaje, por ejemplo un admin que respondió quizzes de prueba.
-- **Fila propia fija:** si esa fila no está a la vista, una copia flota sobre la navegación inferior.
-- Nota al pie con la regla de desempate.
-- **Actualización:** se trae del servidor cada vez que se entra a la vista y luego sola cada `segundos_refresco_board` (mínimo 10 segundos). Se pausa con el celular bloqueado o la app en segundo plano, y al volver se actualiza de inmediato. El botón de actualizar pide además recalcular el ranking en ese momento.
-- **Ranking vacío:** tarjeta con ícono neutro, "Aún no hay puntajes" y una línea que explica cuándo se llena.
-
-### Pantalla de ranking
-
-Vista `RANKING_PANTALLA`, para proyectar. Usa todo el ancho de la pantalla, con el contenido centrado hasta 1.400 px.
+Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho de la pantalla, con el contenido centrado hasta 1.400 px.
 
 - **Cabecera:** título "Ranking", la hora de la última actualización, el botón de ajustes y el de actualizar.
-- **Podio** como el de la vista Ranking, más grande.
+- **Podio** con los tres primeros en oro, plata y bronce: el avatar con las iniciales toma el metal y lleva una corona encima, y la base del podio se pinta del mismo metal.
 - **Cuadrícula** del cuarto en adelante: cada celda lleva puesto, nombre y puntos. Muestra las personas que caben en pantalla, o menos si los ajustes fijan una cantidad.
 - **Pie:** hasta qué puesto se está mostrando, de cuántos, y la regla de desempate.
-- **Menos de tres personas:** no se muestra el ranking, solo "Esperando los primeros puntajes" con cuántas personas faltan.
-- **Cambios y actualización:** igual que en la vista Ranking.
+- **Menos de tres personas:** el podio muestra solo a quienes hay: con una, el 1.º; con dos, el 1.º (al centro) y el 2.º. Sin nadie con puntaje, "Esperando los primeros puntajes".
+- **Cambios:** quien sumó puntos desde la última actualización destella en verde y muestra un "+N" que se desvanece.
+- **Actualización:** se trae del servidor al entrar y luego sola cada `segundos_refresco_board` (mínimo 10 segundos). Se pausa con la app en segundo plano y, al volver, se actualiza de inmediato. El botón de actualizar recalcula el ranking en ese momento.
 - **Ajustes:** hoja con deslizadores para personas por pantalla, columnas, alto de fila, espacio entre filas, tamaño de nombres, tamaño de puntos, y tamaño y ancho del podio; dos interruptores, "Ocultar menú de navegación" y "Modo oscuro"; y "Restablecer valores". Cada cambio se ve al momento y se guarda en `Config` (claves `rp_*`); las demás pantallas abiertas lo toman en su siguiente actualización.
 - **Pantalla angosta:** por debajo de 900 px la cuadrícula pasa a una columna y el podio ocupa todo el ancho.
 
@@ -297,7 +284,7 @@ Vista `RANKING_PANTALLA`, para proyectar. Usa todo el ancho de la pantalla, con 
 
 - **Botón de actualizar:** ícono circular al final de la cabecera de cada vista, salvo el quiz. Solo lo ven el líder y el admin: el `USUARIO` no lo tiene, porque la sala de espera y el mapa ya se actualizan solos y, si algo cambió, la app se vuelve a abrir. Vuelve a pedir los datos de esa vista sin recargar la página y, a la vez, comprueba si a la persona le cambiaron el rol o las vistas. Mientras carga, el ícono gira y el botón no responde.
 
-- **Barra inferior:** un destino por cada vista del rol, en este orden: Mapa, Código, Preguntas, Panel, Ranking, Pantalla, Espera. El activo se marca con una píldora de color detrás del ícono. Si el rol tiene un solo destino, la barra no se muestra.
+- **Barra inferior:** un destino por cada vista del rol, en este orden: Mapa, Código, Preguntas, Panel, Ranking, Espera. El activo se marca con una píldora de color detrás del ícono. Si el rol tiene un solo destino, la barra no se muestra.
 
   Con las filas de referencia de `Permisos`:
 
@@ -305,7 +292,7 @@ Vista `RANKING_PANTALLA`, para proyectar. Usa todo el ancho de la pantalla, con 
   |---|---|
   | `USUARIO` | Solo Mapa: sin barra |
   | `LIDER` | Solo Código: sin barra. Con `PREGUNTAS`: Código y Preguntas |
-  | `ADMIN` | Mapa, Código, Panel, Ranking y Pantalla |
+  | `ADMIN` | Mapa, Código, Panel y Ranking |
 
 - **La barra se oculta** en todo el quiz (código, preguntas, resultado y tiempo agotado), para no ofrecer salidas a mitad, y en la pantalla de ranking cuando se activa "Ocultar menú de navegación".
 - **Flecha de volver** arriba a la izquierda en código, resultado y tiempo agotado; siempre lleva al mapa. Durante las preguntas no hay flecha.

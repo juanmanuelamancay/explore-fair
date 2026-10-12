@@ -1,62 +1,125 @@
 <style>
-  /* Vista RANKING: podio, lista y fila propia. */
+  /* Vista RANKING, pensada para proyectar en una pantalla grande.
+     Las reglas están limitadas a esta vista (o al panel de ajustes en #hoja).
+     Los tamaños salen de variables CSS que se mueven en vivo desde el panel de ajustes. */
   .rank-cab { margin-bottom: 20px; }
-  .rank-cab .rank-titulo { font-size: 24px; font-weight: 400; }
-  .podio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: end; margin-bottom: 20px; padding-top: 16px; }
-  .lugar { text-align: center; min-width: 0; }
-  .lugar .avatar { display: grid; margin: 0 auto 6px; width: 48px; height: 48px; }
-  .l1 .avatar { width: 60px; height: 60px; font-size: 18px; }
-  .l1 .corona { width: 28px; height: 21px; top: -16px; }
-  .lugar .nombre { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lugar .pts { font-size: 13px; color: var(--texto-2); }
-  .lugar .base { margin-top: 8px; border-radius: 12px 12px 0 0; background: var(--m-fondo, var(--superficie)); font-size: 20px; font-weight: 700; display: grid; place-items: center; color: var(--m-texto, var(--texto-2)); }
-  .l1 .base { height: 72px; }
-  .l2 .base { height: 52px; }
-  .l3 .base { height: 40px; }
-  .lugar.yo .nombre { color: var(--azul); }
-
-  .fila .pos { width: 24px; text-align: center; font-weight: 500; color: var(--texto-2); flex: none; }
-  .fila.yo { background: var(--azul-suave); }
-  .fila.yo .pos { color: var(--azul); }
-  .fila.con-corona { padding-top: 18px; }   /* deja sitio a la corona sobre el avatar */
-
-  /* Claridad de cada fila: puesto en círculo, nombre, y puntos a la derecha con su unidad */
-  #vista-ranking .fila { padding: 10px 16px 10px 12px; }
-  #vista-ranking .fila .pos {
-    width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center;
-    background: var(--superficie); border: 1px solid var(--borde-suave); color: var(--texto-2); font-size: 14px; font-weight: 500;
+  body.pantalla-grande #app { max-width: none; padding: 20px 32px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
+  #vista-ranking {
+    --rp-cols: 6; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%;
+    min-height: calc(100vh - var(--nav-h) - 110px); display: flex; flex-direction: column;
   }
-  #vista-ranking .fila.yo .pos { background: var(--azul); border-color: var(--azul); color: #fff; }
-  #vista-ranking .fila .puntos-fila { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
-  #vista-ranking .fila .puntos-fila b { font-size: 22px; font-weight: 500; color: var(--azul); }
-  #vista-ranking .fila .puntos-fila small { margin-top: 3px; font-size: 11px; color: var(--texto-2); text-transform: uppercase; letter-spacing: .04em; }
+  #vista-ranking .rank-titulo { font-size: 32px; }
+  #vista-ranking .rp-hora { font-variant-numeric: tabular-nums; align-self: flex-end; padding-bottom: 6px; }
+  #vista-ranking .rp-ajustes-btn {
+    width: 44px; height: 44px; border-radius: 50%; flex: none; align-self: center;
+    display: grid; place-items: center; border: 1px solid var(--borde); color: var(--texto-2);
+  }
+  #vista-ranking .rp-ajustes-btn:active { background: var(--superficie); }
+  /* El contenido va centrado con un ancho máximo: en una pantalla grande no se estira de borde a borde */
+  #vista-ranking #rp-contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 1400px; margin: 0 auto; }
+
+  /* Podio: su ancho y su escala (--rp-ancho-top, --rp-escala) son propios; no dependen de las columnas ni de las filas */
+  #vista-ranking .podio {
+    --rp-podio: 3; width: calc(var(--rp-ancho-top) * var(--rp-podio) / 3); margin: 0 auto 20px; padding-top: 16px;
+    display: grid; grid-template-columns: repeat(var(--rp-podio), 1fr); gap: 8px; align-items: end;
+  }
+  #vista-ranking .lugar { text-align: center; min-width: 0; position: relative; }
+  #vista-ranking .lugar .avatar {
+    display: grid; margin: 0 auto calc(10px * var(--rp-escala)); width: calc(84px * var(--rp-escala)); height: calc(84px * var(--rp-escala));
+    font-size: calc(28px * var(--rp-escala));
+  }
+  #vista-ranking .lugar.l1 .avatar { width: calc(112px * var(--rp-escala)); height: calc(112px * var(--rp-escala)); font-size: calc(40px * var(--rp-escala)); }
+  #vista-ranking .lugar .corona { width: calc(28px * var(--rp-escala)); height: calc(21px * var(--rp-escala)); top: calc(-20px * var(--rp-escala)); }
+  #vista-ranking .lugar.l1 .corona { width: calc(40px * var(--rp-escala)); height: calc(30px * var(--rp-escala)); top: calc(-28px * var(--rp-escala)); }
+  #vista-ranking .lugar .nombre { font-size: calc(22px * var(--rp-escala)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #vista-ranking .lugar.l1 .nombre { font-size: calc(26px * var(--rp-escala)); }
+  #vista-ranking .lugar .pts { font-size: calc(19px * var(--rp-escala)); color: var(--texto-2); margin-top: calc(2px * var(--rp-escala)); }
+  #vista-ranking .lugar .base {
+    margin-top: calc(10px * var(--rp-escala)); border-radius: 12px 12px 0 0; background: var(--m-fondo, var(--superficie));
+    font-size: calc(36px * var(--rp-escala)); font-weight: 700; display: grid; place-items: center; color: var(--m-texto, var(--texto-2));
+  }
+  #vista-ranking .lugar.l1 .base { height: calc(150px * var(--rp-escala)); font-size: calc(52px * var(--rp-escala)); }
+  #vista-ranking .lugar.l2 .base { height: calc(110px * var(--rp-escala)); }
+  #vista-ranking .lugar.l3 .base { height: calc(84px * var(--rp-escala)); }
+  #vista-ranking .lugar .delta { top: calc(-26px * var(--rp-escala)); left: 50%; margin-left: -20px; }
+
+  /* Cuadrícula de puestos del 4.º en adelante: columnas, alto y espacio configurables */
+  #vista-ranking .rp-cuerpo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+  #vista-ranking .rp-rejilla {
+    flex: 1 1 0; min-height: 0; overflow: hidden;
+    display: grid; grid-template-columns: repeat(var(--rp-cols), minmax(0, 1fr));
+    grid-auto-rows: var(--rp-alto); gap: var(--rp-espacio); align-content: start;
+  }
+  /* Cada tarjeta separa sus datos: posición en círculo, nombre, y puntos a la derecha */
+  #vista-ranking .rp-rejilla .fila {
+    position: relative; display: flex; align-items: center; gap: 12px; padding: 0 14px 0 10px;
+    height: var(--rp-alto); min-height: var(--rp-alto); font-size: var(--rp-fuente);
+    border: 1px solid var(--borde); border-radius: 16px; background: var(--fondo);
+  }
+  #vista-ranking .rp-rejilla .fila .pos {
+    width: calc(var(--rp-alto) * .53); height: calc(var(--rp-alto) * .53); border-radius: 50%; flex: none;
+    display: grid; place-items: center; background: var(--superficie); border: 1px solid var(--borde-suave);
+    color: var(--texto-2); font-size: calc(var(--rp-fuente) * .85); font-weight: 500;
+  }
+  #vista-ranking .rp-rejilla .fila .quien { flex: 1; min-width: 0; }
+  #vista-ranking .rp-rejilla .fila .quien b { display: block; font-size: var(--rp-fuente); font-weight: 500; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #vista-ranking .rp-puntos { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
+  #vista-ranking .rp-puntos b { font-size: var(--rp-puntos); font-weight: 500; color: var(--azul); }
+  #vista-ranking .rp-puntos small { margin-top: 3px; font-size: calc(var(--rp-puntos) * .5); color: var(--texto-2); text-transform: uppercase; letter-spacing: .04em; }
 
   /* Cambios desde el último refresco: la fila destella y aparece un "+N" que se desvanece.
      Solo se anima quien subió; en cada refresco sin cambios no pasa nada. */
-  .fila.subio { animation: rank-destello 1.6s ease both; }
-  @keyframes rank-destello { 0% { background-color: var(--verde-suave); box-shadow: inset 4px 0 0 var(--verde); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
+  #vista-ranking .fila.subio { animation: rp-destello-p 1.6s ease both; }
+  @keyframes rp-destello-p { 0% { background-color: var(--verde-suave); box-shadow: inset 4px 0 0 var(--verde); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
   /* El "+N" va en absoluto: no ocupa lugar y no deja hueco cuando se desvanece */
-  .fila { position: relative; }
-  .lugar { position: relative; }
-  .fila .delta { position: absolute; right: 60px; top: 50%; margin-top: -11px; }
-  .lugar .delta { top: -26px; left: 50%; margin-left: -20px; }
-  .delta {
+  #vista-ranking .rp-rejilla .fila .delta { position: absolute; right: calc(var(--rp-puntos) * 3); top: 50%; margin-top: -11px; }
+  #vista-ranking .delta {
     white-space: nowrap; pointer-events: none; padding: 2px 8px; border-radius: 10px;
     background: var(--verde-suave); color: var(--verde); font-size: 13px; font-style: normal; font-weight: 500;
-    animation: rank-sube 2.4s ease both;
+    animation: rp-sube-p 2.4s ease both;
   }
-  @keyframes rank-sube {
+  @keyframes rp-sube-p {
     0% { opacity: 0; transform: translateY(6px) scale(.8); }
     20% { opacity: 1; transform: none; }
     75% { opacity: 1; }
     100% { opacity: 0; transform: translateY(-6px); }
   }
-  @media (prefers-reduced-motion: reduce) { .fila.subio, .delta { animation: none; } }
 
-  .mi-puesto { position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); z-index: 4; pointer-events: none; }
-  .mi-puesto .fila {
-    max-width: 448px; margin: 0 16px 8px; border: 0; border-radius: 16px;
-    box-shadow: 0 1px 3px rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+  #vista-ranking .rp-pie { margin-top: 10px; text-align: center; color: var(--texto-2); font-size: 14px; }
+
+  /* Panel de ajustes (vive en #hoja, fuera de la vista) */
+  #hoja .rp-ajustes .rp-campo { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+  #hoja .rp-ajustes .rp-campo > span { font-size: 14px; color: var(--texto-2); }
+  #hoja .rp-ctl { display: flex; align-items: center; gap: 12px; }
+  #hoja .rp-ctl input[type="range"] { flex: 1; accent-color: var(--azul); }
+  #hoja .rp-ctl output { min-width: 56px; text-align: right; font-size: 16px; font-variant-numeric: tabular-nums; }
+  #hoja .rp-ajustes .btn { margin-top: 14px; }
+  #hoja .rp-check { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-size: 15px; }
+  #hoja .rp-check input { width: 20px; height: 20px; accent-color: var(--azul); }
+  #hoja .rp-estado-ajustes { margin-top: 10px; font-size: 13px; color: var(--texto-2); min-height: 18px; }
+
+  /* Modo oscuro de la pantalla: cambia los colores mientras la vista está abierta */
+  body.pantalla-grande.pantalla-oscura {
+    --fondo: #0f1419; --superficie: #1b232b; --texto: #e8eaed; --texto-2: #9aa0a6;
+    --borde: #3c4650; --borde-suave: #263238; --azul: #8ab4f8; --azul-suave: rgba(138, 180, 248, .16);
+    --verde: #81c995; --verde-suave: rgba(129, 201, 149, .18); --rojo: #f28b82;
+    background: #0f1419; color: #e8eaed;
   }
-  @media (min-width: 480px) { .mi-puesto .fila { margin: 0 auto 8px; } }
+  body.pantalla-grande.pantalla-oscura #vista-ranking .oro { --m-fondo: #3a2e10; --m-texto: #fdd663; --m-corona: #fbbc04; }
+  body.pantalla-grande.pantalla-oscura #vista-ranking .plata { --m-fondo: #2a2f35; --m-texto: #e8eaed; --m-corona: #bdc1c6; }
+  body.pantalla-grande.pantalla-oscura #vista-ranking .bronce { --m-fondo: #3a2316; --m-texto: #f0a875; --m-corona: #d98e5a; }
+
+  /* Modo pantalla: sin barra de navegación, el ranking ocupa todo el alto */
+  body.pantalla-grande.sin-menu #nav { display: none !important; }
+  body.pantalla-grande.sin-menu #app { padding-bottom: 24px; }
+
+  @media (max-width: 899px) {
+    body.pantalla-grande #app { padding: 16px 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
+    #vista-ranking .rank-titulo { font-size: 26px; }
+    #vista-ranking .rp-rejilla { grid-template-columns: 1fr; }
+    #vista-ranking .podio { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #vista-ranking .fila.subio, #vista-ranking .delta { animation: none; }
+  }
 </style>

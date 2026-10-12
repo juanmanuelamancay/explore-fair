@@ -38,10 +38,15 @@ function guardarPreguntaLider(entrada) {
   const alcance = standsALiderar_(sesion, catalogo_()).map(s => s.id);
   if (!entrada || !Array.isArray(entrada.opciones) || entrada.opciones.length !== 4) throw new Error('La pregunta necesita cuatro opciones.');
 
+  // El turno es global: todo lo que va dentro tiene que ser corto. Se lee la hoja Preguntas una sola vez y de esa
+  // lectura salen la pregunta original, las activas del stand, el siguiente ID y los encabezados para escribir.
+  // El stand y el permiso ya están garantizados por "alcance" y exigirVista_ (catálogo en caché), así que no se
+  // vuelven a leer Pabellones, Stands ni Permisos.
   const bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(SEGUNDOS_BLOQUEO);
   try {
-    const hoja = leerHoja_(HOJA.PREGUNTAS);
+    const lectura = leerHojaCompleta_(HOJA.PREGUNTAS);
+    const hoja = lectura.filas;
     const original = entrada.id ? hoja.find(p => id_(p.pregunta_id) === id_(entrada.id)) : null;
     if (original && alcance.indexOf(id_(original.stand_id)) < 0) throw new Error('Esa pregunta no es de tus stands.');
 
@@ -61,17 +66,19 @@ function guardarPreguntaLider(entrada) {
       puntos: original ? original.puntos : (Number(catalogo_().config.puntos_por_defecto) || 10),
       activo: original ? esVerdadero_(original.activo) : activasOtras < PREGUNTAS_POR_BANCO,
     });
-    adminValidarRelaciones_('preguntas', registro, original);
+    adminValidarContenidoPregunta_(registro);
 
     if (original) {
-      actualizarFila_(HOJA.PREGUNTAS, original._fila, registro);
+      actualizarFila_(HOJA.PREGUNTAS, original._fila, registro, lectura);
     } else {
-      const secuencia = adminSiguienteId_('preguntas', 'PRG');
+      const secuencia = adminSiguienteId_('preguntas', 'PRG', hoja);
       registro.pregunta_id = secuencia.id;
       registro.creado_en = new Date();
-      agregarFila_(HOJA.PREGUNTAS, registro);
+      agregarFila_(HOJA.PREGUNTAS, registro, lectura.encabezados);
       PropertiesService.getScriptProperties().setProperty(secuencia.propiedad, String(secuencia.numero));
     }
+    // Sin esto, quien sigue en la cola del turno podría leer la hoja antes de que se confirme esta escritura.
+    SpreadsheetApp.flush();
     cacheQuitar_('preguntas:' + standId);
   } finally {
     bloqueo.releaseLock();

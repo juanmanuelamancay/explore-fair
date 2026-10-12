@@ -129,7 +129,7 @@ function datosDeEjemplo() {
     Permisos: [['rol', 'vista', 'activo'],
       ...['MAPA', 'QUIZ'].map(v => ['USUARIO', v, true]),
       ...['GENERAR_CODIGO', 'PREGUNTAS'].map(v => ['LIDER', v, true]),
-      ...['MAPA', 'QUIZ', 'RANKING', 'RANKING_PANTALLA', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'].map(v => ['ADMIN', v, true])],
+      ...['MAPA', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'].map(v => ['ADMIN', v, true])],
     Config: [['clave', 'valor', 'descripcion'], ['minutos_vigencia_codigo', 5, ''], ['minutos_para_responder', 5, ''],
       ['puntos_por_defecto', 10, ''], ['segundos_refresco_board', 15, ''], ['feria_abierta', true, ''],
       // ESPERA=1 enciende la sala de espera; ESPERA=0 la deja con la fecha ya cumplida.

@@ -161,8 +161,7 @@ Vistas disponibles:
 |---|---|
 | `MAPA` | Inicio del usuario: puntos y mapa de pabellones con sus stands |
 | `QUIZ` | Ingresar el código de un stand, responder las preguntas y ver el resultado |
-| `RANKING` | Tabla de puntajes, en tamaño de celular |
-| `RANKING_PANTALLA` | La misma tabla para la pantalla gigante, con sus ajustes |
+| `RANKING` | Tabla de puntajes para la pantalla gigante, con sus ajustes |
 | `GENERAR_CODIGO` | Generar el código temporal de un stand |
 | `PREGUNTAS` | Revisar y editar las preguntas de los stands propios |
 | `PANEL_ADMIN` | Crear y editar pabellones, stands, preguntas, staff, permisos, configuración y premios; actualizar el catálogo y reiniciar los datos |
@@ -180,14 +179,13 @@ Filas de referencia. Son las de los datos de ejemplo del simulador, que reflejan
 | ADMIN | MAPA | TRUE |
 | ADMIN | QUIZ | TRUE |
 | ADMIN | RANKING | TRUE |
-| ADMIN | RANKING_PANTALLA | TRUE |
 | ADMIN | GENERAR_CODIGO | TRUE |
 | ADMIN | PREGUNTAS | TRUE |
 | ADMIN | PANEL_ADMIN | TRUE |
 
 `ADMIN` tiene todas las vistas. Aunque tenga `QUIZ`, el servidor no le deja responder (ver la regla de quién recibe número más abajo).
 
-`RANKING` y `RANKING_PANTALLA` son solo del admin desde la Fase 2 del plan de concurrencia. Una fila que no existe equivale a una con `activo = FALSE`. Ver [../reglas/ux-ui.md](../reglas/ux-ui.md) para el comportamiento de cada vista.
+`RANKING` es solo del admin (una sola persona, que la proyecta) desde la Fase 2 del plan de concurrencia. Una fila que no existe equivale a una con `activo = FALSE`. Ver [../reglas/ux-ui.md](../reglas/ux-ui.md) para el comportamiento de cada vista.
 
 El `LIDER` no participa: no responde quizzes, no tiene número de orden ni fila en `Usuarios`, y no suma puntos. Su pantalla de inicio es `GENERAR_CODIGO`.
 
@@ -409,5 +407,5 @@ El código ya funciona así, pero estas decisiones no fueron confirmadas:
 2. **Sin reintento:** si a alguien se le vence el tiempo, ese stand queda en 0 y no puede repetirlo.
 3. **Desempate:** gana quien alcanzó primero el puntaje, según `completado_en`.
 4. **Reinicio:** la copia de respaldo antes de borrar.
-5. **Vistas por rol:** las filas de referencia de `Permisos`; en particular, que solo `ADMIN` abra `RANKING` y `RANKING_PANTALLA`.
+5. **Vistas por rol:** las filas de referencia de `Permisos`; en particular, que solo `ADMIN` abra `RANKING`.
 6. **Valores de `Config`:** 10 puntos por pregunta y 15 segundos de refresco del ranking.

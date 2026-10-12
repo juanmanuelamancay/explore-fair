@@ -15,14 +15,11 @@ Cada vista tiene cuatro archivos con el mismo prefijo:
 | `<vista>-style.html` | Sus estilos, dentro de `<style>` |
 | `<vista>-script.html` | Su lógica en el navegador, dentro de `<script>` |
 
-La excepción es `ranking-pantalla`: no tiene `.gs` propio, sus funciones del servidor están en `ranking.gs`.
-
 | Vista en `Permisos` | Prefijo | Funciones que el navegador puede llamar |
 |---|---|---|
 | `MAPA` | `mapa` | `obtenerMapa` |
 | `QUIZ` | `quiz` | `iniciarQuiz`, `enviarQuiz` |
-| `RANKING` | `ranking` | `obtenerRanking` |
-| `RANKING_PANTALLA` | `ranking-pantalla` | `obtenerRankingPantalla`, `guardarAjustesPantalla` (ambas en `ranking.gs`) |
+| `RANKING` | `ranking` | `obtenerRanking`, `guardarAjustesPantalla` |
 | `GENERAR_CODIGO` | `generar-codigo` | `obtenerCodigos`, `generarCodigo` |
 | `PREGUNTAS` | `preguntas` | `obtenerBancoPreguntas`, `guardarPreguntaLider` |
 | `PANEL_ADMIN` | `panel-admin` | `obtenerPanel`, `obtenerAdminCatalogo`, `guardarAdminRegistro`, `importarPreguntasAdmin`, `borrarAdminRegistro`, `eliminarAdminPabellon`, `actualizarCatalogo`, `registrarPendientes`, `reiniciarDatos` |
@@ -32,7 +29,7 @@ La tabla que relaciona cada vista con su prefijo es `ARCHIVO_DE_VISTA`, en `main
 
 Además, cualquier rol puede llamar a `obtenerAcceso` (`sesion.gs`), que devuelve su propio rol, sus vistas y la dirección de la app, y a `registrarme` (`registro.gs`), que registra a quien llama en `Usuarios` si le corresponde.
 
-La pantalla gigante es la vista `RANKING_PANTALLA`. `BOARD` no existe en el código: si está escrita a mano en `Permisos` no causa error, porque la app ignora las vistas que no conoce, pero el panel admin no deja crearla.
+La pantalla gigante es la vista `RANKING`; `RANKING_PANTALLA` ya no existe y, si queda escrita en `Permisos`, se ignora. `BOARD` no existe en el código: si está escrita a mano en `Permisos` no causa error, porque la app ignora las vistas que no conoce, pero el panel admin no deja crearla.
 
 Archivos compartidos:
 
@@ -64,7 +61,7 @@ Archivos compartidos:
 7. `App.iniciar()` construye la barra inferior con las vistas disponibles y abre la primera. Cambiar de vista no recarga la página.
 8. Si `INICIO.registrar` es verdadero, `App.iniciar()` llama en segundo plano a `registrarme` (ver "Registro por lotes").
 
-El orden de la barra inferior es Mapa, Código, Preguntas, Panel, Ranking, Pantalla, Espera. `QUIZ` no aparece en la barra: se abre desde el mapa. Si el rol tiene un solo destino, la barra no se muestra.
+El orden de la barra inferior es Mapa, Código, Preguntas, Panel, Ranking, Espera. `QUIZ` no aparece en la barra: se abre desde el mapa. Si el rol tiene un solo destino, la barra no se muestra.
 
 Con la sala de espera activa (`espera_activa` en `Config`), quien tiene rol `USUARIO` recibe solo la vista `ESPERA`, y el `ADMIN` la recibe como una pestaña más.
 
@@ -90,7 +87,7 @@ Hay dos cachés: la compartida (`CacheService.getScriptCache`) y la propia de ca
 | Catálogo (pabellones, stands, staff, permisos, config) | Compartida | `segundos_cache_catalogo`, entre 5 y 21.600 | Cambian `Staff`, `Permisos` o `Config`; se guardan los ajustes de la pantalla de ranking; hay una limpieza completa |
 | Preguntas de cada stand | Compartida | `segundos_cache_catalogo` | Un líder guarda una pregunta de ese stand; hay una limpieza completa. Al empezar un quiz se relee sola, una vez, si la copia tiene menos de las 16 preguntas que hacen falta |
 | Premios de la sala de espera | Compartida | `segundos_cache_catalogo` | Hay una limpieza completa |
-| Ranking | Compartida | `segundos_cache_ranking`, mínimo 5 | Se pulsa actualizar en `RANKING` o `RANKING_PANTALLA`; hay una limpieza completa |
+| Ranking | Compartida | `segundos_cache_ranking`, mínimo 5 | Se pulsa actualizar en `RANKING`; hay una limpieza completa |
 | Código vigente de cada stand | Compartida | `minutos_vigencia_codigo` | Se genera otro código para ese stand |
 | Marca "roles al día" | Compartida | 30 segundos | Vence sola |
 | Marca de pasada reciente del registro | Compartida | 5 segundos (`SEGUNDOS_ENTRE_REPARTOS`) | Vence sola |
@@ -227,7 +224,7 @@ Estas no estaban definidas en los prototipos:
 3. **Abreviatura del stand:** se deduce del nombre ("Code Review" pasa a "CR", "Katalyst" a "KATA").
 4. **Caracteres del código:** cuatro, solo consonantes y dígitos del 2 al 9, empezando siempre por letra. Además de evitar confusiones al dictarlo, impide que Sheets convierta el código en otra cosa (por ejemplo `TRUE` o `2E45`). Un código nuevo no repite ninguno que esté activo en otro stand.
 5. **Quién aparece en el ranking:** solo quienes tienen al menos un quiz completado. Cada persona cuenta un solo intento completado por stand, aunque en la hoja hubiera una fila repetida. El ranking lleva nombre y puntos; el quiz de entrada suma como cualquier otro.
-6. **El celular no muestra el puesto:** el mapa y el resultado del quiz muestran puntos. El ranking lo ve quien tenga la vista `RANKING` o `RANKING_PANTALLA`.
+6. **El celular no muestra el puesto:** el mapa y el resultado del quiz muestran puntos. El ranking lo ve quien tenga la vista `RANKING`.
 7. **Retomar un quiz:** si alguien cierra la app a mitad del quiz y vuelve dentro de su tiempo, el stand aparece "En curso" y continúa con las mismas preguntas sin pedir el código.
 8. **Envío repetido:** si el envío se repite por mala señal, el servidor devuelve el resultado ya guardado en lugar de un error. Al empezar un quiz, al enviarlo y al cargar el mapa, el celular reintenta solo hasta tres veces, con esperas de 1,5, 3 y 6 segundos.
 9. **Margen de envío:** se aceptan respuestas hasta 10 segundos después del límite. Se cuenta desde la primera vez que el envío llegó al servidor, para que un reintento no haga vencer un quiz respondido a tiempo.

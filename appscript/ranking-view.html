@@ -5,12 +5,14 @@
       <p class="sec chico" data-marca></p>
       <h1 class="rank-titulo">Ranking</h1>
     </div>
+    <p class="sec chico rp-hora" id="rp-hora" aria-live="polite">Conectando…</p>
+    <button class="rp-ajustes-btn" id="rp-ajustes" type="button" aria-label="Ajustes de pantalla" title="Ajustes de pantalla">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+    </button>
     <button class="refrescar" data-refrescar aria-label="Actualizar"></button>
   </header>
 
-  <div id="ranking-contenido"></div>
-
-  <!-- Copia de la fila propia; flota sobre la navegación mientras la original no está a la vista. -->
-  <div class="mi-puesto" id="ranking-mi-puesto" hidden></div>
+  <!-- El script arma aquí el podio, la cuadrícula de puestos y el pie. -->
+  <div id="rp-contenido"></div>
 
 </section>

@@ -32,18 +32,11 @@ function rankingCompleto_() {
   return ranking;
 }
 
-/** Con forzar = true (botón de actualizar) se descarta la caché antes de leer, para traer lo que hay en el Sheet ahora. */
+/** Vista para proyectar, solo del admin. Con forzar = true (botón de actualizar) se descarta la caché y se lee el Sheet. Trae también el preset. */
 function obtenerRanking(forzar) {
-  const sesion = exigirVista_('RANKING');
+  exigirVista_('RANKING');
   if (forzar) cacheQuitar_('ranking');
-  return rankingParaSesion_(sesion);
-}
-
-/** Misma lista para la vista de pantalla grande, con su propio permiso (solo admin, en Permisos). Trae también el preset. */
-function obtenerRankingPantalla(forzar) {
-  const sesion = exigirVista_('RANKING_PANTALLA');
-  if (forzar) cacheQuitar_('ranking');
-  return { ...rankingParaSesion_(sesion), ajustes: ajustesPantalla_(catalogo_().config) };
+  return { ...filasDelRanking_(), ajustes: ajustesPantalla_(catalogo_().config) };
 }
 
 /** Rangos permitidos para cada clave del preset: lo que llegue fuera de aquí se corrige al guardar. */
@@ -64,7 +57,7 @@ function ajustesPantalla_(config) {
 
 /** Guarda el preset en la hoja Config. Solo escribe valores numéricos, dentro de rango. */
 function guardarAjustesPantalla(ajustes) {
-  exigirVista_('RANKING_PANTALLA');
+  exigirVista_('RANKING');
   const entrada = ajustes || {};
   const campos = { personas: 'rp_personas', columnas: 'rp_columnas', alto: 'rp_alto', espacio: 'rp_espacio',
     fuente: 'rp_fuente', puntos: 'rp_puntos', escala: 'rp_escala', anchoTop: 'rp_ancho_top' };
@@ -94,8 +87,7 @@ function configPonerRanking_(clave, valor) {
   else agregarFila_(HOJA.CONFIG, { clave: clave, valor: valor, descripcion: 'Preset de la pantalla de ranking' });
 }
 
-function rankingParaSesion_(sesion) {
-  return {
-    filas: rankingCompleto_().map(f => ({ nombre: f.nombre, puntos: f.puntos, yo: f.email === sesion.email })),
-  };
+/** Las filas que ve la pantalla: solo nombre y puntos, sin el email. */
+function filasDelRanking_() {
+  return { filas: rankingCompleto_().map(f => ({ nombre: f.nombre, puntos: f.puntos })) };
 }

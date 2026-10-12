@@ -156,9 +156,10 @@ function obtenerAdminCatalogo() {
   return datos;
 }
 
-function adminSiguienteId_(entidad, prefijo) {
+/** Con "filas" (las de la hoja, ya leídas) no vuelve a leerla: quien llama debe tener el turno desde esa lectura. */
+function adminSiguienteId_(entidad, prefijo, filas) {
   const campo = ADMIN_CAMPOS_ID[entidad];
-  const usados = adminFilas_(entidad).map(fila => texto_(fila[campo]).toUpperCase());
+  const usados = (filas || adminFilas_(entidad)).map(fila => texto_(fila[campo]).toUpperCase());
   const propiedad = 'ULTIMA_ID_' + entidad.toUpperCase();
   const guardado = Number(PropertiesService.getScriptProperties().getProperty(propiedad)) || 0;
   const patron = new RegExp('^' + prefijo + '-(\\d+)$');
@@ -258,6 +259,13 @@ function adminValidarUnicidad_(entidad, registro, fila) {
   });
 }
 
+/** Enunciado, opciones, respuesta correcta y puntos. No lee hojas: la usan el panel y la vista de preguntas del líder. */
+function adminValidarContenidoPregunta_(registro) {
+  if (!registro.texto || ['opcion_a', 'opcion_b', 'opcion_c', 'opcion_d'].some(campo => !registro[campo])) throw new Error('Completa el enunciado y las cuatro opciones.');
+  if (!/^[ABCD]$/.test(registro.correcta)) throw new Error('La respuesta correcta debe ser A, B, C o D.');
+  adminNumero_(registro, 'puntos', 0);
+}
+
 function adminValidarRelaciones_(entidad, registro, fila) {
   const pabellones = adminFilas_('pabellones');
   const stands = adminFilas_('stands');
@@ -275,9 +283,7 @@ function adminValidarRelaciones_(entidad, registro, fila) {
   }
   if (entidad === 'preguntas') {
     if (!standActivo(registro.stand_id)) throw new Error('La pregunta necesita un stand activo válido.');
-    if (!registro.texto || ['opcion_a', 'opcion_b', 'opcion_c', 'opcion_d'].some(campo => !registro[campo])) throw new Error('Completa el enunciado y las cuatro opciones.');
-    if (!/^[ABCD]$/.test(registro.correcta)) throw new Error('La respuesta correcta debe ser A, B, C o D.');
-    adminNumero_(registro, 'puntos', 0);
+    adminValidarContenidoPregunta_(registro);
   }
   if (entidad === 'staff') {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(registro.email)) throw new Error('Escribe un correo válido.');
