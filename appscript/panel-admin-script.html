@@ -121,7 +121,9 @@
   }
 
   function pintarTabs() {
-    $('panel-tabs').innerHTML = Object.keys(ENTIDADES).filter(clave => !OCULTAS_EN_TABS.includes(clave)).map(clave => `<button class="panel-tab ${clave === entidadActual ? 'activa' : ''}" role="tab" aria-selected="${clave === entidadActual}" data-entidad="${clave}">${ENTIDADES[clave].titulo}</button>`).join('');
+    const restaurarCarril = recordarCarril($('panel-tabs'));
+    $('panel-tabs').innerHTML =Object.keys(ENTIDADES).filter(clave => !OCULTAS_EN_TABS.includes(clave)).map(clave => `<button class="panel-tab ${clave === entidadActual ? 'activa' : ''}" role="tab" aria-selected="${clave === entidadActual}" data-entidad="${clave}">${ENTIDADES[clave].titulo}</button>`).join('');
+    restaurarCarril();
   }
 
   /** Segunda línea de un registro en las listas y en la hoja de confirmación de baja. Los pabellones tienen su propio dibujo. */

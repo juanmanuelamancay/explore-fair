@@ -49,6 +49,17 @@
   .aviso { font-size: 13px; color: var(--texto-2); margin-top: 14px; text-align: center; }
   .titulo-seccion { font-size: 14px; font-weight: 500; color: var(--texto-2); margin: 28px 4px 8px; }
 
+  /*
+   * Fila de fichas que se desliza de lado. En el celular se arrastra con el dedo y no necesita barra.
+   * Con mouse, la barra delgada avisa que hay más, y la rueda y el arrastre la mueven (ver activarCarriles).
+   */
+  .carril { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; user-select: none; }
+  .carril::-webkit-scrollbar { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .carril { scrollbar-width: thin; scrollbar-color: #bdc1c6 transparent; cursor: grab; }
+  }
+  .carril.arrastrando, .carril.arrastrando * { cursor: grabbing; }
+
   /* Cabecera con saludo y KPIs */
   .cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .cab h1 { font-size: 22px; line-height: 1.2; }

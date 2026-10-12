@@ -99,6 +99,7 @@ Iconos de línea de 2 px, sin relleno, dibujados en SVG dentro del archivo. No s
 - **Área táctil mínima:** 44 × 44 px en lo que toca el participante y el líder. El editor del panel admin usa botones de 38 a 40 px.
 - **Campos de texto con 16 px o más**, para que el celular no haga zoom al enfocarlos.
 - **Sin desplazamiento horizontal** de la página. Las filas de fichas y pestañas se deslizan dentro de su propia franja.
+- **Filas deslizables con mouse:** toda fila de fichas lleva la clase `carril` (estilo en `comun-style`, comportamiento en `activarCarriles` de `comun-script`). En el celular se arrastra con el dedo, sin barra. Con mouse muestra una barra delgada y se mueve con la rueda o arrastrando; al llegar al extremo, la rueda vuelve a mover la página. Si la fila se repinta al elegir una ficha, se envuelve con `recordarCarril` para que no vuelva al inicio.
 - **Zonas seguras:** la navegación inferior y las hojas respetan `env(safe-area-inset-bottom)`.
 - **Movimiento reducido:** animaciones y transiciones se desactivan con `prefers-reduced-motion`.
 - **Accesibilidad:** cada botón sin texto lleva `aria-label`; los mensajes temporales usan `aria-live`; las opciones del quiz se anuncian como grupo de radio.

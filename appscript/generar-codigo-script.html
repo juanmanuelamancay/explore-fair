@@ -49,12 +49,13 @@
     $('codigo-guia-titulo').textContent = activo ? 'Comparte este código' : 'Al terminar tu charla';
     $('codigo-guia-texto').textContent = activo ? 'Dilo en voz alta o muestra tu pantalla.' : 'Genera el código para que respondan el quiz.';
 
+    const restaurarCarril = recordarCarril($('codigo-stand'));
     $('codigo-stand').innerHTML = stands.length === 1
       ? `<div class="tu-stand" style="--c:${tono.color};--t:${tono.tinte}">
            <span class="abr">${esc(abreviatura(s.nombre))}</span>
            <div><span class="etiqueta-pab">${esc(s.pabellon)}</span><b>${esc(s.nombre)}</b></div>
          </div>`
-      : `<div class="chips" role="tablist" aria-label="Stands">
+      : `<div class="carril chips" role="tablist" aria-label="Stands">
            ${stands.map(x => {
              const t = paleta(x.indice);
              return `<button class="chip-stand ${x.id === s.id ? 'activo' : ''}" role="tab" aria-selected="${x.id === s.id}"
@@ -62,6 +63,7 @@
                        ${esc(x.nombre)}${x.activo ? '<i title="Código activo"></i>' : ''}</button>`;
            }).join('')}
          </div>`;
+    restaurarCarril();
 
     // Mientras se genera, la tarjeta sigue mostrando la animación; no se repinta hasta terminar.
     if (pendientes[s.id]) return;

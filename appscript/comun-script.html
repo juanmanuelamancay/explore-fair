@@ -94,6 +94,71 @@ function servidorInsistente(nombre, ...argumentos) {
   return intentar(0);
 }
 
+/**
+ * Filas de fichas con desplazamiento lateral (clase "carril"). Con el dedo se deslizan solas; con mouse
+ * no hay gesto, así que la rueda las mueve de lado y también se pueden arrastrar con el botón apretado.
+ */
+function activarCarriles() {
+  document.addEventListener('wheel', e => {
+    const carril = e.target.closest('.carril');
+    if (!carril || e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;   // el gesto lateral ya funciona solo
+    const paso = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    const tope = carril.scrollWidth - carril.clientWidth;
+    // En el extremo, o si no hay más que ver, la rueda sigue moviendo la página.
+    if (tope <= 0 || (paso < 0 ? carril.scrollLeft <= 1 : carril.scrollLeft >= tope - 1)) return;
+    carril.scrollLeft += paso;
+    e.preventDefault();
+  }, { passive: false });
+
+  let arrastre = null;
+  document.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    const carril = e.target.closest('.carril');
+    if (carril && carril.scrollWidth > carril.clientWidth) arrastre = { carril, x: e.clientX, desde: carril.scrollLeft, movido: false };
+  });
+  document.addEventListener('pointermove', e => {
+    if (!arrastre) return;
+    const dx = e.clientX - arrastre.x;
+    if (!arrastre.movido && Math.abs(dx) < 5) return;   // un clic con temblor no es un arrastre
+    arrastre.movido = true;
+    arrastre.carril.classList.add('arrastrando');
+    arrastre.carril.scrollLeft = arrastre.desde - dx;
+  });
+  const soltar = () => {
+    if (!arrastre) return;
+    const { carril, movido } = arrastre;
+    arrastre = null;
+    carril.classList.remove('arrastrando');
+    if (!movido) return;
+    // Al soltar sobre una ficha el navegador manda un clic: tras arrastrar no debe elegirla.
+    const ignorar = e => { e.stopPropagation(); e.preventDefault(); };
+    document.addEventListener('click', ignorar, true);
+    setTimeout(() => document.removeEventListener('click', ignorar, true), 0);
+  };
+  document.addEventListener('pointerup', soltar);
+  document.addEventListener('pointercancel', soltar);
+}
+
+/**
+ * Los carriles se repintan al elegir una ficha y volverían al inicio. Se llama antes de repintar y la función
+ * que devuelve, después: deja el carril donde estaba y a la vista la ficha elegida (aria-selected).
+ */
+function recordarCarril(raiz) {
+  const buscar = () => raiz.matches('.carril') ? raiz : raiz.querySelector('.carril');
+  const antes = buscar();
+  const izquierda = antes ? antes.scrollLeft : 0;
+  return () => {
+    const carril = buscar();
+    if (!carril) return;
+    carril.scrollLeft = izquierda;
+    const elegida = carril.querySelector('[aria-selected="true"]');
+    if (!elegida) return;
+    const c = carril.getBoundingClientRect(), f = elegida.getBoundingClientRect();
+    if (f.left < c.left) carril.scrollLeft += f.left - c.left - 16;
+    else if (f.right > c.right) carril.scrollLeft += f.right - c.right + 16;
+  };
+}
+
 let temporizadorToast;
 function toast(texto) {
   const t = $('toast');
@@ -216,6 +281,7 @@ const App = (() => {
       if (destino) ir(destino.dataset.ir);
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
+    activarCarriles();
     if (destinos.length) ir(destinos[0].nombre);
     if (INICIO.registrar) registrarEnSegundoPlano(0);
   }

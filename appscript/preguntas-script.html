@@ -47,12 +47,13 @@
     const animar = recien;
     recien = null;
     const chips = datos.stands.length > 1
-      ? `<div class="pg-chips" role="tablist" aria-label="Stands">${datos.stands.map(s => {
+      ? `<div class="carril pg-chips" role="tablist" aria-label="Stands">${datos.stands.map(s => {
           const t = paleta(s.indice);
           return `<button class="pg-chip ${s.id === standId ? 'activo' : ''}" role="tab" aria-selected="${s.id === standId}" data-stand="${esc(s.id)}" style="--c:${t.color};--t:${t.tinte}">${esc(s.nombre)}</button>`;
         }).join('')}</div>`
       : `<div class="pg-stand"><span class="etiqueta-pab">${esc(stand.pabellon)}</span><b>${esc(stand.nombre)}</b></div>`;
 
+    const restaurarCarril = recordarCarril(contenido);
     contenido.innerHTML = `
       <div class="pg-cab" style="--c:${tono.color};--t:${tono.tinte}">
         ${chips}
@@ -64,6 +65,7 @@
       </div>
       <p class="pg-ayuda">${soloLectura ? 'Toca una pregunta para verla completa.' : 'Toca una pregunta para editarla.'}</p>
       <ol class="pg-lista">${delStand().map((p, i) => tarjeta(p, i, animar)).join('') || '<li class="pg-vacio">Este stand todavía no tiene preguntas.</li>'}</ol>`;
+    restaurarCarril();
   }
 
   function tarjeta(p, i, animar) {
