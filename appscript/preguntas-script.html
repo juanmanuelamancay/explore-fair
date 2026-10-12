@@ -25,6 +25,8 @@
   function mostrar() {
     if (!datos) App.cargando(contenido);
     cargar();
+    // El validador no edita: se le avisa quién mantiene las preguntas.
+    if (soloLectura) mostrarAviso('Sobre estas preguntas', 'Estas preguntas serán actualizadas por los líderes de cada stand según su presentación.');
   }
 
   function cargar() {

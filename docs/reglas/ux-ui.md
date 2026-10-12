@@ -310,6 +310,7 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
 - **Lenguaje neutro en género:** "Te damos la bienvenida" en lugar de "Bienvenido".
 - **Los errores dicen qué hacer**, no solo qué falló.
 - **Mensajes temporales (toast):** barra oscura sobre la navegación, unos 3 segundos. Se usan para acciones que no abren pantalla, como tocar el quiz de entrada ya respondido.
+- **Aviso con cierre (toast largo):** tarjeta oscura pegada abajo, con ícono de información, título, texto, botón de cerrar y una barra que se vacía durante 8 segundos, tiempo tras el cual se cierra sola. Un toque en cualquier parte la cierra antes. Con la barra de navegación a la vista, va encima de ella; se cierra sola al cambiar de vista o abrir una hoja. Hoy solo la ve el validador (`mostrarAviso` en `comun-script.html`): en el quiz de un stand, para decir cuántas preguntas responde un usuario en el evento, y en Preguntas, para decir que los líderes de cada stand las actualizarán según su presentación.
 - **Puntos:** "pts" en espacios chicos, "puntos" cuando hay lugar.
 
 ## Estados de un stand

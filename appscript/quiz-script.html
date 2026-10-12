@@ -117,6 +117,8 @@
       q.porQuiz = r.porQuiz;
       q.actual = 0;
       pantallaRevision(true);
+      // Si la persona ya salió mientras cargaba, el aviso no debe aparecer sobre otra pantalla.
+      if (!$('vista-quiz').hidden) mostrarAviso('Cómo funciona en el evento', `Cada usuario responde solo ${q.porQuiz} de estas ${q.preguntas.length} preguntas, elegidas al azar.`);
     }).catch(() => {
       toast('No pudimos cargar las preguntas. Inténtalo de nuevo.');
       App.ir('mapa');
@@ -134,7 +136,6 @@
       <div class="quiz-cab" style="--c:${q.color}">
         <div class="pasos" aria-hidden="true">${q.preguntas.map((_, i) => `<i class="${i < q.actual ? 'pasado' : i === q.actual ? 'actual' : ''}"></i>`).join('')}</div>
       </div>
-      <p class="aviso" style="text-align:left;margin:10px 0 0">En el evento cada usuario responde solo ${q.porQuiz} de estas ${q.preguntas.length} preguntas, elegidas al azar.</p>
       <p class="sec chico">Pregunta ${q.actual + 1} de ${q.preguntas.length} · solo lectura</p>
       <h2 class="enunciado">${esc(p.texto)}</h2>
       <div role="list" aria-label="Opciones">
