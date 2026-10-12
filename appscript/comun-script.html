@@ -198,10 +198,11 @@ const App = (() => {
     destinos = NAVEGACION.filter(d => INICIO.vistas.indexOf(d.vista) >= 0 && vistas[d.nombre]);
     $('nav-dentro').innerHTML = destinos.map(d =>
       `<button data-ir="${d.nombre}"><span class="pastilla">${svg(d.icono)}</span>${d.texto}</button>`).join('');
-    // "Explore Fair · Rol" en la cabecera de cada vista, para saber con qué rol se entró.
-    const ROLES = { USUARIO: 'Usuario', LIDER: 'Líder', ADMIN: 'Admin', VALIDADOR: 'Validador' };
-    const rol = ROLES[INICIO.rol] || INICIO.rol.charAt(0) + INICIO.rol.slice(1).toLowerCase();
-    document.querySelectorAll('[data-marca]').forEach(p => { p.textContent = 'Explore Fair · ' + rol; });
+    // "Explore Fair · Rol" en la cabecera de cada vista del staff, para saber con qué rol se entró.
+    // El usuario ve solo "Explore Fair": no necesita saber su rol.
+    const ROLES = { LIDER: 'Líder', ADMIN: 'Admin', VALIDADOR: 'Validador' };
+    const rol = INICIO.rol === 'USUARIO' ? '' : ROLES[INICIO.rol] || INICIO.rol.charAt(0) + INICIO.rol.slice(1).toLowerCase();
+    document.querySelectorAll('[data-marca]').forEach(p => { p.textContent = rol ? 'Explore Fair · ' + rol : 'Explore Fair'; });
     // El usuario no tiene botón de actualizar: la app se pone al día sola (ver ux-ui.md). Solo lo ven líder y admin.
     document.querySelectorAll('[data-refrescar]').forEach(b => {
       if (INICIO.rol === 'USUARIO') b.remove();

@@ -58,7 +58,6 @@
               <span class="icono">${svg(tono.icono, 26)}</span>
               <div><span class="etiqueta-pab">${p.stands.length} ${p.stands.length === 1 ? 'stand' : 'stands'}</span><h2>${esc(p.nombre)}</h2></div>
             </div>
-            ${p.descripcion ? `<p class="pab-descripcion">${esc(p.descripcion)}</p>` : ''}
             <ul>${p.stands.map(s => `<li><span class="abr">${esc(abreviatura(s))}</span>${esc(s)}</li>`).join('')}</ul>
           </div>
         </section>`;

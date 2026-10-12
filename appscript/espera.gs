@@ -32,7 +32,7 @@ function obtenerEspera() {
     mensajePremios: catalogo.config.premios_mensaje,
     premios: premios_(),
     pabellones: pabellonesDelMapa_(catalogo).map(p => ({
-      nombre: p.nombre, descripcion: p.descripcion, indice: p.indice, stands: p.stands.map(s => s.nombre),
+      nombre: p.nombre, indice: p.indice, stands: p.stands.map(s => s.nombre),
     })),
   };
 }

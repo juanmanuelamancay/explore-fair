@@ -118,7 +118,7 @@ No tiene barra inferior, porque su único destino es el mapa.
 
 De arriba hacia abajo:
 
-1. **Cabecera:** la marca "Explore Fair · Usuario", el saludo con el nombre, un recuadro compacto con los puntos y el botón de actualizar. No muestra el puesto.
+1. **Cabecera:** la marca "Explore Fair" (sin rol), el saludo con el nombre, un recuadro compacto con los puntos y el botón de actualizar. No muestra el puesto.
 2. **Mensaje guía:** franja azul suave con un ícono, un título y una línea de instrucción. Cambia según el momento:
    - Sin quiz de entrada: da la bienvenida e indica responderlo para abrir los pabellones.
    - Con quiz de entrada terminado: indica escuchar la charla y pulsar el pabellón.
@@ -273,7 +273,7 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
 
 ## Patrones compartidos
 
-- **Marca y rol:** la cabecera de cada vista lleva "Explore Fair · Rol", para saber con qué rol se entró.
+- **Marca y rol:** la cabecera de cada vista del staff lleva "Explore Fair · Rol" (Líder, Admin, Validador), para saber con qué rol se entró. El usuario ve solo "Explore Fair".
 - **Hoja inferior:** sube desde abajo sobre un velo oscuro, con un asa y un botón de cerrar. Se cierra tocando el velo, con ese botón o con Escape.
 - **Hoja de confirmación:** toda acción que anula o borra algo se confirma en una hoja inferior con título en forma de pregunta, la consecuencia en una frase, el botón de acción y "Cancelar" como botón de solo texto.
 - **Confirmación reforzada:** si la acción afecta a todos y no se puede deshacer desde la app, además hay que escribir una palabra.
