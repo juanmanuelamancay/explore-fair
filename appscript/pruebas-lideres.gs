@@ -271,8 +271,15 @@ function vaciarCodigosDePrueba_() {
 /**
  * Diagnóstico de acceso, sin exigir admin y sin escribir nada: qué hoja usa el script, con qué cuenta corre
  * y qué lee la app en Staff. Sirve para saber por qué exigirAdmin_() rechaza una ejecución.
+ *
+ * No puede pedir admin (es justo lo que diagnostica), pero cualquier participante podría llamarla desde el navegador.
+ * Por eso solo corre si el script tiene la propiedad DIAGNOSTICO = 1, que un participante no puede poner: se agrega en
+ * Configuración del proyecto > Propiedades del script, se ejecuta esta función y se borra la propiedad al terminar.
  */
 function diagnosticarAccesoPrueba() {
+  if (PropertiesService.getScriptProperties().getProperty('DIAGNOSTICO') !== '1') {
+    throw new Error('Diagnóstico apagado. Agrega la propiedad del script DIAGNOSTICO = 1, ejecútalo y borra la propiedad.');
+  }
   const email = texto_(Session.getActiveUser().getEmail()).toLowerCase();
   const propiedad = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   console.log('Cuenta que ejecuta: ' + (email || '(vacía)'));

@@ -5,7 +5,7 @@
 
 // Se muestra en la página de error y en el diagnóstico, para saber qué código está corriendo de verdad.
 // Cambiarla en cada entrega: si la app publicada muestra otra, falta crear una nueva versión de la implementación.
-const VERSION_DEL_CODIGO = '2026-10-12.2';
+const VERSION_DEL_CODIGO = '2026-10-12.5';
 
 // Vista de la hoja Permisos -> prefijo de sus archivos. Una vista que no esté aquí aún no está programada.
 const ARCHIVO_DE_VISTA = {
@@ -44,6 +44,8 @@ function doGet() {
       minutosParaResponder: config.minutos_para_responder,
       minutosVigenciaCodigo: config.minutos_vigencia_codigo,
       segundosRefresco: config.segundos_refresco_board,
+      fallosDeCodigo: FALLOS_DE_CODIGO_MAX,
+      segundosBloqueoCodigo: SEGUNDOS_BLOQUEO_CODIGO,
       registrar: debeRegistrarse_(sesion) && !registroConfirmado_(),
     }).replace(/</g, '\\u003c');
 

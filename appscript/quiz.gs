@@ -61,8 +61,9 @@ function iniciarQuiz(standId, codigo) {
     if (!deEntrada || enCurso) return falla_('ENTRADA', 'Primero responde el quiz de entrada.');
   }
 
-  if (stand.requiereCodigo && !codigoValido_(stand.id, codigo, ahora.getTime())) {
-    return falla_('CODIGO', 'Código inválido o vencido. Pídele uno nuevo al líder.');
+  if (stand.requiereCodigo) {
+    const rechazo = revisarCodigo_(stand.id, codigo);
+    if (rechazo) return rechazo;
   }
 
   // Puede ser la caché de antes de cargar las preguntas en el Sheet: se relee una vez antes de fallar.
@@ -158,6 +159,54 @@ function sortear_(lista, cantidad) {
   return copia.slice(0, cantidad);
 }
 
+const FALLOS_DE_CODIGO_MAX = 3;
+const SEGUNDOS_BLOQUEO_CODIGO = 120;
+const CLAVE_FALLOS_CODIGO = 'fallos-codigo';
+
+/**
+ * Valida el código con un límite por persona: 3 fallos bloquean a esa persona 120 segundos, para que nadie pruebe
+ * códigos en bucle. Los fallos se cuentan en su caché propia y se olvidan al acertar o 120 segundos después del último.
+ * Todo va dentro del bloqueo de la persona: sin él, varias llamadas en paralelo leerían "0 fallos" a la vez y ninguna
+ * quedaría contada. Mientras dura el bloqueo no se mira el código ni se alarga la espera.
+ * Devuelve null si el código vale, o la respuesta de rechazo.
+ */
+function revisarCodigo_(standId, codigo) {
+  // Un campo vacío no es un intento: no se cuenta.
+  if (!texto_(codigo)) return falla_('CODIGO', 'Ingresa el código que te dio el líder.');
+  const bloqueo = LockService.getUserLock();
+  bloqueo.waitLock(SEGUNDOS_BLOQUEO);
+  try {
+    const cacheMia = CacheService.getUserCache();
+    const ahora = Date.now();
+    let estado = { n: 0, hasta: 0 };
+    try {
+      const guardado = JSON.parse(cacheMia.get(CLAVE_FALLOS_CODIGO) || 'null');
+      if (guardado) estado = { n: Number(guardado.n) || 0, hasta: Number(guardado.hasta) || 0 };
+    } catch (error) { /* valor ilegible: se empieza de cero */ }
+    if (estado.hasta && estado.hasta <= ahora) estado = { n: 0, hasta: 0 };   // el bloqueo ya terminó
+    if (estado.hasta > ahora) return bloqueadoPorCodigo_(estado.hasta - ahora);
+
+    if (codigoValido_(standId, codigo, ahora)) {
+      cacheMia.remove(CLAVE_FALLOS_CODIGO);
+      return null;
+    }
+    estado.n += 1;
+    if (estado.n >= FALLOS_DE_CODIGO_MAX) estado.hasta = ahora + SEGUNDOS_BLOQUEO_CODIGO * 1000;
+    cacheMia.put(CLAVE_FALLOS_CODIGO, JSON.stringify(estado), SEGUNDOS_BLOQUEO_CODIGO);
+    if (estado.hasta) return bloqueadoPorCodigo_(SEGUNDOS_BLOQUEO_CODIGO * 1000);
+    return falla_('CODIGO', 'Código inválido o vencido. Pídele uno nuevo al líder.');
+  } finally {
+    bloqueo.releaseLock();
+  }
+}
+
+function bloqueadoPorCodigo_(milisegundos) {
+  const segundos = Math.max(1, Math.ceil(milisegundos / 1000));
+  const respuesta = falla_('BLOQUEADO', 'Fallaste el código ' + FALLOS_DE_CODIGO_MAX + ' veces. Espera ' + segundos + (segundos === 1 ? ' segundo' : ' segundos') + ' para volver a intentarlo.');
+  respuesta.esperaSegundos = segundos;
+  return respuesta;
+}
+
 /**
  * ¿Es válido el código de este stand? Primero mira el que se generó hace poco (la caché lo guarda al crearlo);
  * solo lee la hoja Codigos si no lo encuentra o si no coincide.
@@ -245,8 +294,9 @@ function sincronizarPendientes_(sesion, indice) {
   });
 }
 
+/** Solo el total: qué preguntas acertó (intento.a) se queda en el servidor, para que no se pase de una persona a otra. */
 function resultadoDe_(intento) {
-  return { ok: true, correctas: intento.c, total: intento.q.length, puntaje: intento.p, aciertos: intento.a };
+  return { ok: true, correctas: intento.c, total: intento.q.length, puntaje: intento.p };
 }
 
 /**

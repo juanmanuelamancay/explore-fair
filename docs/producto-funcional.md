@@ -49,9 +49,9 @@ Al enviar el cuestionario, la persona ve:
 
 - Cuántos puntos obtuvo.
 - Cuántos puntos lleva en total.
-- Qué preguntas acertó y cuáles no.
+- Cuántas preguntas acertó (por ejemplo, "3 de 4"), sin decir cuáles.
 
-Nunca se muestra cuál era la respuesta correcta, para que no pase de una persona a otra. Tampoco se muestra el puesto: el ranking se ve en la pantalla grande de la feria.
+Nunca se muestra cuáles preguntas acertó ni cuál era la respuesta correcta, para que no pase de una persona a otra. Tampoco se muestra el puesto: el ranking se ve en la pantalla grande de la feria.
 
 Los cuestionarios completados suman al ranking. Si se acaba el tiempo, el cuestionario queda vencido, no suma puntos y no se puede repetir.
 

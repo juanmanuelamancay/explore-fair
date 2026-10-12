@@ -18,6 +18,7 @@
   }
   #quiz-codigo:focus { border: 2px solid var(--azul); }
   #quiz-codigo.error { border: 2px solid var(--rojo); animation: tiembla .3s; }
+  #quiz-codigo:disabled { background: #f1f3f4; cursor: not-allowed; }
   @keyframes tiembla { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
   .msg-error { color: var(--rojo); font-size: 13px; min-height: 20px; margin-top: 6px; text-align: left; }
 
@@ -62,10 +63,6 @@
   @keyframes quiz-onda { 0% { transform: scale(.95); opacity: .7; } 100% { transform: scale(1.45); opacity: 0; } }
   .ganado { font-size: 28px; color: var(--azul); animation: quiz-subir .5s ease .2s both; }
   @keyframes quiz-subir { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  .detalle { margin-top: 20px; border-top: 1px solid var(--borde-suave); text-align: left; }
-  .detalle li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--borde-suave); font-size: 14px; animation: quiz-fila .4s ease both; animation-delay: calc(.8s + var(--i) * .12s); }
-  .detalle svg { flex: none; margin-top: 1px; }
-  @keyframes quiz-fila { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
 
   /* Entrada de cada pregunta: la tarjeta sube, el enunciado y las opciones entran en cascada */
   .pregunta-vista.entra > * { animation: quiz-entra .4s ease both; }

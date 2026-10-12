@@ -154,14 +154,16 @@ Al tocar un pabellón sube una hoja desde abajo, sobre un velo oscuro. Se cierra
 - Muestra el stand, cuántas preguntas tiene, el tiempo disponible y los puntos posibles antes de pedir nada.
 - **Campo de código:** 4 caracteres, se convierte a mayúsculas y solo acepta letras y números. El botón "Empezar" se habilita al completar los 4.
 - **Código inválido o vencido:** el campo vuelve vacío, se marca en rojo, tiembla una vez y muestra un mensaje que dice qué hacer ("Pídele uno nuevo al líder"). "Empezar" sigue deshabilitado hasta escribir otros 4 caracteres.
-- **Aviso fijo:** "Solo tienes un intento."
-- **El quiz de entrada** usa esta misma pantalla sin el campo de código, con el título "Listo para empezar".
+- **Tres códigos incorrectos:** la persona queda bloqueada 120 segundos, en todos los stands. El campo se vacía, se marca en rojo y **deja de aceptar texto**; debajo dice "Fallaste el código 3 veces. Espera para volver a intentarlo." y el botón pasa a "Espera 1:58", contando hacia atrás. Al llegar a cero el campo se libera solo y el botón vuelve a "Empezar" (deshabilitado hasta escribir 4 caracteres). Durante la espera el código correcto tampoco entra. Si la persona sale al mapa y vuelve, sigue bloqueada.
+- **Aviso fijo del código:** "Si fallas el código 3 veces, tendrás que esperar 2 minutos para volver a intentarlo." Los números salen del servidor (`FALLOS_DE_CODIGO_MAX` y `SEGUNDOS_BLOQUEO_CODIGO`).
+- **El quiz de entrada** usa esta misma pantalla sin el campo de código, con el título "Listo para empezar" y el aviso "Solo tienes un intento."
 - **Mientras el servidor arma el quiz** se ve una pantalla de espera animada: "Preparando tu quiz".
 
 ### Preguntas
 
 - **Una pregunta por pantalla**, con el rótulo "Pregunta N de 4".
 - **Cabecera fija al desplazar:** pabellón, stand, reloj y una barra de pasos.
+- **Aviso al pie, bajo el botón:** "Solo tienes un intento."
 - **Reloj:** cuenta regresiva siempre visible, guiada por la hora del servidor. En los últimos 30 segundos pasa a rojo.
 - **Opciones:** botones de ancho completo con letra A–D. La elegida se marca con borde y fondo azul. Se puede cambiar antes de avanzar.
 - **Solo se avanza.** No hay botón para volver a la pregunta anterior ni para salir del quiz.
@@ -173,7 +175,7 @@ Al tocar un pabellón sube una hoja desde abajo, sobre un velo oscuro. Se cierra
 ### Resultado
 
 - Sello circular verde con un check; dorado y con un trofeo si acertó todas. Debajo, los puntos ganados, que suben contando desde cero, y el total acumulado ("Llevas N puntos en total.").
-- Lista de las preguntas con check o equis. **No se muestra cuál era la respuesta correcta**, para que no se pase entre usuarios.
+- Un recuadro con "N de 4 correctas". **No se muestra qué preguntas acertó ni cuál era la respuesta correcta**, para que no se pase entre usuarios. El servidor ni siquiera envía el detalle por pregunta, así que tampoco se puede sacar desde el navegador.
 - Acción principal "Volver al mapa". El botón secundario "Ver ranking" aparece solo si el rol tiene la vista `RANKING`, así que el usuario no lo ve.
 
 ### Tiempo agotado

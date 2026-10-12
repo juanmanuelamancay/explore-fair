@@ -174,3 +174,34 @@ function probarCache() {
   });
   paso_('Registros pendientes de escribir en Usuarios', () => leerBuzon_().length + ' cartas en el buzón');
 }
+
+/**
+ * ¿Funciona el límite de intentos de código con la caché y el bloqueo reales? Usa tu propia cuenta: hace 4 intentos
+ * seguidos con "0000", un código que la app nunca genera, y espera CODIGO, CODIGO, BLOQUEADO, BLOQUEADO.
+ * No escribe en ninguna hoja; al terminar borra el contador de fallos de tu cuenta.
+ */
+function probarLimiteDeCodigos() {
+  exigirAdmin_();
+  console.log('--- Límite de intentos de código (' + FALLOS_DE_CODIGO_MAX + ' fallos = ' + SEGUNDOS_BLOQUEO_CODIGO + ' s) ---');
+  const stand = catalogo_().stands.find(s => s.requiereCodigo);
+  if (!stand) { console.error('FALLA  No hay ningún stand activo con código'); return; }
+  const cacheMia = CacheService.getUserCache();
+  cacheMia.remove(CLAVE_FALLOS_CODIGO);
+  try {
+    paso_('Cuatro intentos seguidos con un código imposible', () => {
+      const esperado = ['CODIGO', 'CODIGO', 'BLOQUEADO', 'BLOQUEADO'];
+      const obtenido = esperado.map(() => (revisarCodigo_(stand.id, '0000') || { motivo: 'VALIDO' }).motivo);
+      if (obtenido.join() !== esperado.join()) throw new Error('salió ' + obtenido.join(', ') + ' y se esperaba ' + esperado.join(', '));
+      return obtenido.join(', ');
+    });
+    paso_('Un campo vacío no cuenta como intento', () => {
+      cacheMia.remove(CLAVE_FALLOS_CODIGO);
+      const motivos = [1, 2, 3, 4].map(() => revisarCodigo_(stand.id, '  ').motivo);
+      if (motivos.some(m => m !== 'CODIGO')) throw new Error('salió ' + motivos.join(', '));
+      if (cacheMia.get(CLAVE_FALLOS_CODIGO)) throw new Error('el contador de fallos no debería existir');
+    });
+  } finally {
+    cacheMia.remove(CLAVE_FALLOS_CODIGO);
+  }
+  console.log('Contador de fallos de tu cuenta borrado.');
+}

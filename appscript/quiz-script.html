@@ -7,6 +7,11 @@
   // Lo que llega desde el mapa (stand, pabellon, color, tinte) más el quiz en curso.
   let q = null;
 
+  // Bloqueo por códigos incorrectos: vale para toda la persona, no para un stand. Hora (ms) hasta la que no puede escribir.
+  let bloqueoHasta = 0;
+  let cuentaAtras = null;
+  const duracion = s => (s % 60 === 0 ? (s / 60) + (s === 60 ? ' minuto' : ' minutos') : s + ' segundos');
+
   // El validador recorre las preguntas sin responderlas: sin reloj, sin intento y sin puntos.
   const validador = INICIO.rol === 'VALIDADOR';
 
@@ -24,7 +29,10 @@
     }
   }
 
-  function ocultar() { if (q) clearInterval(q.intervalo); }
+  function ocultar() {
+    if (q) clearInterval(q.intervalo);
+    clearInterval(cuentaAtras);
+  }
 
   const cabecera = () => `
     <div class="barra-sup" style="--c:${q.color}">
@@ -35,6 +43,7 @@
   /* ---------- Código ---------- */
   function pantallaCodigo() {
     const s = q.stand;
+    clearInterval(cuentaAtras);
     pantalla.innerHTML = `
       ${cabecera()}
       <div class="tarjeta centro" style="--c:${q.color};--t:${q.tinte}">
@@ -51,7 +60,9 @@
           </div>
           <p class="msg-error" id="quiz-error" role="alert"></p>` : ''}
         <button class="btn" id="quiz-empezar" ${s.requiereCodigo ? 'disabled' : ''}>Empezar</button>
-        <p class="aviso">Solo tienes un intento.</p>
+        <p class="aviso">${s.requiereCodigo
+          ? `Si fallas el código ${INICIO.fallosDeCodigo} veces, tendrás que esperar ${duracion(INICIO.segundosBloqueoCodigo)} para volver a intentarlo.`
+          : 'Solo tienes un intento.'}</p>
       </div>`;
 
     const boton = $('quiz-empezar');
@@ -66,7 +77,32 @@
     };
     campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
     boton.onclick = () => iniciar(campo.value);
-    campo.focus();
+    if (bloqueoHasta > Date.now()) bloquearCampo(); else campo.focus();
+  }
+
+  /** Con el bloqueo activo el campo no deja escribir y el botón cuenta los segundos que faltan. Al llegar a cero se libera solo. */
+  function bloquearCampo() {
+    const campo = $('quiz-codigo');
+    const boton = $('quiz-empezar');
+    campo.value = '';
+    campo.disabled = true;
+    campo.classList.add('error');
+    boton.disabled = true;
+    $('quiz-error').textContent = `Fallaste el código ${INICIO.fallosDeCodigo} veces. Espera para volver a intentarlo.`;
+    clearInterval(cuentaAtras);
+    const pintar = () => {
+      if (!$('quiz-codigo')) return clearInterval(cuentaAtras);   // la persona ya salió de esta pantalla
+      const falta = Math.ceil((bloqueoHasta - Date.now()) / 1000);
+      if (falta > 0) { boton.textContent = 'Espera ' + formatoReloj(falta); return; }
+      clearInterval(cuentaAtras);
+      boton.textContent = 'Empezar';
+      campo.disabled = false;
+      campo.classList.remove('error');
+      $('quiz-error').textContent = '';
+      campo.focus();
+    };
+    pintar();
+    cuentaAtras = setInterval(pintar, 250);
   }
 
   /* ---------- Validador: ver las preguntas sin responderlas ---------- */
@@ -123,7 +159,8 @@
     servidorInsistente('iniciarQuiz', q.stand.id, codigo).then(r => {
       if (!r.ok) {
         // La pantalla del código ya no está: si hace falta, se vuelve a mostrar para corregirlo.
-        if (r.motivo === 'CODIGO') pantallaCodigo();
+        if (r.motivo === 'BLOQUEADO') bloqueoHasta = Date.now() + (Number(r.esperaSegundos) || INICIO.segundosBloqueoCodigo) * 1000;
+        if (r.motivo === 'CODIGO' || r.motivo === 'BLOQUEADO') pantallaCodigo();
         return inicioRechazado(r);
       }
       q.intentoId = r.intentoId;
@@ -142,6 +179,8 @@
 
   function inicioRechazado(r) {
     const campo = $('quiz-codigo');
+    // Bloqueado: pantallaCodigo ya dejó el campo sin escribir y con su cuenta atrás.
+    if (r.motivo === 'BLOQUEADO' && campo) return;
     if (r.motivo === 'CODIGO' && campo) {
       // La pantalla del código se acaba de volver a dibujar: el campo está vacío y el botón espera los 4 caracteres.
       campo.classList.add('error');
@@ -191,6 +230,7 @@
           </button>`).join('')}
       </div>
       <button class="btn" id="quiz-siguiente" ${elegida ? '' : 'disabled'}>${ultima ? 'Enviar respuestas' : 'Siguiente'}</button>
+      <p class="aviso">Solo tienes un intento.</p>
       </div>`;
 
     $('quiz-siguiente').onclick = () => {
@@ -264,9 +304,7 @@
         <div class="sello ${r.correctas === r.total ? 'perfecto' : ''}">${svg(r.correctas === r.total ? ICONO.trofeo : ICONO.check, 44, '#fff', 3)}</div>
         <p class="ganado tnum" id="quiz-ganado">+0 puntos</p>
         <p class="sec" style="margin-top:6px">Llevas ${total} puntos en total.</p>
-        <ul class="detalle">
-          ${q.preguntas.map((p, i) => `<li style="--i:${i}">${r.aciertos[i] ? svg(ICONO.check, 20, '#188038', 3) : svg(ICONO.equis, 20, '#d93025', 2.5)}<span>${esc(p.texto)}</span></li>`).join('')}
-        </ul>
+        <div class="datos"><span class="chip">${r.correctas} de ${r.total} correctas</span></div>
       </div>
       <button class="btn" data-ir="mapa">Volver al mapa</button>
       ${INICIO.vistas.indexOf('RANKING') >= 0 ? '<button class="btn secundario" data-ir="ranking">Ver ranking</button>' : ''}`;
