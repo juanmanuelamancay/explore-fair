@@ -93,7 +93,7 @@ Las columnas `descripcion`, `nombre_corto` y `creado_en` son opcionales: la app 
 | `pabellon_id` | Texto | `PAB-001` | Clave. La genera el panel |
 | `nombre` | Texto | Fábricas de servicios y backend | Visible en la hoja del pabellón |
 | `nombre_corto` | Texto | Backend | Opcional. Es el rótulo del mapa; si está vacío o la columna no existe se usa `nombre` |
-| `descripcion` | Texto | | Opcional. Solo se ve en el panel |
+| `descripcion` | Texto | Descubre agentes de IA para… | Opcional. Se muestra bajo el título de la tarjeta del pabellón en la sala de espera; si está vacía no se muestra |
 | `orden` | Número | 1 | Orden en la app. Entero, cero o más |
 | `activo` | Booleano | TRUE | Baja lógica |
 | `creado_en` | Fecha/hora | | Opcional. La app no lo llena ni lo lee |
@@ -136,14 +136,14 @@ Un líder con la vista `PREGUNTAS` crea y edita el enunciado, las opciones y la 
 |---|---|---|---|
 | `email` | Texto | | Clave |
 | `nombre` | Texto | | |
-| `rol` | Texto | `LIDER` | `LIDER` o `ADMIN`. No hay más roles: quien no está en `Staff` es `USUARIO` y no se escribe aquí |
-| `pabellon_id` | Texto | `PAB-001` | Vacío para `ADMIN` |
+| `rol` | Texto | `LIDER` | `LIDER`, `VALIDADOR` o `ADMIN`. Quien no está en `Staff` es `USUARIO` y no se escribe aquí |
+| `pabellon_id` | Texto | `PAB-001` | Vacío para `ADMIN` y `VALIDADOR` |
 | `stand_id` | Texto | `STD-001` | Vacío = todos los stands de su pabellón. Si se indica, debe pertenecer al pabellón |
 | `activo` | Booleano | TRUE | Baja lógica |
 
 El primer `ADMIN` se escribe a mano en el Sheet; los siguientes se crean desde el panel. Quien no aparece en `Staff`, o aparece con `activo = FALSE`, es un usuario normal.
 
-El alcance del líder (`pabellon_id` y `stand_id`) vale tanto para generar códigos como para editar preguntas. El `ADMIN` alcanza todos los stands del mapa.
+El alcance del líder (`pabellon_id` y `stand_id`) vale tanto para generar códigos como para editar preguntas. El `ADMIN` y el `VALIDADOR` alcanzan todos los stands del mapa.
 
 ### `Permisos`
 
@@ -151,7 +151,7 @@ Una fila por cada par de rol y vista. Dar o quitar una vista a un rol es agregar
 
 | Campo | Tipo | Ejemplo | Nota |
 |---|---|---|---|
-| `rol` | Texto | `LIDER` | `LIDER` o `ADMIN`. `USUARIO` existe por defecto y no se escribe aquí |
+| `rol` | Texto | `LIDER` | `USUARIO`, `LIDER`, `VALIDADOR` o `ADMIN`. `USUARIO` no se escribe en `Staff` (es quien no está ahí), pero sí necesita sus filas en esta hoja: sin ellas la app dice "Tu rol no tiene vistas asignadas" |
 | `vista` | Texto | `GENERAR_CODIGO` | Nombre de una vista que existe en el código |
 | `activo` | Booleano | TRUE | Baja lógica |
 
@@ -176,6 +176,9 @@ Filas de referencia. Son las de los datos de ejemplo del simulador, que reflejan
 | USUARIO | QUIZ | TRUE |
 | LIDER | GENERAR_CODIGO | TRUE |
 | LIDER | PREGUNTAS | TRUE |
+| VALIDADOR | MAPA | TRUE |
+| VALIDADOR | QUIZ | TRUE |
+| VALIDADOR | PREGUNTAS | TRUE |
 | ADMIN | MAPA | TRUE |
 | ADMIN | QUIZ | TRUE |
 | ADMIN | RANKING | TRUE |
@@ -188,6 +191,13 @@ Filas de referencia. Son las de los datos de ejemplo del simulador, que reflejan
 `RANKING` es solo del admin (una sola persona, que la proyecta) desde la Fase 2 del plan de concurrencia. Una fila que no existe equivale a una con `activo = FALSE`. Ver [../reglas/ux-ui.md](../reglas/ux-ui.md) para el comportamiento de cada vista.
 
 El `LIDER` no participa: no responde quizzes, no tiene número de orden ni fila en `Usuarios`, y no suma puntos. Su pantalla de inicio es `GENERAR_CODIGO`.
+
+El `VALIDADOR` revisa la feria sin tocarla y solo puede tener `MAPA`, `QUIZ` y `PREGUNTAS`: el servidor ignora cualquier otra vista que se le escriba en `Permisos` y el panel no deja agregarla. Está en `Staff`, así que no se registra en `Usuarios`, no recibe número de orden ni suma puntos. En cada vista:
+
+- `MAPA`: ve los pabellones y stands abiertos desde el inicio, sin puntos y sin pasar por el quiz de entrada. No lee ni escribe `Intentos`.
+- `QUIZ`: al abrir un stand no pide código. Recorre una a una todas las preguntas activas del stand (hasta 16), con sus opciones pero sin la respuesta correcta y sin poder elegir. Cada pantalla avisa que en el evento cada usuario responde solo 4 de ellas, al azar, y la flecha de arriba y el botón "Volver al mapa" salen en cualquier pregunta. No hay reloj, ni intento, ni fila en `Intentos`. Responder le da "Tu rol no responde quizzes".
+- `PREGUNTAS`: ve las preguntas de todos los stands, con la respuesta correcta. No puede crear ni editar: guardar le da "Tu rol solo puede ver las preguntas, no editarlas."
+- `ESPERA`: con `espera_activa` en TRUE la recibe como una vista más, igual que el `ADMIN`.
 
 Una vista escrita en la hoja que no exista en el código no tiene efecto. Agregar una vista nueva requiere programarla primero.
 
@@ -301,6 +311,7 @@ Claves que la app reconoce, con el valor que usa si la fila no existe o su valor
 | `fecha_feria` | (vacío) | Fecha y hora del evento |
 | `lugar_feria` | (vacío) | Texto bajo la fecha |
 | `espera_mensaje` | (vacío) | Texto bajo la fecha |
+| `premios_mensaje` | Participando y aprendiendo podrás ganar: | Frase bajo el título "Premios" de la sala de espera. Con la fila vacía, no se muestra |
 | `rp_personas` | 0 | Pantalla de ranking: personas por pantalla; 0 = lo que quepa. De 0 a 300 |
 | `rp_columnas` | 6 | Pantalla de ranking: columnas. De 1 a 8 |
 | `rp_alto` | 64 | Pantalla de ranking: alto de cada fila en px. De 40 a 120 |
@@ -308,7 +319,7 @@ Claves que la app reconoce, con el valor que usa si la fila no existe o su valor
 | `rp_fuente` | 16 | Pantalla de ranking: tamaño de los nombres en px. De 12 a 30 |
 | `rp_puntos` | 22 | Pantalla de ranking: tamaño de los puntos en px. De 14 a 40 |
 | `rp_escala` | 100 | Pantalla de ranking: tamaño del podio en %. De 60 a 160 |
-| `rp_ancho_top` | 66 | Pantalla de ranking: ancho del podio en % de la pantalla. De 40 a 100 |
+| `rp_ancho_top` | 88 | Pantalla de ranking: ancho del podio en % de la pantalla. De 40 a 100 |
 | `rp_ocultar_menu` | FALSE | Pantalla de ranking: oculta la barra de navegación |
 | `rp_modo_oscuro` | FALSE | Pantalla de ranking: colores oscuros |
 
@@ -316,7 +327,7 @@ Reglas de `Config`:
 
 - Una clave que no esté en esta lista no tiene efecto, y el panel la rechaza.
 - Las claves `rp_*` las escribe la propia pantalla de ranking desde su panel de ajustes; si la fila no existe, la crea.
-- Al agregar un parámetro, el panel ofrece las claves hasta `espera_mensaje`, salvo `segundos_cache_ranking`. Esa y las `rp_*` se agregan a mano en el Sheet; una vez que la fila existe se puede editar desde el panel.
+- Al agregar un parámetro, el panel ofrece las claves hasta `premios_mensaje`, salvo `segundos_cache_ranking`. Esa y las `rp_*` se agregan a mano en el Sheet; una vez que la fila existe se puede editar desde el panel.
 - Para la feria, el plan de concurrencia pide `segundos_cache_catalogo` en 1800.
 
 Claves de la sala de espera:
@@ -324,6 +335,8 @@ Claves de la sala de espera:
 - `espera_activa`: con TRUE, quien tiene rol `USUARIO` ve solo la sala de espera. Con FALSE la sala no existe para nadie.
 - `fecha_feria`: fecha y hora del evento, para la cuenta regresiva. Puede ser una celda con formato de fecha y hora, o texto como `2026-10-22 09:00` o `22/10/2026 09:00`. Vacía, la sala muestra "Muy pronto" sin cuenta.
 - `lugar_feria` y `espera_mensaje`: textos opcionales que aparecen bajo la fecha.
+- `premios_mensaje`: frase que va bajo el título "Premios". Si la fila no existe usa la de la tabla; si existe y está vacía, no se muestra frase.
+- Los cambios hechos a mano en `Pabellones`, `Stands`, `Premios`, `Staff`, `Permisos` y `Config` se notan en la sala de espera en unos 30 segundos, aunque `segundos_cache_catalogo` sea mayor: la app compara el Sheet con su caché cada 30 segundos y la renueva si cambió.
 
 ### `Premios`
 
@@ -346,6 +359,7 @@ Mientras `espera_activa` está en TRUE:
 |---|---|
 | Persona con rol `USUARIO`: no está en `Staff`, o está ahí con ese rol | Solo la sala de espera. El servidor rechaza cualquier otra acción |
 | `LIDER` | La app normal, según las vistas de su rol en `Permisos` |
+| `VALIDADOR` | La app normal (Mapa, Preguntas) y además una pestaña "Espera" |
 | `ADMIN` | La app normal y además una pestaña "Espera" para ver lo mismo que los usuarios |
 
 Quien entra a la sala de espera y es `USUARIO` queda registrado en `Usuarios` y recibe su número, igual que con la feria abierta o cerrada. `ADMIN` y `LIDER` no se registran. La sala no escribe en ninguna otra hoja.

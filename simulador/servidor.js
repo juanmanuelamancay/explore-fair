@@ -6,9 +6,12 @@
  *
  * Para entrar como otra persona: http://localhost:8123/?como=lider.apx@demo.com
  * Cuentas de ejemplo: ana.torres@demo.com (usuario), lider.apx@demo.com (líder de un stand),
- * lider.backend@demo.com (líder de pabellón) y admin@demo.com (admin),
+ * lider.backend@demo.com (líder de pabellón), validador@demo.com (validador) y admin@demo.com (admin),
  * y sin.vistas@demo.com (rol sin permisos, para ver la página de error).
- * Variables de entorno: PORT, ESPERA=1 o ESPERA=0 (sala de espera) y DESORDEN=1 (datos escritos a mano).
+ * Variables de entorno: PORT, ESPERA=1 o ESPERA=0 (sala de espera), DESORDEN=1 (datos escritos a mano),
+ * RANKING=N (cuánta gente con puntajes hay de entrada, 40 por defecto; 0 deja el ranking vacío) y
+ * VIVO=1 (cada pocos segundos alguien completa un quiz y sube de puesto, para ver las animaciones del ranking).
+ * El ranking se ve entrando como admin: http://localhost:8123/?como=admin@demo.com
  * Los datos se pierden al detener el servidor. No se sube a Apps Script.
  */
 
@@ -116,7 +119,7 @@ function datosDeEjemplo() {
     }
   });
   return {
-    Pabellones: [['pabellon_id', 'nombre', 'descripcion', 'orden', 'activo', 'creado_en'], ...pabellones.map(([id, nombre], i) => [id, nombre, '', i, true, hoy])],
+    Pabellones: [['pabellon_id', 'nombre', 'descripcion', 'orden', 'activo', 'creado_en'], ...pabellones.map(([id, nombre], i) => [id, nombre, 'Descubre agentes de IA para aumentar tu productividad', i, true, hoy])],
     Stands: [['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'requiere_codigo', 'num_preguntas', 'orden', 'activo', 'creado_en'],
       ...stands.map(([id, pab, nombre, codigo = true], i) => [id, pab, nombre, '', codigo, 4, i, true, hoy])],
     Preguntas: [['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo', 'creado_en'], ...preguntas],
@@ -124,25 +127,67 @@ function datosDeEjemplo() {
       ['admin@demo.com', 'Marta Salinas', 'ADMIN', '', '', true],
       ['lider.apx@demo.com', 'Carlos Mendoza', 'LIDER', 'PAB-001', 'STD-001', true],
       ['lider.backend@demo.com', 'Rosa Quiroz', 'LIDER', 'PAB-001', '', true],
+      ['validador@demo.com', 'Valeria Ortiz', 'VALIDADOR', '', '', true],
       // Rol que no existe en Permisos, para ver la página de error.
       ['sin.vistas@demo.com', 'Invitado De Prueba', 'INVITADO', '', '', true]],
     Permisos: [['rol', 'vista', 'activo'],
       ...['MAPA', 'QUIZ'].map(v => ['USUARIO', v, true]),
       ...['GENERAR_CODIGO', 'PREGUNTAS'].map(v => ['LIDER', v, true]),
+      ...['MAPA', 'QUIZ', 'PREGUNTAS'].map(v => ['VALIDADOR', v, true]),
       ...['MAPA', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'].map(v => ['ADMIN', v, true])],
     Config: [['clave', 'valor', 'descripcion'], ['minutos_vigencia_codigo', 5, ''], ['minutos_para_responder', 5, ''],
-      ['puntos_por_defecto', 10, ''], ['segundos_refresco_board', 15, ''], ['feria_abierta', true, ''],
+      ['puntos_por_defecto', 10, ''], ['segundos_refresco_board', process.env.VIVO ? 10 : 15, ''], ['feria_abierta', true, ''],
+      ['segundos_cache_ranking', process.env.VIVO ? 5 : 60, ''],
       // ESPERA=1 enciende la sala de espera; ESPERA=0 la deja con la fecha ya cumplida.
       ['espera_activa', !!process.env.ESPERA, ''],
       ['fecha_feria', new Date(Date.now() + (process.env.ESPERA === '0' ? -1000 : 3 * 86400000 + 5 * 3600000)), ''],
       ['lugar_feria', 'Auditorio principal, piso 3', ''], ['espera_mensaje', 'Trae tu celular con batería.', '']],
     Premios: [['orden', 'titulo', 'descripcion', 'activo'],
-      [1, 'Primer puesto', 'Audífonos inalámbricos', true], [2, 'Segundo puesto', 'Mochila', true],
-      [3, 'Tercer puesto', 'Kit de la feria', true], [5, 'Cuarto puesto', 'Mención especial', true], [4, 'Premio retirado', 'No debe verse', false]],
+      [1, 'Primer puesto', 'Nintendo Switch', true], [2, 'Segundo puesto', 'Silla Gamer', true],
+      [3, 'Tercer puesto', 'Monitor', true], [4, 'Cuarto puesto', 'Audífonos', true], [5, 'Premio retirado', 'No debe verse', false]],
     Usuarios: [['email', 'nombre', 'registrado_en', 'orden']],
     Codigos: [['codigo', 'stand_id', 'generado_por', 'creado_en', 'expira_en', 'estado']],
     Intentos: [['intento_id', 'email', 'stand_id', 'estado', 'puntaje', 'completado_en', 'correctas', 'pabellon_id', 'codigo', 'iniciado_en', 'vence_en', 'preguntas_json', 'respuestas_json']],
   };
+}
+
+/* ---------- Gente con puntajes, para ver el ranking ---------- */
+
+const NOMBRES = ['Lucía', 'Mateo', 'Valentina', 'Sebastián', 'Camila', 'Diego', 'Isabella', 'Andrés', 'Daniela', 'Gabriel', 'Sofía', 'Joaquín',
+  'Mariana', 'Nicolás', 'Paula', 'Rodrigo', 'Fernanda', 'Javier', 'Alejandra', 'Ricardo', 'Karla', 'Hugo', 'Natalia', 'Óscar', 'Renata', 'Luis'];
+const APELLIDOS = ['Quispe', 'Ramírez', 'Huamán', 'Torres', 'Flores', 'Vargas', 'Castillo', 'Mendoza', 'Rojas', 'Salazar', 'Paredes', 'Guerra',
+  'Cárdenas', 'Chávez', 'Zapata', 'Delgado', 'Fuentes', 'Ibáñez', 'Maldonado', 'Soto'];
+const sinTildes = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/** Generador repetible: cada arranque del simulador arma el mismo ranking. */
+function azar(semilla) {
+  return () => { semilla = (semilla + 0x6D2B79F5) | 0; let t = Math.imul(semilla ^ (semilla >>> 15), 1 | semilla); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const sorteo = azar(2024);
+
+/** Una persona que completó un quiz de un stand, con 0 a 4 respuestas correctas de 10 puntos. */
+function intentoCompletado(tablas, email, stand, correctas, cuando) {
+  const pab = tablas.Stands.find(f => f[0] === stand)[1];
+  const id = 'INT-' + String(tablas.Intentos.length).padStart(5, '0');
+  return [id, email, stand, 'COMPLETADO', correctas * 10, cuando, correctas, pab, '', new Date(cuando - 120000), new Date(cuando + 180000), '[]', '[]'];
+}
+
+/** Arma N personas con puntajes variados, algunos empates arriba, para que el podio y la cuadrícula tengan qué mostrar. */
+function sembrarRanking(tablas, cuantas) {
+  const stands = tablas.Stands.slice(1).map(f => f[0]).filter(id => id !== 'STD-000');
+  const ahora = Date.now();
+  for (let i = 0; i < cuantas; i++) {
+    const nombre = NOMBRES[i % NOMBRES.length] + ' ' + APELLIDOS[(i * 7 + Math.floor(i / NOMBRES.length)) % APELLIDOS.length] + (i >= NOMBRES.length * APELLIDOS.length ? ' ' + (i + 1) : '');
+    const email = sinTildes(nombre).replace(/\s+/g, '.') + '@demo.com';
+    tablas.Usuarios.push([email, nombre, new Date(ahora - 3600000), i + 1]);
+    // Los primeros completan casi todo con buen puntaje; el resto, cada vez menos.
+    const ritmo = 1 - i / Math.max(1, cuantas);
+    const hechos = Math.max(1, Math.round(stands.length * (0.15 + 0.7 * ritmo * sorteo() + 0.15 * ritmo)));
+    stands.slice().sort(() => sorteo() - 0.5).slice(0, hechos).forEach(stand => {
+      const correctas = Math.min(4, Math.round(1.5 + 2.5 * ritmo + (sorteo() - 0.5) * 2.5));
+      tablas.Intentos.push(intentoCompletado(tablas, email, stand, Math.max(0, correctas), ahora - Math.floor(sorteo() * 3000000)));
+    });
+  }
 }
 
 /* ---------- Servicios de Apps Script simulados ---------- */
@@ -168,7 +213,9 @@ function desordenar(tablas) {
   return salida;
 }
 
-const libro = new Libro(process.env.DESORDEN ? desordenar(datosDeEjemplo()) : datosDeEjemplo());
+const tablasIniciales = datosDeEjemplo();
+sembrarRanking(tablasIniciales, process.env.RANKING === undefined ? 40 : Number(process.env.RANKING) || 0);
+const libro = new Libro(process.env.DESORDEN ? desordenar(tablasIniciales) : tablasIniciales);
 const propiedades = {};
 const cache = {};
 let emailActual = '';
@@ -350,3 +397,21 @@ http.createServer((peticion, respuesta) => {
   respuesta.writeHead(404);
   respuesta.end();
 }).listen(PUERTO, () => console.log('Simulador en http://localhost:' + PUERTO));
+
+// VIVO=1: cada pocos segundos alguien completa un quiz que le faltaba, como pasaría en la feria.
+if (process.env.VIVO && !process.env.DESORDEN) {
+  const usuarios = libro.getSheetByName('Usuarios');
+  const intentos = libro.getSheetByName('Intentos');
+  setInterval(() => {
+    const personas = usuarios.datos.slice(1).filter(f => f && f[0]);
+    if (!personas.length) return;
+    const email = personas[Math.floor(Math.random() * personas.length)][0];
+    const hechos = new Set(intentos.datos.filter(f => f && f[1] === email).map(f => f[2]));
+    const faltan = libro.getSheetByName('Stands').datos.slice(2).map(f => f[0]).filter(id => !hechos.has(id));
+    if (!faltan.length) return;
+    const stand = faltan[Math.floor(Math.random() * faltan.length)];
+    const correctas = 2 + Math.floor(Math.random() * 3);
+    intentos.appendRow(intentoCompletado({ Stands: libro.getSheetByName('Stands').datos, Intentos: intentos.datos }, email, stand, correctas, Date.now()));
+    console.log(`+${correctas * 10} pts para ${email} (${stand})`);
+  }, 4000);
+}

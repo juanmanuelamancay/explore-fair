@@ -63,7 +63,9 @@ Archivos compartidos:
 
 El orden de la barra inferior es Mapa, Código, Preguntas, Panel, Ranking, Espera. `QUIZ` no aparece en la barra: se abre desde el mapa. Si el rol tiene un solo destino, la barra no se muestra.
 
-Con la sala de espera activa (`espera_activa` en `Config`), quien tiene rol `USUARIO` recibe solo la vista `ESPERA`, y el `ADMIN` la recibe como una pestaña más.
+Con la sala de espera activa (`espera_activa` en `Config`), quien tiene rol `USUARIO` recibe solo la vista `ESPERA`, y el `ADMIN` y el `VALIDADOR` la reciben como una pestaña más.
+
+El `VALIDADOR` es un rol de solo lectura: `VISTAS_DEL_VALIDADOR` (`sesion.gs`) limita sus vistas a `MAPA`, `QUIZ` y `PREGUNTAS` aunque `Permisos` diga otra cosa. Para ver las preguntas de un quiz usa `verQuiz` (`quiz.gs`), que no pide código y no escribe nada; `iniciarQuiz` y `enviarQuiz` le responden "Tu rol no responde quizzes" y `guardarPreguntaLider` lo rechaza.
 
 ## Reglas del servidor
 
@@ -373,6 +375,7 @@ Para entrar con otro rol se agrega `?como=` con una de las cuentas de ejemplo:
 | `ana.torres@demo.com` | Usuario. Es la cuenta por defecto; cualquier correo que no esté en `Staff` también lo es |
 | `lider.apx@demo.com` | Líder de un stand |
 | `lider.backend@demo.com` | Líder de un pabellón completo |
+| `validador@demo.com` | Validador: solo lectura de Mapa, Quiz y Preguntas |
 | `admin@demo.com` | Admin |
 | `sin.vistas@demo.com` | Rol sin filas en `Permisos`, para ver la página de error |
 

@@ -76,18 +76,19 @@ Los colores no están atados al nombre: salen de la lista `PALETA` de `comun-scr
 
 ### Medallas de puesto
 
-Los tres primeros puestos se muestran siempre igual, en cualquier vista:
+Los cuatro primeros puestos (uno por premio) se muestran siempre igual, en cualquier vista:
 
 | Puesto | Metal | Fondo | Borde | Texto | Corona |
 |---|---|---|---|---|---|
 | 1 | Oro | `#fef7e0` | `#f9ab00` | `#b06000` | `#fbbc04` |
-| 2 | Plata | `#f1f3f4` | `#9aa0a6` | `#5f6368` | `#bdc1c6` |
+| 2 | Plata | `#f1f3f4` | `#9aa0a6` | `#5f6368` | `#aab0b7` (contorno `#6f757c`) |
 | 3 | Bronce | `#fbe9e0` | `#c5733a` | `#8a4720` | `#d98e5a` |
+| 4 | Azul | `--azul-suave` | `--azul` | `--azul` | `#8ab4f8` |
 
 - **Forma:** el mismo círculo de siempre, con borde de 2 px del metal, un anillo blanco fino por dentro y una corona pequeña y plana encima, sin brillos ni degradados.
-- **Del cuarto puesto en adelante:** círculo neutro, sin corona.
+- **Del quinto puesto en adelante:** círculo neutro, sin corona (en la lista de premios de la sala de espera, azul con corona).
 - **Dónde se usa:** lista de premios de la sala de espera, y podio y cuadrícula del ranking.
-- **En el código:** clases `oro`, `plata` y `bronce`, y las funciones `medalla` y `avatarDePuesto` de `comun-script.html`.
+- **En el código:** clases `oro`, `plata`, `bronce` y `azul`, y las funciones `medalla` y `avatarDePuesto` de `comun-script.html`.
 
 ### Iconos
 
@@ -185,12 +186,13 @@ Es lo que ve un usuario antes del evento, mientras `espera_activa` está en TRUE
 
 - **Cuenta regresiva:** cuatro recuadros (días, horas, minutos, segundos) que avanzan cada segundo según la hora del servidor, con la fecha, el lugar y un mensaje opcional debajo. Sin fecha configurada dice "Muy pronto".
 - **Llegada la hora:** la cuenta se reemplaza por "Llegó el día" y la app pregunta al servidor una vez por minuto si ya se abrió. Cuando `espera_activa` pasa a FALSE, la app se vuelve a abrir sola con el mapa; si el navegador no la deja, queda el aviso "Tu acceso cambió" con el botón "Abrir de nuevo". El botón de actualizar hace la misma comprobación al instante.
-- **Carrusel:** debajo de la cuenta va una fila de láminas que empieza en Premios, sigue con Cómo se juega y continúa con una tarjeta por cada pabellón. Se pasa de una a otra deslizando con el dedo.
+- **Carrusel:** debajo de la cuenta va una fila de láminas que empieza en el Objetivo, sigue con Cómo participar, continúa con una tarjeta por cada pabellón (su título de sección es "Descubre agentes de IA") y termina en Premios. Se pasa de una a otra deslizando con el dedo.
 - **Puntos:** bajo el carrusel hay un punto por lámina; el de la lámina a la vista se alarga y se pinta de azul. Tocar un punto lleva a esa lámina.
 - **Avance solo:** cambia de lámina cada 6 segundos y al llegar a la última vuelve a la primera. Se detiene 12 segundos cuando la persona lo toca, y no avanza con la app en segundo plano, con movimiento reducido activado, ni cuando la persona ya bajó y dejó el inicio del carrusel fuera de la pantalla.
 - **Alto variable:** el carrusel toma el alto de la lámina a la vista.
-- **Premios:** lista con la medalla de cada puesto (ver "Medallas de puesto"). Si no hay premios cargados, esa lámina no aparece y el carrusel empieza en Cómo se juega.
-- **Cómo se juega:** tres pasos fijos.
+- **Premios:** título, la frase "Participando y aprendiendo podrás ganar:" y la lista con la medalla de cada puesto (ver "Medallas de puesto"). La feria entrega cuatro premios; del cuarto puesto en adelante la medalla es azul, con corona azul (clase `azul` en `espera-style.html`). Es la última lámina. Si no hay premios cargados, no aparece y el carrusel termina en el último pabellón.
+- **Objetivo:** primera lámina, texto fijo tomado de la invitación al evento: una frase sobre la experiencia práctica, la lista de seis cosas que se encontrarán en la feria (demos en vivo, retos técnicos, casos prácticos, buenas prácticas, espacio para dudas, dinámicas) y, en un recuadro azul, la frase con la que se espera que cada persona termine: "Sé qué agente puede ayudarme y cómo empezar a utilizarlo en mi día a día." Es la lámina más alta y se queda 25 segundos antes de avanzar (`data-segundos`), el resto 6.
+- **Cómo participar:** titulada "Esta app te servirá para…", con la misma frase de apertura de la hoja de ayuda del mapa y tres pasos fijos: responder el quiz de entrada, visitar los stands (el código del líder desbloquea las preguntas de cada stand) y sumar puntos para subir en el ranking.
 - **Tarjeta de pabellón:** ícono y nombre en su color, cantidad de stands y la lista de sus stands con su abreviatura. Es solo informativa, no se puede tocar. Un pabellón nuevo en el Sheet agrega su tarjeta sin tocar código.
 
 El `ADMIN` ve esta misma pantalla como una pestaña más, "Espera", mientras la sala está activa.
@@ -260,10 +262,10 @@ Sincronización y reinicio:
 Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho de la pantalla, con el contenido centrado hasta 1.400 px.
 
 - **Cabecera:** título "Ranking", la hora de la última actualización, el botón de ajustes y el de actualizar.
-- **Podio** con los tres primeros en oro, plata y bronce: el avatar con las iniciales toma el metal y lleva una corona encima, y la base del podio se pinta del mismo metal.
-- **Cuadrícula** del cuarto en adelante: cada celda lleva puesto, nombre y puntos. Muestra las personas que caben en pantalla, o menos si los ajustes fijan una cantidad.
+- **Podio** con los cuatro primeros, uno por premio, en oro, plata, bronce y azul: el avatar con las iniciales toma el metal y lleva una corona encima, y la base del podio se pinta del mismo metal. De izquierda a derecha van el 2.º, el 1.º (el más alto), el 3.º y el 4.º.
+- **Cuadrícula** del quinto en adelante: cada celda lleva puesto, nombre y puntos. Muestra las personas que caben en pantalla, o menos si los ajustes fijan una cantidad.
 - **Pie:** hasta qué puesto se está mostrando, de cuántos, y la regla de desempate.
-- **Menos de tres personas:** el podio muestra solo a quienes hay: con una, el 1.º; con dos, el 1.º (al centro) y el 2.º. Sin nadie con puntaje, "Esperando los primeros puntajes".
+- **Menos de cuatro personas:** el podio muestra solo a quienes hay: con una, el 1.º; con dos, el 2.º y el 1.º; con tres, el 2.º, el 1.º y el 3.º. Sin nadie con puntaje, "Esperando los primeros puntajes".
 - **Cambios:** quien sumó puntos desde la última actualización destella en verde y muestra un "+N" que se desvanece.
 - **Actualización:** se trae del servidor al entrar y luego sola cada `segundos_refresco_board` (mínimo 10 segundos). Se pausa con la app en segundo plano y, al volver, se actualiza de inmediato. El botón de actualizar recalcula el ranking en ese momento.
 - **Ajustes:** hoja con deslizadores para personas por pantalla, columnas, alto de fila, espacio entre filas, tamaño de nombres, tamaño de puntos, y tamaño y ancho del podio; dos interruptores, "Ocultar menú de navegación" y "Modo oscuro"; y "Restablecer valores". Cada cambio se ve al momento y se guarda en `Config` (claves `rp_*`); las demás pantallas abiertas lo toman en su siguiente actualización.
@@ -292,6 +294,7 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
   |---|---|
   | `USUARIO` | Solo Mapa: sin barra |
   | `LIDER` | Solo Código: sin barra. Con `PREGUNTAS`: Código y Preguntas |
+  | `VALIDADOR` | Mapa y Preguntas (y Espera mientras la sala está activa) |
   | `ADMIN` | Mapa, Código, Panel y Ranking |
 
 - **La barra se oculta** en todo el quiz (código, preguntas, resultado y tiempo agotado), para no ofrecer salidas a mitad, y en la pantalla de ranking cuando se activa "Ocultar menú de navegación".
