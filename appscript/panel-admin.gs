@@ -320,6 +320,101 @@ function adminValidarRelaciones_(entidad, registro, fila) {
   }
 }
 
+/* ---------- Líder de un stand ---------- */
+
+/**
+ * Líder que muestra y reemplaza el formulario del stand: la primera fila activa de Staff con rol LIDER y ese stand_id.
+ * Si el Sheet tiene más (escritas a mano), se conservan: el formulario solo maneja una.
+ */
+function adminLiderDeStand_(staff, standId) {
+  if (!standId) return null;
+  return staff.find(f => texto_(f.rol).toUpperCase() === 'LIDER' && id_(f.stand_id) === id_(standId) && adminBooleano_(f, 'activo')) || null;
+}
+
+/** Correo del campo "líder" del formulario de un stand: null si el formulario no lo trae (no se toca Staff), '' si lo vació. */
+function adminCorreoLider_(entrada) {
+  if (!entrada || entrada.lider_email === undefined || entrada.lider_email === null) return null;
+  const correo = texto_(entrada.lider_email).toLowerCase();
+  if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) throw new Error('Escribe un correo válido para el líder.');
+  return correo;
+}
+
+/**
+ * Nombre para la fila de Staff, con la misma cadena que la app usa para registrar personas: el que ya tenga en Staff,
+ * el del directorio de Google y, si no hay, el deducido del correo. Hace una llamada de red: va antes del turno global.
+ */
+function adminNombreLider_(correo, staff) {
+  const fila = staff.find(f => texto_(f.email).toLowerCase() === correo);
+  if (fila && texto_(fila.nombre)) return texto_(fila.nombre);
+  return nombreDeDirectorio_(correo) || nombreDesdeEmail_(correo);
+}
+
+/**
+ * Qué hay que cambiar en Staff para que "correo" sea el líder del stand (vacío = que no tenga). No escribe nada:
+ * lee, valida y devuelve el plan, para que un rechazo llegue antes de tocar el Sheet.
+ *  - "idAnterior" es el stand_id que tenía el stand antes de este guardado (vacío si es nuevo).
+ *  - Un correo que ya está en Staff con otro rol, o que ya lidera otro stand, se rechaza: no se le quita nada a nadie.
+ */
+function adminPlanLider_(correo, stand, idAnterior, nombre) {
+  const staff = adminFilas_('staff');
+  const actual = adminLiderDeStand_(staff, idAnterior);
+  const correoActual = actual ? texto_(actual.email).toLowerCase() : '';
+  const plan = { desactivar: [], actualizar: null, agregar: null };
+  // Mantiene la fila de un líder al día con el stand: si el stand cambió de pabellón o de ID, su líder lo sigue.
+  const alDia = fila => {
+    const cambios = {};
+    if (id_(fila.pabellon_id) !== stand.pabellon_id) cambios.pabellon_id = stand.pabellon_id;
+    if (id_(fila.stand_id) !== stand.stand_id) cambios.stand_id = stand.stand_id;
+    if (Object.keys(cambios).length) plan.actualizar = { fila: fila._fila, cambios: cambios };
+  };
+
+  if (correo === correoActual) {
+    if (actual) alDia(actual);
+    return plan;
+  }
+  if (actual) plan.desactivar.push(actual._fila);
+  if (!correo) return plan;
+
+  if (!stand.activo) throw new Error('Activa el stand para asignarle un líder.');
+  if (!stand.requiere_codigo) throw new Error('Este stand no usa código, así que no necesita líder.');
+  if (!adminFilas_('permisos').some(p => texto_(p.rol).toUpperCase() === 'LIDER' && adminBooleano_(p, 'activo'))) {
+    throw new Error('El rol LIDER no tiene permisos activos. Configura primero al menos una vista.');
+  }
+
+  const existente = staff.find(f => texto_(f.email).toLowerCase() === correo);
+  if (!existente) {
+    plan.agregar = { email: correo, nombre: nombre, rol: 'LIDER', pabellon_id: stand.pabellon_id, stand_id: stand.stand_id, activo: true };
+    return plan;
+  }
+  const rol = texto_(existente.rol).toUpperCase();
+  if (rol !== 'LIDER') throw new Error(correo + ' ya está en Staff como ' + rol + '. Si hace falta cambiarle el rol, hazlo desde la pestaña Staff.');
+  if (adminBooleano_(existente, 'activo')) {
+    if (id_(existente.stand_id) === stand.stand_id) {
+      // Ya lidera este mismo stand (había dos líderes): solo se reemplaza al primero.
+      alDia(existente);
+      return plan;
+    }
+    // Solo en este camino de error se leen los nombres, para que el aviso diga dónde es líder.
+    const nombreDe = (filas, campo, id) => { const f = filas.find(x => id_(x[campo]) === id_(id)); return f ? f.nombre + ' (' + id_(id) + ')' : id_(id); };
+    const donde = existente.stand_id
+      ? 'del stand ' + nombreDe(adminFilas_('stands'), 'stand_id', existente.stand_id)
+      : 'de todo el pabellón ' + (existente.pabellon_id ? nombreDe(adminFilas_('pabellones'), 'pabellon_id', existente.pabellon_id) : '');
+    throw new Error(correo + ' ya es líder ' + donde.trim() + '. Quítalo de ahí primero; si va a liderar varios stands, asígnale el pabellón entero desde la pestaña Staff.');
+  }
+  // Fila de un líder dado de baja: se reactiva con este stand. Conserva su nombre si lo tenía.
+  const cambios = { pabellon_id: stand.pabellon_id, stand_id: stand.stand_id, activo: true };
+  if (!texto_(existente.nombre)) cambios.nombre = nombre;
+  plan.actualizar = { fila: existente._fila, cambios: cambios };
+  return plan;
+}
+
+/** Escribe el plan en Staff. Quien llama tiene el turno global. Primero se da de alta al nuevo y al final se baja al anterior. */
+function adminAplicarLider_(plan) {
+  if (plan.actualizar) actualizarFila_(HOJA.STAFF, plan.actualizar.fila, plan.actualizar.cambios);
+  if (plan.agregar) agregarFila_(HOJA.STAFF, plan.agregar);
+  plan.desactivar.forEach(fila => actualizarFila_(HOJA.STAFF, fila, { activo: false }));
+}
+
 function guardarAdminRegistro(entidad, entrada) {
   const sesion = exigirVista_('PANEL_ADMIN');
   if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede editar el catálogo.');
@@ -333,6 +428,10 @@ function guardarAdminRegistro(entidad, entrada) {
     throw new Error('Agrega la columna nombre_corto en la hoja Pabellones para guardar un nombre corto.');
   }
   adminValidarRelaciones_(entidad, registro, original);
+  // El líder del stand va en el mismo formulario pero se guarda en Staff. La búsqueda del nombre usa la red, así que
+  // se hace antes del turno global para no tenerlo ocupado mientras el directorio responde.
+  const correoLider = entidad === 'stands' ? adminCorreoLider_(entrada) : null;
+  const nombreLider = correoLider ? adminNombreLider_(correoLider, adminFilas_('staff')) : '';
   const bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(SEGUNDOS_BLOQUEO);
   try {
@@ -343,10 +442,18 @@ function guardarAdminRegistro(entidad, entrada) {
       registro[ADMIN_CAMPOS_ID[entidad]] = secuencia.id;
     }
     adminValidarUnicidad_(entidad, registro, original);
+    // Se valida todo lo de Staff antes de escribir el stand: un rechazo no deja el stand a medias.
+    const plan = correoLider === null ? null : adminPlanLider_(correoLider, registro, original ? id_(original.stand_id) : '', nombreLider);
     if (original) actualizarFila_(def.hoja, original._fila, registro);
     else agregarFila_(def.hoja, registro);
     if (secuencia) PropertiesService.getScriptProperties().setProperty(secuencia.propiedad, String(secuencia.numero));
-    limpiarCache_();
+    try {
+      if (plan) adminAplicarLider_(plan);
+    } catch (error) {
+      throw new Error('El stand se guardó, pero no se pudo guardar al líder: ' + error.message);
+    } finally {
+      limpiarCache_();
+    }
   } finally {
     bloqueo.releaseLock();
   }

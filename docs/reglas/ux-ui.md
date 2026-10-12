@@ -243,7 +243,8 @@ Editor del catálogo:
 - **Pestañas:** `Pabellones`, `Staff`, `Permisos`, `Configuración` y `Premios`. Los stands y las preguntas no tienen pestaña: se editan dentro de su pabellón.
 - **Botón "+":** agrega un registro a la pestaña abierta.
 - **Búsqueda y estado:** un campo busca dentro de la pestaña. El interruptor "Solo activos" viene encendido; al apagarlo se ven también los inactivos, atenuados.
-- **Pestaña Pabellones:** un árbol. Cada pabellón se despliega para mostrar sus stands, y cada stand muestra sus preguntas y el contador "N/16 preguntas · quiz aleatorio de 4". Dentro del árbol están "Añadir stand", "Añadir pregunta" y "Cargar JSON" (ver [formato](../datos/formato-preguntas-json.md)).
+- **Pestaña Pabellones:** un árbol. Cada pabellón se despliega para mostrar sus stands, y cada stand muestra sus preguntas y el contador "N/16 preguntas · quiz aleatorio de 4". Dentro del árbol están "Añadir stand", "Añadir pregunta" y "Cargar JSON" (ver [formato](../datos/formato-preguntas-json.md)). Si el stand tiene líder, su nombre aparece en una tercera línea ("Líder: …").
+- **Líder del stand:** el formulario del stand tiene el campo opcional "Correo del líder", prellenado con el líder actual. Al guardar, el servidor lo deja en `Staff` como `LIDER` de ese stand (nombre completado desde el directorio de Google o el correo) y el mensaje temporal dice quién quedó. Vacío quita al líder. Los rechazos (correo de un admin, de alguien que ya lidera otro stand, stand inactivo) salen como mensaje temporal y el formulario sigue abierto.
 - **Pestaña Permisos:** una tarjeta por rol que se despliega y muestra sus vistas como fichas, con "Añadir vista".
 - **Demás pestañas:** una lista de registros, cada uno con editar y desactivar.
 - **Formularios:** hoja inferior con selectores para las referencias a otras hojas, limitadas a registros activos. Los identificadores se generan solos al guardar.

@@ -16,6 +16,8 @@
     stands: { titulo: 'Stands', singular: 'stand', icono: ICONO.trofeo, campos: [
       { clave: 'stand_id', etiqueta: 'ID', readonlyNuevo: true }, { clave: 'pabellon_id', etiqueta: 'Pabellón', tipo: 'pabellon' },
       { clave: 'nombre', etiqueta: 'Nombre' }, { clave: 'descripcion', etiqueta: 'Descripción', tipo: 'textarea', ancho: true },
+      // No es una columna de Stands: el servidor lo guarda en Staff como LIDER de este stand.
+      { clave: 'lider_email', etiqueta: 'Correo del líder', tipo: 'email', opcional: true, ancho: true, ayuda: ayudaLider },
       { clave: 'requiere_codigo', etiqueta: 'Requiere código', tipo: 'check' },
       { clave: 'orden', etiqueta: 'Orden', tipo: 'number' }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
     ] },
@@ -136,6 +138,20 @@
     return fila.descripcion ? esc(fila.descripcion) : 'Visible en la sala de espera';
   }
 
+  /** Filas activas de Staff con rol LIDER y ese stand. La primera es la que maneja el formulario del stand. */
+  function lideresDe(standId) {
+    const id = String(standId || '').toUpperCase();
+    if (!id) return [];
+    return (datos.staff || []).filter(f => String(f.rol).toUpperCase() === 'LIDER' && String(f.stand_id).toUpperCase() === id && registroActivo(f));
+  }
+
+  /** Texto bajo el campo del líder en el formulario del stand. */
+  function ayudaLider(fila) {
+    const otros = Math.max(0, lideresDe(fila && fila.stand_id).length - 1);
+    return 'Se guarda en Staff como LIDER de este stand; el nombre sale del directorio de Google o del correo. Vacío = sin líder.' +
+      (otros ? ' Este stand tiene ' + otros + (otros === 1 ? ' líder más' : ' líderes más') + ' en Staff; no se tocan.' : '');
+  }
+
   function nombrePabellon(id) { const f = (datos.pabellones || []).find(p => p.pabellon_id === id); return esc(f ? f.nombre : id || 'Sin pabellón'); }
   function nombreStand(id) { const f = (datos.stands || []).find(s => s.stand_id === id); return esc(f ? f.nombre : id || 'Sin stand'); }
 
@@ -151,7 +167,8 @@
       const abierto = !!busqueda || pabellonesAbiertos.has(pabellon.pabellon_id);
       return `<article class="panel-arbol-pabellon ${abierto ? 'abierto' : ''} ${registroActivo(pabellon) ? '' : 'inactivo'}"><header class="panel-arbol-cabecera"><button class="panel-arbol-toggle" data-toggle-pab="${esc(pabellon.pabellon_id)}" aria-expanded="${abierto}"><span class="icono">${svg(ICONO.mapa, 19)}</span><span class="quien"><b>${esc(pabellon.nombre)}</b><span>${esc(pabellon.pabellon_id)} · ${stands.length} ${stands.length === 1 ? 'stand' : 'stands'}</span></span><span class="chevron">${svg(ICONO.flecha, 18)}</span></button><span class="acciones"><button class="btn-mini" data-entidad="pabellones" data-editar="${pabellon._fila}" aria-label="Editar ${esc(pabellon.nombre)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-entidad="pabellones" data-borrar="${pabellon._fila}" aria-label="Eliminar ${esc(pabellon.nombre)}" title="Eliminar">${svg(ICONO.equis, 18)}</button></span></header>${abierto ? `<div class="panel-arbol-hijos">${stands.length ? stands.map(stand => {
         const preguntas = (datos.preguntas || []).filter(q => q.stand_id === stand.stand_id && (!soloActivos || registroActivo(q)));
-        return `<article class="panel-arbol-stand ${registroActivo(stand) ? '' : 'inactivo'}"><div class="panel-arbol-linea"><span class="icono">${svg(ICONO.trofeo, 17)}</span><span class="quien"><b>${esc(stand.nombre)}</b><span>${esc(stand.stand_id)} · ${preguntas.length}/16 preguntas · quiz aleatorio de 4</span></span><span class="acciones"><button class="btn-mini" data-entidad="stands" data-editar="${stand._fila}" aria-label="Editar ${esc(stand.nombre)}" title="Editar">${svg(ICONO.flecha, 18)}</button><button class="btn-mini peligro" data-entidad="stands" data-borrar="${stand._fila}" aria-label="Eliminar ${esc(stand.nombre)}" title="Eliminar">${svg(ICONO.equis, 17)}</button></span></div><div class="panel-arbol-preguntas">${preguntas.map(pregunta => `<div class="panel-arbol-pregunta"><span>${esc(pregunta.texto)}</span><span class="acciones"><button class="btn-mini" data-entidad="preguntas" data-editar="${pregunta._fila}" aria-label="Editar pregunta" title="Editar">${svg(ICONO.flecha, 17)}</button><button class="btn-mini peligro" data-entidad="preguntas" data-borrar="${pregunta._fila}" aria-label="Eliminar pregunta" title="Eliminar">${svg(ICONO.equis, 16)}</button></span></div>`).join('') || '<p class="panel-arbol-vacio">Este stand todavía no tiene preguntas.</p>'}</div><div class="panel-arbol-acciones"><button class="btn-arbol" data-nuevo="preguntas" data-stand="${esc(stand.stand_id)}">${svg(ICONO.mas, 16)} Añadir pregunta</button><button class="btn-arbol" data-importar-preguntas="${esc(stand.stand_id)}" data-nombre="${esc(stand.nombre)}">${svg(ICONO.subir, 16)} Cargar JSON</button></div></article>`;
+        const lider = lideresDe(stand.stand_id)[0];
+        return `<article class="panel-arbol-stand ${registroActivo(stand) ? '' : 'inactivo'}"><div class="panel-arbol-linea"><span class="icono">${svg(ICONO.trofeo, 17)}</span><span class="quien"><b>${esc(stand.nombre)}</b><span>${esc(stand.stand_id)} · ${preguntas.length}/16 preguntas · quiz aleatorio de 4</span>${lider ? `<span>Líder: ${esc(lider.nombre || lider.email)}</span>` : ''}</span><span class="acciones"><button class="btn-mini" data-entidad="stands" data-editar="${stand._fila}" aria-label="Editar ${esc(stand.nombre)}" title="Editar">${svg(ICONO.flecha, 18)}</button><button class="btn-mini peligro" data-entidad="stands" data-borrar="${stand._fila}" aria-label="Eliminar ${esc(stand.nombre)}" title="Eliminar">${svg(ICONO.equis, 17)}</button></span></div><div class="panel-arbol-preguntas">${preguntas.map(pregunta => `<div class="panel-arbol-pregunta"><span>${esc(pregunta.texto)}</span><span class="acciones"><button class="btn-mini" data-entidad="preguntas" data-editar="${pregunta._fila}" aria-label="Editar pregunta" title="Editar">${svg(ICONO.flecha, 17)}</button><button class="btn-mini peligro" data-entidad="preguntas" data-borrar="${pregunta._fila}" aria-label="Eliminar pregunta" title="Eliminar">${svg(ICONO.equis, 16)}</button></span></div>`).join('') || '<p class="panel-arbol-vacio">Este stand todavía no tiene preguntas.</p>'}</div><div class="panel-arbol-acciones"><button class="btn-arbol" data-nuevo="preguntas" data-stand="${esc(stand.stand_id)}">${svg(ICONO.mas, 16)} Añadir pregunta</button><button class="btn-arbol" data-importar-preguntas="${esc(stand.stand_id)}" data-nombre="${esc(stand.nombre)}">${svg(ICONO.subir, 16)} Cargar JSON</button></div></article>`;
       }).join('') : '<p class="panel-arbol-vacio">Este pabellón todavía no tiene stands.</p>'}<button class="btn-arbol" data-nuevo="stands" data-pabellon="${esc(pabellon.pabellon_id)}">${svg(ICONO.mas, 16)} Añadir stand</button></div>` : ''}</article>`;
     }).join('')}</div>`;
   }
@@ -221,7 +238,8 @@
       return `<label class="campo-admin ancho"><span>${campo.etiqueta}</span><input name="valor" value="${esc(actual)}" required></label>`;
     }
     const type = campo.tipo === 'email' ? 'email' : campo.tipo === 'number' ? 'number' : 'text';
-    return `<label class="campo-admin ${campo.ancho ? 'ancho' : ''}"><span>${campo.etiqueta}${campo.opcional ? ' · opcional' : ''}</span><input type="${type}" name="${campo.clave}" value="${esc(actual)}" ${campo.opcional ? '' : 'required'}></label>`;
+    const ayuda = campo.ayuda ? `<small>${esc(campo.ayuda(fila))}</small>` : '';
+    return `<label class="campo-admin ${campo.ancho ? 'ancho' : ''}"><span>${campo.etiqueta}${campo.opcional ? ' · opcional' : ''}</span><input type="${type}" name="${campo.clave}" value="${esc(actual)}" ${campo.opcional ? '' : 'required'}${type === 'email' ? ' autocomplete="off" autocapitalize="none" spellcheck="false"' : ''}>${ayuda}</label>`;
   }
 
   function abrirImportacionPreguntas(standId, standNombre) {
@@ -265,7 +283,8 @@
     const nuevo = !fila;
     const verboNuevo = tipo === 'preguntas' ? 'Nueva' : 'Nuevo';
     const baseDefecto = tipo === 'pabellones' ? { orden: (datos.pabellones || []).length + 1, activo: true } : tipo === 'stands' ? { orden: 1, requiere_codigo: true, activo: true } : tipo === 'preguntas' ? { puntos: 10, correcta: 'A', activo: true } : tipo === 'staff' ? { activo: true, rol: 'LIDER' } : tipo === 'permisos' ? { activo: true, rol: 'LIDER', vista: 'RANKING' } : tipo === 'premios' ? { orden: (datos.premios || []).length + 1, activo: true } : {};
-    const base = fila || Object.assign(baseDefecto, iniciales);
+    // Al editar un stand, el campo del líder arranca con el correo de quien lo lidera hoy.
+    const base = fila ? (tipo === 'stands' ? Object.assign({}, fila, { lider_email: (lideresDe(fila.stand_id)[0] || {}).email || '' }) : fila) : Object.assign(baseDefecto, iniciales);
     const campos = ENTIDADES[tipo].campos;
     App.abrirHoja(`<form class="formulario-admin" id="admin-form"><h2>${nuevo ? verboNuevo + ' ' + ENTIDADES[tipo].singular : 'Editar ' + ENTIDADES[tipo].singular}</h2><p>Los cambios se validan antes de tocar el Sheet.</p><div class="form-grid">${campos.map(c => inputCampo(c, base, nuevo)).join('')}</div>${(tipo === 'stands' || tipo === 'preguntas' || tipo === 'staff' || tipo === 'permisos') ? '<p class="nota-relacion">Las referencias se limitan a registros activos para evitar datos huérfanos.</p>' : ''}<div class="acciones-form"><button class="btn" type="submit">Guardar cambios</button><button class="btn texto" type="button" data-cerrar>Cancelar</button></div></form>`);
     const form = $('admin-form');
@@ -276,7 +295,15 @@
       const boton = form.querySelector('button[type=submit]');
       boton.disabled = true;
       boton.innerHTML = '<i class="giro"></i>Guardando…';
-      servidor('guardarAdminRegistro', tipo, entrada).then(nuevos => { datos = nuevos; App.cerrarHoja(); toast('Cambios guardados.'); pintar(); }).catch(error => { toast(error && error.message ? error.message : 'No se pudo guardar.'); boton.disabled = false; boton.textContent = 'Guardar cambios'; });
+      servidor('guardarAdminRegistro', tipo, entrada).then(nuevos => {
+        datos = nuevos;
+        // El servidor completa el nombre del líder: se lee de Staff para mostrar quién quedó.
+        const correo = tipo === 'stands' ? String(entrada.lider_email || '').trim().toLowerCase() : '';
+        const lider = correo ? (nuevos.staff || []).find(f => String(f.email).toLowerCase() === correo) : null;
+        App.cerrarHoja();
+        toast(lider ? 'Cambios guardados. Líder: ' + (lider.nombre || correo) + '.' : 'Cambios guardados.');
+        pintar();
+      }).catch(error => { toast(error && error.message ? error.message : 'No se pudo guardar.'); boton.disabled = false; boton.textContent = 'Guardar cambios'; });
     };
   }
 

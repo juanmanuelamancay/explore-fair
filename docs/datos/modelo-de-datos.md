@@ -81,6 +81,7 @@ Google Sheets no valida relaciones; estas reglas las hace cumplir el Apps Script
 16. **Los permisos no reemplazan la validación del servidor:** `Permisos` decide qué vistas se muestran, pero cada función del Apps Script vuelve a comprobar el permiso antes de ejecutar.
 17. **Un número de orden por persona, sin repetir:** cada persona tiene un `orden` distinto y una sola fila en `Usuarios`, la de su número (la persona 1 en la fila 2). Lo entrega el registro por lotes con el turno global y no se reutiliza aunque se borre la fila.
 18. **Cada intento, en el bloque de su persona:** la fila de un intento en `Intentos` está dentro de las 25 filas que le corresponden al `orden` de su `email`. En un bloque hay filas de una sola persona. Antes de escribir, la app comprueba que todo lo que hay en el bloque lleve el correo de quien escribe.
+19. **Líder desde el stand:** el formulario del stand maneja un solo líder, el primer `LIDER` activo de `Staff` con ese `stand_id`. Cambiar el correo da de alta al nuevo y desactiva al anterior (la fila queda); vaciarlo desactiva al líder; si el correo ya tiene una fila inactiva de `LIDER`, se reactiva con este stand y conserva su nombre. El servidor rechaza, antes de escribir el stand, un correo que ya está en `Staff` con otro rol (para no degradar a un `ADMIN`), que ya es líder de otro stand o de todo un pabellón, o un stand inactivo o sin código (`requiere_codigo = FALSE`). Si el stand cambia de pabellón, su líder lo sigue. Otros líderes del mismo stand escritos a mano en `Staff` no se tocan.
 
 ## Campos por hoja
 
@@ -142,6 +143,8 @@ Un líder con la vista `PREGUNTAS` crea y edita el enunciado, las opciones y la 
 | `activo` | Booleano | TRUE | Baja lógica |
 
 El primer `ADMIN` se escribe a mano en el Sheet; los siguientes se crean desde el panel. Quien no aparece en `Staff`, o aparece con `activo = FALSE`, es un usuario normal.
+
+El líder de un stand también se asigna desde el formulario del stand, con su correo (ver la regla 19). El panel escribe la fila de `Staff` con `rol = LIDER`, el `pabellon_id` y el `stand_id` del stand y `activo = TRUE`, y completa `nombre` con el del directorio de Google o, si no hay, con el deducido del correo.
 
 El alcance del líder (`pabellon_id` y `stand_id`) vale tanto para generar códigos como para editar preguntas. El `ADMIN` y el `VALIDADOR` alcanzan todos los stands del mapa.
 

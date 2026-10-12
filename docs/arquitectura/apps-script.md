@@ -1,6 +1,6 @@
 # Arquitectura del proyecto Apps Script
 
-Última actualización: 2026-10-12 (versión del código `2026-10-12.5`)
+Última actualización: 2026-10-12 (versión del código `2026-10-12.6`)
 
 El código de la web app está en la carpeta [appscript/](../../appscript/). Todos los archivos van en un solo nivel, porque Apps Script no tiene carpetas.
 
@@ -223,7 +223,7 @@ Reglas de operación que salen de esto:
 
 Estas no estaban definidas en los prototipos:
 
-1. **Nombre del usuario:** `Session` solo entrega el correo. El nombre se busca, en este orden, en la caché propia de la persona, en `Staff`, en el directorio de la organización (servicio avanzado Admin SDK, perfil público del dominio) y, si nada de eso responde, se deduce del correo (`jose.perez2@…` pasa a "Jose Perez"). Se guarda en `Usuarios` al registrar a la persona y se puede corregir a mano ahí: cuando la persona confirma su fila, su caché toma el nombre de la hoja. El ranking siempre usa el de la hoja. La función `probarNombre`, ejecutada desde el editor, muestra si el directorio está disponible.
+1. **Nombre del usuario:** `Session` solo entrega el correo. El nombre se busca, en este orden, en la caché propia de la persona, en `Staff`, en el directorio de la organización (servicio avanzado Admin SDK, perfil público del dominio) y, si nada de eso responde, se deduce del correo (`jose.perez2@…` pasa a "Jose Perez"). Se guarda en `Usuarios` al registrar a la persona y se puede corregir a mano ahí: cuando la persona confirma su fila, su caché toma el nombre de la hoja. El ranking siempre usa el de la hoja. La función `probarNombre`, ejecutada desde el editor, muestra si el directorio está disponible. El panel usa la misma cadena (primero lo que ya diga `Staff`) para el nombre del líder que el admin asigna desde el formulario de un stand; esa consulta va antes del turno global para no tenerlo ocupado mientras el directorio responde.
 2. **Color e ícono del pabellón:** salen de una paleta de seis (`PALETA` en `comun-script.html`), según la posición del pabellón en el mapa. Un séptimo pabellón repetiría el primer color.
 3. **Abreviatura del stand:** se deduce del nombre ("Code Review" pasa a "CR", "Katalyst" a "KATA").
 4. **Caracteres del código:** cuatro, solo consonantes y dígitos del 2 al 9, empezando siempre por letra. Además de evitar confusiones al dictarlo, impide que Sheets convierta el código en otra cosa (por ejemplo `TRUE` o `2E45`). Un código nuevo no repite ninguno que esté activo en otro stand.
