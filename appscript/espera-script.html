@@ -33,26 +33,32 @@
     $('espera-premios').hidden = !datos.premios.length;
     $('espera-premios').innerHTML = !datos.premios.length ? '' : `
       <h2 class="titulo-seccion">Premios</h2>
+      ${datos.mensajePremios ? `<p class="premios-intro">${esc(datos.mensajePremios)}</p>` : ''}
       <ul class="lista">${datos.premios.map((p, i) => `
         <li class="fila premio">
-          ${medalla(i + 1)}
+          ${metalDe(i + 1) ? medalla(i + 1) : `<span class="medalla azul">${CORONA}${i + 1}</span>`}
+
           <span class="quien"><b>${esc(p.titulo)}</b>${p.descripcion ? `<span>${esc(p.descripcion)}</span>` : ''}</span>
         </li>`).join('')}
       </ul>`;
 
-    // Una tarjeta por pabellón, después de Premios y Cómo se juega.
+    $('espera-objetivo-icono').innerHTML = svg(ICONO.mapa, 22);
+    document.querySelectorAll('.obj-ico').forEach(e => { e.innerHTML = svg(ICONO.check, 12, 'currentColor', 3); });
+
+    // Una tarjeta por pabellón, después de Cómo participar y antes de Premios, que cierra el carrusel.
     carrusel.hidden = false;   // se muestra recién con todas sus láminas, no solo con la fija
     carrusel.querySelectorAll('.lamina.de-pabellon').forEach(l => l.remove());
-    carrusel.insertAdjacentHTML('beforeend', datos.pabellones.map(p => {
+    $('espera-premios').insertAdjacentHTML('beforebegin', datos.pabellones.map(p => {
       const tono = paleta(p.indice);
       return `
         <section class="lamina de-pabellon" data-titulo="Pabellón ${esc(p.nombre)}">
-          <h2 class="titulo-seccion">Pabellones</h2>
+          <h2 class="titulo-seccion">Descubre agentes de IA</h2>
           <div class="tarjeta pab-tarjeta" style="--c:${tono.color};--t:${tono.tinte}">
             <div class="titulo">
               <span class="icono">${svg(tono.icono, 26)}</span>
               <div><span class="etiqueta-pab">${p.stands.length} ${p.stands.length === 1 ? 'stand' : 'stands'}</span><h2>${esc(p.nombre)}</h2></div>
             </div>
+            ${p.descripcion ? `<p class="pab-descripcion">${esc(p.descripcion)}</p>` : ''}
             <ul>${p.stands.map(s => `<li><span class="abr">${esc(abreviatura(s))}</span>${esc(s)}</li>`).join('')}</ul>
           </div>
         </section>`;
@@ -77,9 +83,9 @@
     puntos.hidden = laminas.length < 2;
     puntos.innerHTML = laminas.map((l, i) =>
       `<button role="tab" data-lamina="${i}" aria-label="${esc(l.dataset.titulo)}"></button>`).join('');
-    // Al aparecer láminas nuevas delante (Premios llega con los datos), el navegador intenta seguir
-    // mostrando la que ya estaba a la vista y el carrusel quedaba en la segunda. Se le fija la
-    // posición a mano, ahora y en el siguiente cuadro, que es cuando el navegador la reacomoda.
+    // Al aparecer láminas nuevas (los pabellones llegan con los datos), el navegador puede reacomodar
+    // el desplazamiento y dejar el carrusel en otra lámina. Se le fija la posición a mano, ahora y en
+    // el siguiente cuadro, que es cuando el navegador la reacomoda.
     irALamina(activa, false);
     requestAnimationFrame(() => irALamina(activa, false));
   }
@@ -126,7 +132,8 @@
   function avanzarSolo() {
     const ahora = Date.now();
     if (laminas.length < 2 || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (ahora - ultimoToque < SEGUNDOS_DE_PAUSA_TRAS_TOCAR * 1000 || ahora - ultimoAvance < SEGUNDOS_POR_LAMINA * 1000) return;
+    const duracion = +laminas[activa].dataset.segundos || SEGUNDOS_POR_LAMINA;   // las láminas largas piden más tiempo
+    if (ahora - ultimoToque < SEGUNDOS_DE_PAUSA_TRAS_TOCAR * 1000 || ahora - ultimoAvance < duracion * 1000) return;
     // Si ya bajó hasta dejar el inicio del carrusel fuera de la pantalla, está leyendo: no se le mueve.
     if (carrusel.getBoundingClientRect().top < 0) return;
     ultimoAvance = ahora;

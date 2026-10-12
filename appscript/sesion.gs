@@ -6,6 +6,10 @@
 const SEGUNDOS_BLOQUEO = 20000;
 const SEGUNDOS_CACHE_USUARIO = 21600;   // máximo que permite CacheService
 
+// El VALIDADOR revisa la feria sin tocarla: solo estas vistas, y en cada una el servidor lo deja leer, no escribir.
+// Aunque Permisos le agregue otra, no la recibe.
+const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS'];
+
 /** Rol y vistas de quien hace la llamada. El rol sale de Staff; quien no está ahí es USUARIO. */
 function sesion_() {
   const email = texto_(Session.getActiveUser().getEmail()).toLowerCase();
@@ -14,13 +18,14 @@ function sesion_() {
   const staff = catalogo.staff.find(s => s.email === email) || null;
   const rol = staff ? staff.rol : 'USUARIO';
   let vistas = catalogo.permisos.filter(p => p.rol === rol).map(p => p.vista);
+  if (rol === 'VALIDADOR') vistas = vistas.filter(v => VISTAS_DEL_VALIDADOR.indexOf(v) >= 0);
   // Sala de espera: mientras está activa, quien tiene rol USUARIO solo ve esa vista y no puede
   // llamar a nada más. Da igual si no está en Staff o si está ahí con rol USUARIO.
   // Líderes y admins (roles de Staff) entran normal.
   const enEspera = catalogo.config.espera_activa && rol === 'USUARIO';
   if (enEspera) vistas = ['ESPERA'];
-  // El admin la recibe como una vista más, para ver lo mismo que verán los usuarios.
-  else if (catalogo.config.espera_activa && rol === 'ADMIN') vistas = vistas.concat('ESPERA');
+  // El admin y el validador la reciben como una vista más, para ver lo mismo que verán los usuarios.
+  else if (catalogo.config.espera_activa && (rol === 'ADMIN' || rol === 'VALIDADOR')) vistas = vistas.concat('ESPERA');
   return { email: email, rol: rol, staff: staff, vistas: vistas, enEspera: enEspera };
 }
 

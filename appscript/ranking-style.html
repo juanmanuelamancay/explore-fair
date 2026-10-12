@@ -20,7 +20,7 @@
 
   /* Podio: su ancho y su escala (--rp-ancho-top, --rp-escala) son propios; no dependen de las columnas ni de las filas */
   #vista-ranking .podio {
-    --rp-podio: 3; width: calc(var(--rp-ancho-top) * var(--rp-podio) / 3); margin: 0 auto 20px; padding-top: 16px;
+    --rp-podio: 4; width: calc(var(--rp-ancho-top) * var(--rp-podio) / 4); margin: 0 auto 20px; padding-top: 16px;
     display: grid; grid-template-columns: repeat(var(--rp-podio), 1fr); gap: 8px; align-items: end;
   }
   #vista-ranking .lugar { text-align: center; min-width: 0; position: relative; }
@@ -41,9 +41,10 @@
   #vista-ranking .lugar.l1 .base { height: calc(150px * var(--rp-escala)); font-size: calc(52px * var(--rp-escala)); }
   #vista-ranking .lugar.l2 .base { height: calc(110px * var(--rp-escala)); }
   #vista-ranking .lugar.l3 .base { height: calc(84px * var(--rp-escala)); }
+  #vista-ranking .lugar.l4 .base { height: calc(60px * var(--rp-escala)); }
   #vista-ranking .lugar .delta { top: calc(-26px * var(--rp-escala)); left: 50%; margin-left: -20px; }
 
-  /* Cuadrícula de puestos del 4.º en adelante: columnas, alto y espacio configurables */
+  /* Cuadrícula de puestos del 5.º en adelante: columnas, alto y espacio configurables */
   #vista-ranking .rp-cuerpo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
   #vista-ranking .rp-rejilla {
     flex: 1 1 0; min-height: 0; overflow: hidden;
@@ -106,7 +107,7 @@
     background: #0f1419; color: #e8eaed;
   }
   body.pantalla-grande.pantalla-oscura #vista-ranking .oro { --m-fondo: #3a2e10; --m-texto: #fdd663; --m-corona: #fbbc04; }
-  body.pantalla-grande.pantalla-oscura #vista-ranking .plata { --m-fondo: #2a2f35; --m-texto: #e8eaed; --m-corona: #bdc1c6; }
+  body.pantalla-grande.pantalla-oscura #vista-ranking .plata { --m-fondo: #2a2f35; --m-texto: #e8eaed; --m-corona: #dadce0; --m-corona-borde: #9aa0a6; }
   body.pantalla-grande.pantalla-oscura #vista-ranking .bronce { --m-fondo: #3a2316; --m-texto: #f0a875; --m-corona: #d98e5a; }
 
   /* Modo pantalla: sin barra de navegación, el ranking ocupa todo el alto */
@@ -117,7 +118,12 @@
     body.pantalla-grande #app { padding: 16px 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
     #vista-ranking .rank-titulo { font-size: 26px; }
     #vista-ranking .rp-rejilla { grid-template-columns: 1fr; }
-    #vista-ranking .podio { width: 100%; }
+    #vista-ranking .podio { width: 100%; gap: 4px; }
+    #vista-ranking .lugar .avatar { width: calc(60px * var(--rp-escala)); height: calc(60px * var(--rp-escala)); font-size: calc(20px * var(--rp-escala)); }
+    #vista-ranking .lugar.l1 .avatar { width: calc(76px * var(--rp-escala)); height: calc(76px * var(--rp-escala)); font-size: calc(26px * var(--rp-escala)); }
+    #vista-ranking .lugar .nombre { font-size: calc(15px * var(--rp-escala)); }
+    #vista-ranking .lugar.l1 .nombre { font-size: calc(17px * var(--rp-escala)); }
+    #vista-ranking .lugar .pts { font-size: calc(14px * var(--rp-escala)); }
   }
   @media (prefers-reduced-motion: reduce) {
     #vista-ranking .fila.subio, #vista-ranking .delta { animation: none; }

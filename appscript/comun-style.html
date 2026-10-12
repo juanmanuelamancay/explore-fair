@@ -124,25 +124,26 @@
   }
 
   /*
-   * Medalla de puesto: oro, plata y bronce para los tres primeros, con una corona de su metal;
-   * del cuarto en adelante, un círculo neutro. Los colores salen de la misma paleta del resto.
+   * Medalla de puesto: oro, plata, bronce y azul para los cuatro primeros (los cuatro premios), con una corona
+   * de su metal; del quinto en adelante, un círculo neutro. Los colores salen de la misma paleta del resto.
    */
   .medalla {
     position: relative; width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center;
     background: var(--superficie); border: 1px solid var(--borde-suave); font-weight: 500; color: var(--texto-2);
   }
-  /* Los tres metales: cualquier elemento con una de estas clases toma sus colores. */
+  /* Los cuatro metales: cualquier elemento con una de estas clases toma sus colores. */
   .oro { --m-fondo: #fef7e0; --m-borde: #f9ab00; --m-texto: #b06000; --m-corona: #fbbc04; }
-  .plata { --m-fondo: #f1f3f4; --m-borde: #9aa0a6; --m-texto: #5f6368; --m-corona: #bdc1c6; }
+  .plata { --m-fondo: #f1f3f4; --m-borde: #9aa0a6; --m-texto: #5f6368; --m-corona: #aab0b7; --m-corona-borde: #6f757c; }
   .bronce { --m-fondo: #fbe9e0; --m-borde: #c5733a; --m-texto: #8a4720; --m-corona: #d98e5a; }
+  .azul { --m-fondo: var(--azul-suave); --m-borde: var(--azul); --m-texto: var(--azul); --m-corona: #8ab4f8; }
   /* Medalla con número y avatar con iniciales comparten el mismo aspecto de medalla. */
-  .medalla.oro, .medalla.plata, .medalla.bronce,
-  .avatar.oro, .avatar.plata, .avatar.bronce {
+  .medalla.oro, .medalla.plata, .medalla.bronce, .medalla.azul,
+  .avatar.oro, .avatar.plata, .avatar.bronce, .avatar.azul {
     position: relative; background: var(--m-fondo); border: 2px solid var(--m-borde); color: var(--m-texto);
     font-weight: 700; box-shadow: inset 0 0 0 2px var(--fondo);
   }
   .corona { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); width: 22px; height: 16px; pointer-events: none; }
-  .corona path { fill: var(--m-corona); stroke: var(--m-borde); stroke-width: 1.6; stroke-linejoin: round; }
+  .corona path { fill: var(--m-corona); stroke: var(--m-corona-borde, var(--m-borde)); stroke-width: 1.6; stroke-linejoin: round; }
 
   .etiqueta-pab { font-size: 12px; font-weight: 500; color: var(--c); letter-spacing: .04em; text-transform: uppercase; }
   .abr {

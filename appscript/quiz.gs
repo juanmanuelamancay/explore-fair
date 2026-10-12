@@ -129,6 +129,26 @@ function inicioDeQuiz_(intentoId, preguntas, venceEnMs) {
   };
 }
 
+/**
+ * Vista QUIZ del VALIDADOR: recorre las preguntas de un stand sin responderlas. No pide código, no crea intento
+ * ni reloj y no escribe en Intentos, Usuarios ni en su índice. Recibe todas las preguntas activas del stand
+ * (en el evento cada usuario recibe solo "porQuiz" de ellas, al azar), sin la respuesta correcta.
+ */
+function verQuiz(standId) {
+  const sesion = exigirVista_('QUIZ');
+  if (sesion.rol !== 'VALIDADOR') return falla_('NO_VALIDADOR', 'Esta pantalla es solo para el validador.');
+  const stand = catalogo_().stands.find(s => s.id === id_(standId));
+  if (!stand) return falla_('STAND', 'Este stand no está disponible.');
+  let banco = preguntasDeStand_(stand.id);
+  // Puede ser la caché de antes de cargar las preguntas en el Sheet: se relee una vez antes de fallar.
+  if (!banco.length) banco = preguntasDeStand_(stand.id, true);
+  if (!banco.length) return falla_('SIN_PREGUNTAS', 'Este stand todavía no tiene preguntas activas.');
+  return {
+    ok: true, porQuiz: stand.numPreguntas,
+    preguntas: banco.map(p => ({ id: p.id, texto: p.texto, opciones: p.opciones })),
+  };
+}
+
 function sortear_(lista, cantidad) {
   const copia = lista.slice();
   for (let i = copia.length - 1; i > 0; i--) {
@@ -235,6 +255,7 @@ function resultadoDe_(intento) {
  */
 function enviarQuiz(intentoId, respuestas) {
   const sesion = exigirVista_('QUIZ');
+  if (sesion.rol !== 'USUARIO') return falla_('STAFF', 'Tu rol no responde quizzes.');
   const elegidas = respuestas || {};
   const llegada = primeraLlegada_(intentoId);
   const buscado = id_(intentoId);

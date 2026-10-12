@@ -41,7 +41,7 @@
   };
   // Stands y preguntas se editan desde cada pabellón, así que no tienen pestaña propia
   const OCULTAS_EN_TABS = ['stands', 'preguntas'];
-  const CONFIG_KEYS = ['minutos_vigencia_codigo', 'minutos_para_responder', 'puntos_por_defecto', 'segundos_refresco_board', 'segundos_cache_catalogo', 'feria_abierta', 'espera_activa', 'fecha_feria', 'lugar_feria', 'espera_mensaje'];
+  const CONFIG_KEYS = ['minutos_vigencia_codigo', 'minutos_para_responder', 'puntos_por_defecto', 'segundos_refresco_board', 'segundos_cache_catalogo', 'feria_abierta', 'espera_activa', 'fecha_feria', 'lugar_feria', 'espera_mensaje', 'premios_mensaje'];
   // ESPERA no va aquí: no se asigna por Permisos, la decide espera_activa en Config.
   const VISTAS = ['MAPA', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'];
   let conteos = null;
@@ -198,7 +198,7 @@
     let lista = [];
     if (campo.tipo === 'pabellon') lista = (datos.pabellones || []).filter(f => registroActivo(f)).map(f => [f.pabellon_id, f.nombre]);
     if (campo.tipo === 'stand') lista = (datos.stands || []).filter(f => registroActivo(f)).map(f => [f.stand_id, f.nombre + ' · ' + nombrePabellon(f.pabellon_id)]);
-    if (campo.tipo === 'rol') lista = [...new Set(['ADMIN', 'LIDER'].concat((datos.staff || []).map(f => f.rol), (datos.permisos || []).map(f => f.rol)))].map(f => [f, f]);
+    if (campo.tipo === 'rol') lista = [...new Set(['ADMIN', 'LIDER', 'VALIDADOR'].concat((datos.staff || []).map(f => f.rol), (datos.permisos || []).map(f => f.rol)))].map(f => [f, f]);
     if (campo.tipo === 'vista') lista = VISTAS.map(f => [f, f]);
     if (campo.tipo === 'correcta') lista = ['A', 'B', 'C', 'D'].map(f => [f, 'Opción ' + f]);
     if (campo.clave === 'clave') lista = CONFIG_KEYS.map(f => [f, f]);

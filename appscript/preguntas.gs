@@ -35,6 +35,7 @@ function preguntaParaLider_(p) {
  */
 function guardarPreguntaLider(entrada) {
   const sesion = exigirVista_('PREGUNTAS');
+  if (sesion.rol === 'VALIDADOR') throw new Error('Tu rol solo puede ver las preguntas, no editarlas.');
   const alcance = standsALiderar_(sesion, catalogo_()).map(s => s.id);
   if (!entrada || !Array.isArray(entrada.opciones) || entrada.opciones.length !== 4) throw new Error('La pregunta necesita cuatro opciones.');
 

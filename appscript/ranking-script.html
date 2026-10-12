@@ -4,7 +4,7 @@
   const RETRASO_DE_GUARDADO_MS = 700;   // espera a que terminen los movimientos del deslizador antes de escribir en Config
   // Preset de la pantalla. Se guarda en la hoja Config (claves rp_*); si no hay nada, se usan estos valores.
   // El top (escala y ancho) tiene sus propios ajustes: las columnas y las filas no lo afectan.
-  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 66, ocultarMenu: false, modoOscuro: false };
+  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 88, ocultarMenu: false, modoOscuro: false };
   // Interruptores del panel (sí o no).
   const INTERRUPTORES = [
     { clave: 'ocultarMenu', etiqueta: 'Ocultar menú de navegación (queda solo el ranking)' },
@@ -170,8 +170,10 @@
   const subio = p => (comparando && comparando.has(p.nombre) ? Math.max(0, p.puntos - comparando.get(p.nombre)) : 0);
   const etiqueta = n => (n > 0 ? `<i class="delta">+${n}</i>` : '');
 
-  // El podio toma hasta tres personas; la cuadrícula empieza en el 4.º.
-  const PUESTOS_DEL_PODIO = 3;
+  // El podio toma hasta cuatro personas, una por premio; la cuadrícula empieza en el 5.º.
+  const PUESTOS_DEL_PODIO = 4;
+  // De izquierda a derecha: el 2.º, el 1.º en el pico, y luego el 3.º y el 4.º bajando.
+  const ORDEN_DEL_PODIO = [1, 0, 2, 3];
 
   /**
    * Cuántas personas se muestran: las que se definan en "Personas por pantalla", sin pasar de lo que cabe
@@ -216,9 +218,9 @@
       return;
     }
 
-    // El podio muestra a quienes haya, hasta tres: con una persona solo el 1.º, con dos el 1.º y el 2.º. El 1.º va al centro.
+    // El podio muestra a quienes haya, hasta cuatro: con una persona solo el 1.º, con dos el 1.º y el 2.º, y así.
     const enPodio = Math.min(PUESTOS_DEL_PODIO, filas.length);
-    const orden = [1, 0, 2].filter(n => n < enPodio);
+    const orden = ORDEN_DEL_PODIO.filter(n => n < enPodio);
     contenido.innerHTML = `
       <div class="podio" style="--rp-podio: ${enPodio}">${orden.map(n => lugar(filas[n], n)).join('')}</div>
       <div class="rp-cuerpo"><div class="rp-rejilla" id="rp-rejilla"></div></div>

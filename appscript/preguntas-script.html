@@ -2,7 +2,9 @@
 (() => {
   const LETRAS = ['A', 'B', 'C', 'D'];
   const contenido = $('pg-contenido');
-  let datos = null;     // { maximo, stands, preguntas } tal como lo devuelve el servidor
+  // El validador ve las preguntas y la respuesta correcta, pero no puede crear ni editar.
+  const soloLectura = INICIO.rol === 'VALIDADOR';
+  let datos = null;    // { maximo, stands, preguntas } tal como lo devuelve el servidor
   let standId = null;   // stand que se está viendo
   let recien = null;    // pregunta que se acaba de guardar: su tarjeta destella una vez
   let guardando = false; // mientras el servidor guarda, la hoja no se puede cerrar
@@ -57,10 +59,10 @@
         <div class="pg-resumen">
           <div class="pg-puntitos" aria-hidden="true">${Array.from({ length: datos.maximo }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>
           <span class="tnum"><b>${n}</b> de ${datos.maximo} activas</span>
-          <button class="pg-nueva" data-nueva>${svg(ICONO.mas, 16)} Nueva</button>
+          ${soloLectura ? '' : `<button class="pg-nueva" data-nueva>${svg(ICONO.mas, 16)} Nueva</button>`}
         </div>
       </div>
-      <p class="pg-ayuda">Toca una pregunta para editarla.</p>
+      <p class="pg-ayuda">${soloLectura ? 'Toca una pregunta para verla completa.' : 'Toca una pregunta para editarla.'}</p>
       <ol class="pg-lista">${delStand().map((p, i) => tarjeta(p, i, animar)).join('') || '<li class="pg-vacio">Este stand todavía no tiene preguntas.</li>'}</ol>`;
   }
 
@@ -73,6 +75,20 @@
           <span class="pg-flecha" aria-hidden="true">${svg(ICONO.flecha, 18)}</span>
         </button>
       </li>`;
+  }
+
+  /** Pregunta completa para el validador: enunciado, opciones y la correcta marcada. No hay nada que guardar. */
+  function abrirDetalle(p) {
+    App.abrirHoja(`
+      <div class="pg-form">
+        <h2>Pregunta</h2>
+        <p class="pg-detalle-texto">${esc(p.texto)}</p>
+        <ul class="pg-detalle-opciones">
+          ${LETRAS.map((L, i) => `<li class="${L === p.correcta ? 'correcta' : ''}"><b>${L}</b><span>${esc(p.opciones[i])}</span>${L === p.correcta ? '<em>Correcta</em>' : ''}</li>`).join('')}
+        </ul>
+        <p class="pg-aviso-form">${p.activo ? 'Pregunta activa' : 'Pregunta desactivada'} · ${p.puntos} puntos · solo lectura</p>
+        <div class="pg-acciones"><button class="btn texto" type="button" data-cerrar>Cerrar</button></div>
+      </div>`);
   }
 
   /** Editor del enunciado, las opciones y la correcta de una pregunta, o de una nueva. */
@@ -137,6 +153,11 @@
     if (!datos) return;
     const chip = e.target.closest('[data-stand]');
     if (chip) { standId = chip.dataset.stand; return pintar(); }
+    if (soloLectura) {
+      const ver = e.target.closest('[data-editar]');
+      if (ver) abrirDetalle(datos.preguntas.find(p => p.id === ver.dataset.editar));
+      return;
+    }
     if (e.target.closest('[data-nueva]')) return abrirEditor(null);
     const editar = e.target.closest('[data-editar]');
     if (editar) abrirEditor(datos.preguntas.find(p => p.id === editar.dataset.editar));

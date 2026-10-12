@@ -5,7 +5,7 @@
 
 // Se muestra en la página de error y en el diagnóstico, para saber qué código está corriendo de verdad.
 // Cambiarla en cada entrega: si la app publicada muestra otra, falta crear una nueva versión de la implementación.
-const VERSION_DEL_CODIGO = '2026-10-12.1';
+const VERSION_DEL_CODIGO = '2026-10-12.2';
 
 // Vista de la hoja Permisos -> prefijo de sus archivos. Una vista que no esté aquí aún no está programada.
 const ARCHIVO_DE_VISTA = {

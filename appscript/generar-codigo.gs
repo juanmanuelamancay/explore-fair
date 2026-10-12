@@ -13,7 +13,7 @@ function standsALiderar_(sesion, catalogo) {
   const pabellones = pabellonesDelMapa_(catalogo);
   const todos = [];
   pabellones.forEach(p => p.stands.forEach(s => todos.push({ id: s.id, nombre: s.nombre, pabellon: p.nombre, pabellonId: p.id, indice: p.indice })));
-  if (sesion.rol === 'ADMIN') return todos;
+  if (sesion.rol === 'ADMIN' || sesion.rol === 'VALIDADOR') return todos;
   if (!sesion.staff) return [];
   if (sesion.staff.standId) return todos.filter(s => s.id === sesion.staff.standId);
   return todos.filter(s => s.pabellonId === sesion.staff.pabellonId);

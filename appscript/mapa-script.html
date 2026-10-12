@@ -82,14 +82,18 @@
   /** Con abriendo = true los pabellones se dibujan cerrados y se abren uno tras otro. */
   function pintar(abriendo, sumando) {
     const entrada = datos.entrada;
-    const entradaHecha = !entrada || entrada.estado === 'COMPLETADO' || entrada.estado === 'VENCIDO';
+    // El validador no responde: los pabellones están abiertos desde el inicio y no tiene puntos.
+    const soloLectura = !!datos.soloLectura;
+    const entradaHecha = soloLectura || !entrada || entrada.estado === 'COMPLETADO' || entrada.estado === 'VENCIDO';
 
     $('mapa-puntos').textContent = datos.puntos;
+    $('mapa-puntos').closest('.kpis').style.display = soloLectura ? 'none' : '';
     $('mapa-guia-icono').innerHTML = `
       <span class="guia-icono-cara guia-icono-mano">${svg(ICONO.toque, 20)}</span>
       <span class="guia-icono-cara guia-icono-pregunta" aria-hidden="true">?</span>`;
-    $('mapa-guia-titulo').textContent = entradaHecha ? 'Suma puntos en cada stand' : 'Te damos la bienvenida a la feria';
-    $('mapa-guia-texto').textContent = entradaHecha ? 'Escucha la charla y pulsa su pabellón.' : 'Responde el quiz de entrada para abrir los pabellones.';
+    $('mapa-guia-titulo').textContent = soloLectura ? 'Modo validador' : entradaHecha ? 'Suma puntos en cada stand' : 'Te damos la bienvenida a la feria';
+    $('mapa-guia-texto').textContent = soloLectura ? 'Abre un stand para ver todas sus preguntas.'
+      : entradaHecha ? 'Escucha la charla y pulsa su pabellón.' : 'Responde el quiz de entrada para abrir los pabellones.';
 
     const pabellones = datos.pabellones.map((p, i) => {
       const angulo = (-90 + i * 360 / datos.pabellones.length) * Math.PI / 180;
@@ -111,7 +115,8 @@
     let centro = '';
     if (entrada) {
       const hecha = entrada.estado === 'COMPLETADO';
-      const rotulo = hecha ? `Quiz de entrada<small>${entrada.puntaje} pts</small>`
+      const rotulo = soloLectura ? 'Quiz de entrada<small>Ver preguntas</small>'
+        : hecha ? `Quiz de entrada<small>${entrada.puntaje} pts</small>`
         : entrada.estado === 'VENCIDO' ? 'Quiz de entrada<small>Sin puntaje</small>'
         : entrada.estado === 'EN_CURSO' ? 'Continúa aquí<small>Quiz de entrada</small>'
         : 'Empieza aquí<small>Quiz de entrada</small>';
@@ -160,7 +165,7 @@
           <span class="icono">${svg(tono.icono)}</span>
           <div><p class="sec chico">Pabellón${completo ? ' completo' : ''}</p><h2>${esc(p.nombre)}</h2></div>
         </div>
-        <p class="hoja-seccion">Descubre los stands, responde aquí y gana puntos</p>
+        <p class="hoja-seccion">${datos.soloLectura ? 'Elige un stand para ver sus preguntas' : 'Descubre los stands, responde aquí y gana puntos'}</p>
         <ul>${filas}</ul>
         <p class="aviso" style="margin:8px 16px 4px">Necesitas el código que da el líder al terminar la charla.</p>
       </div>`);
@@ -180,7 +185,19 @@
   }
 
 function abrirComoJugar() {
-  const modal = App.abrirHoja(`
+  const modal = App.abrirHoja(datos && datos.soloLectura ? `
+    <div class="hoja-texto">
+      <h2 id="como-jugar-titulo">Cómo validar</h2>
+      <p>
+        Como validador solo puedes mirar: recorres las preguntas de cada stand,
+        pero no las respondes ni sumas puntos.
+      </p>
+      <p>
+        Pulsa un pabellón y elige el stand: no hace falta código. Verás todas
+        las preguntas del stand, aunque en el evento cada usuario responde solo 4 de ellas.
+      </p>
+    </div>
+  ` : `
     <div class="hoja-texto">
       <h2 id="como-jugar-titulo">Cómo participar</h2>
 

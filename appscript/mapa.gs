@@ -8,8 +8,10 @@ function obtenerMapa() {
   const catalogo = catalogo_();
   const ahora = Date.now();
 
-  const mios = miIndice_(sesion);
-  sincronizarPendientes_(sesion, mios);
+  // El validador no responde: no tiene intentos, así que no lee ni escribe su índice ni la hoja Intentos.
+  const soloLectura = sesion.rol === 'VALIDADOR';
+  const mios = soloLectura ? {} : miIndice_(sesion);
+  if (!soloLectura) sincronizarPendientes_(sesion, mios);
 
   let puntos = 0;
   const paraElMapa = stand => {
@@ -41,5 +43,5 @@ function obtenerMapa() {
     id: p.id, nombre: p.nombre, nombreCorto: p.nombreCorto, indice: p.indice, stands: p.stands.map(paraElMapa),
   }));
 
-  return { puntos: puntos, entrada: entradaParaElMapa, pabellones: pabellones };
+  return { puntos: puntos, entrada: entradaParaElMapa, pabellones: pabellones, soloLectura: soloLectura };
 }

@@ -289,7 +289,8 @@ function adminValidarRelaciones_(entidad, registro, fila) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(registro.email)) throw new Error('Escribe un correo válido.');
     if (!registro.nombre || !registro.rol) throw new Error('Completa nombre y rol.');
     if (registro.activo && !permisos.some(p => p.rol === registro.rol && adminBooleano_(p, 'activo'))) throw new Error('Ese rol no tiene permisos activos. Configura primero al menos una vista.');
-    if (registro.rol === 'ADMIN') {
+    // El admin y el validador ven todos los stands: no tienen pabellón ni stand asignado.
+    if (registro.rol === 'ADMIN' || registro.rol === 'VALIDADOR') {
       registro.pabellon_id = '';
       registro.stand_id = '';
     } else {
@@ -303,6 +304,7 @@ function adminValidarRelaciones_(entidad, registro, fila) {
   }
   if (entidad === 'permisos') {
     if (!registro.rol || !registro.vista || registro.vista === 'ESPERA' || !Object.prototype.hasOwnProperty.call(ARCHIVO_DE_VISTA, registro.vista)) throw new Error('El rol o la vista no son válidos.');
+    if (registro.rol === 'VALIDADOR' && VISTAS_DEL_VALIDADOR.indexOf(registro.vista) < 0) throw new Error('El validador solo puede tener las vistas ' + VISTAS_DEL_VALIDADOR.join(', ') + '.');
     if (registro.activo && registro.vista === 'QUIZ' && !permisos.some(p => p._fila !== (fila && fila._fila) && p.rol === registro.rol && p.vista === 'MAPA' && adminBooleano_(p, 'activo'))) throw new Error('QUIZ necesita también el permiso MAPA para ese rol.');
   }
   if (entidad === 'config') {

@@ -11,20 +11,49 @@
   <!-- Cuenta regresiva, o el aviso de que ya llegó el día -->
   <section class="tarjeta centro espera-cuenta" id="espera-cuenta" aria-live="polite"></section>
 
-  <!-- Carrusel: empieza en Premios, sigue con Cómo se juega y luego una tarjeta por pabellón
-       (las agrega el script). Se desliza con el dedo, avanza solo y los puntos llevan a cada lámina. -->
+  <!-- Carrusel: empieza en el Objetivo, sigue con Cómo participar, luego una tarjeta por pabellón
+       (las agrega el script antes de Premios) y termina en Premios.
+       Se desliza con el dedo, avanza solo y los puntos llevan a cada lámina. -->
   <div class="carrusel" id="espera-carrusel" hidden>
 
-    <section class="lamina" data-titulo="Premios" id="espera-premios" hidden></section>
+    <!-- Es la lámina más larga: se le da más tiempo antes de avanzar (data-segundos) -->
+    <section class="lamina" data-titulo="Objetivo" data-segundos="25">
+      <h2 class="titulo-seccion">Objetivo de la feria</h2>
+      <div class="tarjeta espera-objetivo">
+        <div class="objetivo-cab">
+          <div class="disco-chico" id="espera-objetivo-icono"></div>
+          <h2>Una experiencia práctica</h2>
+        </div>
+        <p class="objetivo-texto">Conocerás qué agentes existen y cuál puede ayudarte, cómo utilizarlo y cómo combinar sus capacidades para resolver retos reales de desarrollo.</p>
 
-    <section class="lamina" data-titulo="Cómo se juega">
-      <h2 class="titulo-seccion">Cómo se juega</h2>
+        <p class="objetivo-sub">¿Qué encontrarás?</p>
+        <ul class="objetivo-lista">
+          <li><span class="obj-ico"></span>Demos en vivo de agentes en distintas tecnologías y etapas del SDLC</li>
+          <li><span class="obj-ico"></span>Retos técnicos donde verás cómo se combinan los agentes</li>
+          <li><span class="obj-ico"></span>Casos prácticos y experiencias de otros developers</li>
+          <li><span class="obj-ico"></span>Buenas prácticas para mejores resultados y un uso más eficiente de tus créditos</li>
+          <li><span class="obj-ico"></span>Espacios para llevar tus dudas y casos de uso</li>
+          <li><span class="obj-ico"></span>Dinámicas, desafíos y mucho aprendizaje compartido</li>
+        </ul>
+
+        <div class="objetivo-meta">
+          <span>Al terminar la feria podrás decir:</span>
+          <b>“Sé qué agente puede ayudarme y cómo empezar a utilizarlo en mi día a día.”</b>
+        </div>
+      </div>
+    </section>
+
+    <section class="lamina" data-titulo="Cómo participar">
+      <h2 class="titulo-seccion">Esta app te servirá para…</h2>
+      <p class="espera-intro">Recorrer la feria a tu ritmo, participar en las charlas y completar quizzes para sumar puntos y subir en el ranking.</p>
       <ol class="lista espera-pasos">
-        <li class="fila"><span class="paso">1</span><span class="quien"><b>Responde el quiz de entrada</b><span>Es lo primero al llegar y abre los pabellones.</span></span></li>
-        <li class="fila"><span class="paso">2</span><span class="quien"><b>Visita los stands</b><span>Al terminar cada charla, el líder te da un código.</span></span></li>
+        <li class="fila"><span class="paso">1</span><span class="quien"><b>Responde el quiz de entrada</b><span>Es lo primero al llegar: te da tus primeros puntos y abre los pabellones para que sigas respondiendo y sumando.</span></span></li>
+        <li class="fila"><span class="paso">2</span><span class="quien"><b>Visita los stands</b><span>Al terminar cada charla, el líder te da un código. Úsalo en la app para desbloquear las preguntas de ese stand.</span></span></li>
         <li class="fila"><span class="paso">3</span><span class="quien"><b>Suma puntos y sube en el ranking</b><span>Cada respuesta correcta cuenta. Solo hay un intento por stand.</span></span></li>
       </ol>
     </section>
+
+    <section class="lamina" data-titulo="Premios" id="espera-premios" hidden></section>
 
   </div>
   <div class="carrusel-puntos" id="espera-puntos" role="tablist"></div>

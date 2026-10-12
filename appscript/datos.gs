@@ -29,6 +29,7 @@ const CONFIG_DEFECTO = {
   fecha_feria: 0,
   lugar_feria: '',
   espera_mensaje: '',
+  premios_mensaje: 'Participando y aprendiendo podrás ganar:',
   // Preset de la pantalla de ranking (vista RANKING). Se edita desde su panel de ajustes.
   rp_personas: 0,        // personas por pantalla; 0 = lo que quepa
   rp_columnas: 6,
@@ -37,7 +38,7 @@ const CONFIG_DEFECTO = {
   rp_fuente: 16,         // px de los nombres
   rp_puntos: 22,         // px de los puntos
   rp_escala: 100,        // % del top (podio)
-  rp_ancho_top: 66,      // % del ancho de la pantalla que ocupa el top
+  rp_ancho_top: 88,     // % del ancho de la pantalla que ocupa el top
   rp_ocultar_menu: false, // TRUE oculta la barra de navegación en la vista de ranking
   rp_modo_oscuro: false,  // TRUE pinta la vista de ranking en oscuro
 };
@@ -315,17 +316,19 @@ function leerConfig_() {
 /**
  * Lo que decide qué ve cada persona no puede esperar a que venza la caché: quien acaba de ser
  * nombrado líder, o la sala de espera recién encendida, deben notarse al recargar. Se llama al
- * abrir la app y al pulsar actualizar: compara Staff, Permisos y Config del Sheet con lo guardado
- * y, si cambiaron, refresca el catálogo. Se revisa como mucho cada 30 segundos, así que un cambio a mano tarda hasta eso en notarse.
+ * abrir la app y al pulsar actualizar: compara el catálogo (pabellones, stands, Staff, Permisos y Config)
+ * y los Premios del Sheet con lo guardado y, si cambiaron, los refresca. Se revisa como mucho cada 30 segundos,
+ * así que un cambio a mano tarda hasta eso en notarse, aunque segundos_cache_catalogo sea mayor.
  */
 function sincronizarRoles_() {
-  // Como mucho una vez cada 30 segundos, para toda la feria: no hace falta que cada carga lea tres hojas.
+  // Como mucho una vez cada 30 segundos, para toda la feria: no hace falta que cada carga lea las hojas.
   if (cacheLeer_('roles-al-dia')) return;
   cachePoner_('roles-al-dia', 1, 30);
   const enCache = cacheLeer_('catalogo');
   if (!enCache) return;
-  const actual = JSON.stringify([leerStaff_(), leerPermisos_(), leerConfig_()]);
-  if (actual !== JSON.stringify([enCache.staff, enCache.permisos, enCache.config])) refrescarCatalogo_();
+  if (JSON.stringify(leerCatalogo_()) !== JSON.stringify(enCache)) refrescarCatalogo_();
+  const premios = cacheLeer_('premios');
+  if (premios && JSON.stringify(leerPremios_()) !== JSON.stringify(premios)) cacheQuitar_('premios');
 }
 
 let CATALOGO_ = null;
@@ -336,7 +339,7 @@ function leerCatalogo_() {
   return {
     config: leerConfig_(),
     pabellones: leerHoja_(HOJA.PABELLONES).filter(p => esVerdadero_(p.activo)).map(p => ({
-      id: id_(p.pabellon_id), nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), orden: Number(p.orden) || 0,
+      id: id_(p.pabellon_id), nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), descripcion: texto_(p.descripcion), orden: Number(p.orden) || 0,
     })).sort(porOrden),
     stands: leerHoja_(HOJA.STANDS).filter(s => esVerdadero_(s.activo)).map(s => ({
       id: id_(s.stand_id), pabellonId: id_(s.pabellon_id), nombre: texto_(s.nombre),
@@ -376,7 +379,7 @@ function refrescarCatalogo_() {
  */
 function pabellonesDelMapa_(catalogo) {
   return catalogo.pabellones
-    .map(p => ({ id: p.id, nombre: p.nombre, nombreCorto: p.nombreCorto, stands: catalogo.stands.filter(s => s.pabellonId === p.id && s.requiereCodigo) }))
+    .map(p => ({ id: p.id, nombre: p.nombre, nombreCorto: p.nombreCorto, descripcion: p.descripcion, stands: catalogo.stands.filter(s => s.pabellonId === p.id && s.requiereCodigo) }))
     .filter(p => p.stands.length)
     .map((p, i) => Object.assign(p, { indice: i }));
 }

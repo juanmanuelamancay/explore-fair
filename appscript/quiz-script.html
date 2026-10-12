@@ -7,9 +7,15 @@
   // Lo que llega desde el mapa (stand, pabellon, color, tinte) más el quiz en curso.
   let q = null;
 
+  // El validador recorre las preguntas sin responderlas: sin reloj, sin intento y sin puntos.
+  const validador = INICIO.rol === 'VALIDADOR';
+
   function mostrar(datos) {
     q = { stand: datos.stand, pabellon: datos.pabellon, color: datos.color, tinte: datos.tinte, intervalo: null };
-    if (q.stand.estado === 'EN_CURSO') {
+    if (validador) {
+      // El validador no pide código ni responde: entra directo a ver las preguntas.
+      verPreguntas();
+    } else if (q.stand.estado === 'EN_CURSO') {
       // Cerró la app a mitad del quiz: se retoma sin pedir el código otra vez.
       App.cargando(pantalla);
       iniciar('');
@@ -61,6 +67,54 @@
     campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
     boton.onclick = () => iniciar(campo.value);
     campo.focus();
+  }
+
+  /* ---------- Validador: ver las preguntas sin responderlas ---------- */
+  function verPreguntas() {
+    pantalla.innerHTML = `${cabecera()}<div class="estado"><i class="giro oscuro"></i><p>Cargando preguntas…</p></div>`;
+    servidorInsistente('verQuiz', q.stand.id).then(r => {
+      if (!r.ok) {
+        toast(r.mensaje);
+        return App.ir('mapa');
+      }
+      q.preguntas = r.preguntas;
+      q.porQuiz = r.porQuiz;
+      q.actual = 0;
+      pantallaRevision(true);
+    }).catch(() => {
+      toast('No pudimos cargar las preguntas. Inténtalo de nuevo.');
+      App.ir('mapa');
+    });
+  }
+
+  /** Una pregunta a la vez, con sus opciones a la vista pero sin poder elegir. La flecha de arriba vuelve al mapa en cualquier momento. */
+  function pantallaRevision(entrar = false) {
+    const p = q.preguntas[q.actual];
+    const primera = q.actual === 0;
+    const ultima = q.actual === q.preguntas.length - 1;
+    pantalla.innerHTML = `
+      ${cabecera()}
+      <div class="pregunta-vista ${entrar ? 'entra' : ''}">
+      <div class="quiz-cab" style="--c:${q.color}">
+        <div class="pasos" aria-hidden="true">${q.preguntas.map((_, i) => `<i class="${i < q.actual ? 'pasado' : i === q.actual ? 'actual' : ''}"></i>`).join('')}</div>
+      </div>
+      <p class="aviso" style="text-align:left;margin:10px 0 0">En el evento cada usuario responde solo ${q.porQuiz} de estas ${q.preguntas.length} preguntas, elegidas al azar.</p>
+      <p class="sec chico">Pregunta ${q.actual + 1} de ${q.preguntas.length} · solo lectura</p>
+      <h2 class="enunciado">${esc(p.texto)}</h2>
+      <div role="list" aria-label="Opciones">
+        ${p.opciones.map((texto, i) => `
+          <div class="opcion" style="--i:${i}" role="listitem"><span class="letra">${LETRAS[i]}</span><span>${esc(texto)}</span></div>`).join('')}
+      </div>
+      ${primera ? '' : '<button class="btn secundario" data-anterior>Anterior</button>'}
+      ${ultima ? '' : '<button class="btn" data-siguiente>Siguiente</button>'}
+      <button class="btn ${ultima ? '' : 'texto'}" data-ir="mapa">Volver al mapa</button>
+      </div>`;
+    window.scrollTo(0, 0);
+    const mover = paso => () => { q.actual += paso; pantallaRevision(true); };
+    const anterior = pantalla.querySelector('[data-anterior]');
+    const siguiente = pantalla.querySelector('[data-siguiente]');
+    if (anterior) anterior.onclick = mover(-1);
+    if (siguiente) siguiente.onclick = mover(1);
   }
 
   function iniciar(codigo) {

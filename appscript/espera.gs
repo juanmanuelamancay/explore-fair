@@ -7,13 +7,18 @@
 function premios_() {
   let premios = cacheLeer_('premios');
   if (!premios) {
-    premios = !hojaSiExiste_('Premios') ? [] : leerHoja_('Premios')
-      .filter(p => esVerdadero_(p.activo))
-      .map(p => ({ orden: Number(p.orden) || 0, titulo: texto_(p.titulo), descripcion: texto_(p.descripcion) }))
-      .sort((a, b) => a.orden - b.orden);
+    premios = leerPremios_();
     cachePoner_('premios', premios, segundosDeCatalogo_(catalogo_().config));
   }
   return premios;
+}
+
+/** Lee la hoja Premios sin pasar por la caché. */
+function leerPremios_() {
+  return !hojaSiExiste_('Premios') ? [] : leerHoja_('Premios')
+    .filter(p => esVerdadero_(p.activo))
+    .map(p => ({ orden: Number(p.orden) || 0, titulo: texto_(p.titulo), descripcion: texto_(p.descripcion) }))
+    .sort((a, b) => a.orden - b.orden);
 }
 
 function obtenerEspera() {
@@ -24,9 +29,10 @@ function obtenerEspera() {
     fecha: catalogo.config.fecha_feria,
     lugar: catalogo.config.lugar_feria,
     mensaje: catalogo.config.espera_mensaje,
+    mensajePremios: catalogo.config.premios_mensaje,
     premios: premios_(),
     pabellones: pabellonesDelMapa_(catalogo).map(p => ({
-      nombre: p.nombre, indice: p.indice, stands: p.stands.map(s => s.nombre),
+      nombre: p.nombre, descripcion: p.descripcion, indice: p.indice, stands: p.stands.map(s => s.nombre),
     })),
   };
 }
