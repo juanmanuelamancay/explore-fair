@@ -121,7 +121,7 @@
         : entrada.estado === 'EN_CURSO' ? 'Continúa aquí<small>Quiz de entrada</small>'
         : 'Empieza aquí<small>Quiz de entrada</small>';
       centro = `
-        <button class="punto yo-nodo ${entradaHecha ? '' : 'pendiente'}" data-stand="${esc(entrada.id)}" style="left:50%;top:50%"
+        <button class="punto yo-nodo ${soloLectura || !entradaHecha ? 'pendiente' : ''}" data-stand="${esc(entrada.id)}" style="left:50%;top:50%"
                 aria-label="${hecha ? 'Quiz de entrada respondido, ' + entrada.puntaje + ' puntos' : 'Quiz de entrada'}">
           <span class="disco">${esc(iniciales(INICIO.nombre))}${hecha ? `<span class="hecho ${abriendo ? 'recien' : ''}">${svg(ICONO.check, 14, '#fff', 3)}</span>` : ''}</span>
           <span class="rot">${rotulo}</span>
