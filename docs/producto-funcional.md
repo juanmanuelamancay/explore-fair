@@ -28,9 +28,9 @@ El administrador puede:
 - Activar o desactivar preguntas.
 - Revisar cuántas preguntas tiene cada stand y cada charla, y qué pabellones, stands y charlas todavía no tienen responsable asignado.
 
-Si el administrador le da acceso, el **expositor** de cada stand y el **ponente** de cada charla pueden crear y corregir las preguntas de su banco: el enunciado, las opciones y la respuesta correcta. Los puntos y qué preguntas están activas los decide el administrador. Un expositor puede tener hasta 12 preguntas activas y un ponente hasta 15.
+Si el administrador le da acceso, el **expositor** de cada stand y el **ponente** de cada charla pueden crear y corregir las preguntas de su banco: el enunciado, las opciones y la respuesta correcta. Los puntos y qué preguntas están activas los decide el administrador. Un expositor puede tener hasta 10 preguntas activas y un ponente hasta 15.
 
-Un pabellón solo puede abrirse cuando cada uno de sus stands tiene al menos 12 preguntas activas; una charla, cuando tiene al menos 15.
+Un pabellón solo puede abrirse cuando cada uno de sus stands tiene al menos 10 preguntas activas; una charla, cuando tiene al menos 15.
 
 ### Cómo responde una persona
 
@@ -69,7 +69,7 @@ El administrador puede encender una sala de espera. Mientras está activa, los p
 
 - **Participante:** recorre la feria, responde preguntas y consulta sus puntos.
 - **Líder de pabellón:** entrega el código temporal que permite responder el cuestionario de su pabellón.
-- **Expositor:** mantiene las preguntas de su stand (hasta 12 activas).
+- **Expositor:** mantiene las preguntas de su stand (hasta 10 activas).
 - **Ponente:** entrega el código de su charla y mantiene sus preguntas (hasta 15 activas).
 - **Validador:** recorre los cuestionarios y las preguntas sin responder ni editar.
 - **Administrador:** prepara pabellones, stands, preguntas, personas, premios y reglas de la feria; ve el ranking y lo proyecta en la pantalla grande, y puede reiniciar los datos después de las pruebas.

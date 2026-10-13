@@ -24,10 +24,9 @@ const CONFIG_DEFECTO = {
   segundos_refresco_board: 15,
   segundos_cache_catalogo: 60,
   segundos_cache_ranking: 60,
-  // Quiz por pabellón: cada stand aporta preguntas_por_stand preguntas de su banco, que debe tener al menos preguntas_banco_stand activas.
+  // Quiz por pabellón: cada stand aporta preguntas_por_stand preguntas de su banco, que debe tener PREGUNTAS_BANCO_STAND activas (fijo en el código).
   // Cada charla trae su propio banco y su sorteo (columnas de Charlas); estas dos claves valen si la columna está vacía.
   preguntas_por_stand: 2,
-  preguntas_banco_stand: 12,
   preguntas_quiz_charla: 5,
   preguntas_banco_charla: 15,
   feria_abierta: true,
@@ -54,6 +53,9 @@ const CONFIG_DEFECTO = {
 // con margen para unidades que se agreguen. No se cambia con la feria en curso: la fila de cada intento
 // se calcula con este número (ver indice.gs).
 const FILAS_POR_PERSONA = 16;
+
+/** Preguntas activas que necesita el banco de cada stand (y tope del expositor). Fijo: no se lee de Config. */
+const PREGUNTAS_BANCO_STAND = 10;
 
 /** Cuánto tarda la app en notar un cambio hecho a mano en las hojas de catálogo. Se ajusta en Config. */
 function segundosDeCatalogo_(config) {
@@ -366,7 +368,7 @@ function leerCatalogo_() {
     const requiere = texto_(p.requiere_codigo) !== '' ? esVerdadero_(p.requiere_codigo)
       : (propios.length ? propios.some(s => texto_(s.requiere_codigo) === '' || esVerdadero_(s.requiere_codigo)) : true);
     const porStand = Math.floor(Number(p.preguntas_por_stand)) > 0 ? Math.floor(Number(p.preguntas_por_stand)) : config.preguntas_por_stand;
-    const bancos = propios.map(s => ({ id: id_(s.stand_id), nombre: texto_(s.nombre), cuantas: porStand, minimo: config.preguntas_banco_stand, orden: Number(s.orden) || 0 }))
+    const bancos = propios.map(s => ({ id: id_(s.stand_id), nombre: texto_(s.nombre), cuantas: porStand, minimo: PREGUNTAS_BANCO_STAND, orden: Number(s.orden) || 0 }))
       .sort(porOrden).map(b => ({ id: b.id, nombre: b.nombre, cuantas: b.cuantas, minimo: b.minimo }));
     return {
       id: id, tipo: 'PABELLON', nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), descripcion: texto_(p.descripcion),

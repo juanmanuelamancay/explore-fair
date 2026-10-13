@@ -406,7 +406,7 @@ El simulador no reproduce los límites de Apps Script (tiempo de ejecución, eje
 
 Desde 2026-10-13 el quiz no es por stand sino por **unidad**: un pabellón (sus stands aportan preguntas) o una charla. Todo lo que antes iba por `stand_id` va por `unidad_id`:
 
-- **Catálogo.** `leerCatalogo_` arma `catalogo_().unidades`. Cada unidad trae sus **bancos**: un pabellón, uno por stand activo (`cuantas` = `preguntas_por_stand`, `minimo` = `preguntas_banco_stand`); una charla, uno solo (`preguntas_quiz`, `preguntas_banco`). La caché de preguntas sigue siendo por banco (`preguntas:<id>`); la columna `stand_id` de `Preguntas` lleva el ID del stand o de la charla.
+- **Catálogo.** `leerCatalogo_` arma `catalogo_().unidades`. Cada unidad trae sus **bancos**: un pabellón, uno por stand activo (`cuantas` = `preguntas_por_stand`, `minimo` = la constante `PREGUNTAS_BANCO_STAND`, 10, fija en el código); una charla, uno solo (`preguntas_quiz`, `preguntas_banco`). La caché de preguntas sigue siendo por banco (`preguntas:<id>`); la columna `stand_id` de `Preguntas` lleva el ID del stand o de la charla.
 - **Iniciar y corregir.** `iniciarQuiz(unidadId, codigo)` comprueba que el rol tenga la vista que abre ese tipo de unidad (`MAPA` para pabellones, `CHARLAS` para charlas), que cada banco tenga sus preguntas, sortea `cuantas` de cada banco y guarda todo en un solo intento. `enviarQuiz` corrige contra las preguntas de todos los bancos de la unidad.
 - **Códigos.** `Codigos.unidad_id`: una fila por pabellón con código y por charla. `unidadesParaCodigo_` decide qué puede generar cada rol: el líder, su pabellón; el ponente, su charla; el admin, todo.
 - **Preguntas.** `bancosParaPreguntas_` decide qué bancos puede ver o editar cada rol y cuál es su tope.

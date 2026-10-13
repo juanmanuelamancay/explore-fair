@@ -206,7 +206,7 @@ function adminAvance_(datos) {
   datos.preguntas.filter(activa).forEach(q => { activasPorBanco[q.stand_id] = (activasPorBanco[q.stand_id] || 0) + 1; });
   const preguntas = {};
   datos.stands.filter(activa).forEach(s => {
-    preguntas[s.stand_id] = { activas: activasPorBanco[s.stand_id] || 0, necesita: Math.max(config.preguntas_banco_stand, config.preguntas_por_stand) };
+    preguntas[s.stand_id] = { activas: activasPorBanco[s.stand_id] || 0, necesita: Math.max(PREGUNTAS_BANCO_STAND, config.preguntas_por_stand) };
   });
   datos.charlas.filter(activa).forEach(c => {
     const banco = Math.floor(Number(c.preguntas_banco)) > 0 ? Math.floor(Number(c.preguntas_banco)) : config.preguntas_banco_charla;

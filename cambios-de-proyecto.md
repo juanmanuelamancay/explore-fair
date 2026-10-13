@@ -8,9 +8,9 @@ Este documento reúne **todo lo que hay que hacer** para pasar de la versión an
 
 | Antes | Ahora |
 |---|---|
-| Un quiz por stand (banco de 16, se responden 4) | Un quiz por **pabellón**: cada stand aporta 2 preguntas de su banco de 12. Pabellón de 4 stands = 8 preguntas |
+| Un quiz por stand (banco de 16, se responden 4) | Un quiz por **pabellón**: cada stand aporta 2 preguntas de su banco de 10. Pabellón de 4 stands = 8 preguntas |
 | Un código por stand | Un código por **pabellón** |
-| `LIDER` genera códigos y edita preguntas | `LIDER` genera el código de su pabellón · `EXPOSITOR` edita su stand (hasta 12 preguntas) · `PONENTE` genera el código de su charla y edita sus preguntas (hasta 15) |
+| `LIDER` genera códigos y edita preguntas | `LIDER` genera el código de su pabellón · `EXPOSITOR` edita su stand (hasta 10 preguntas) · `PONENTE` genera el código de su charla y edita sus preguntas (hasta 15) |
 | Solo el evento | **Semana de charlas** (lun 19 a mié 21): agenda de charlas con horario, 5 preguntas de un banco de 15, código de 5 minutos. Los puntos suman al mismo ranking que el evento |
 | 25 filas por persona en `Intentos` | **16 filas** por persona (entrada + 6 pabellones + 5 charlas = 12 intentos) |
 
@@ -137,10 +137,10 @@ Una fila por rol y vista. Estas son las filas que debe tener (`activo = TRUE`):
 
 ### 1.8 `Preguntas`: bancos completos
 
-- [ ] **Cada stand activo: 12 preguntas activas.** Si un stand tiene menos, **todo su pabellón** queda sin quiz (el mensaje dice cuál stand falta). El archivo [preguntas_demo_stands.tsv](preguntas_demo_stands.tsv) ya trae 12 activas por stand.
+- [ ] **Cada stand activo: 10 preguntas activas.** Si un stand tiene menos, **todo su pabellón** queda sin quiz (el mensaje dice cuál stand falta). El archivo [preguntas_demo_stands.tsv](preguntas_demo_stands.tsv) ya trae 10 activas por stand.
 - [ ] **Cada charla: 15 preguntas activas.** En la columna `stand_id` de `Preguntas` se escribe el ID de la charla (`CHA-001`).
 - Los **puntos** de cada pregunta (columna `puntos`) y `puntos_por_defecto` (en `Config`) los decide usted: un pabellón con más stands tendrá más preguntas y, por tanto, puede dar más puntos.
-- Hasta el tope (12 en un stand, 15 en una charla), el expositor y el ponente pueden agregar preguntas desde la app; pasado el tope solo editan las que hay. El admin no tiene tope.
+- Hasta el tope (10 en un stand, 15 en una charla), el expositor y el ponente pueden agregar preguntas desde la app; pasado el tope solo editan las que hay. El admin no tiene tope.
 
 ### 1.9 `Config`: opcional
 
@@ -149,7 +149,6 @@ Estas claves ya traen valor por defecto; escríbalas solo si quiere cambiarlas:
 | clave | valor por defecto | Para qué |
 |---|---|---|
 | `preguntas_por_stand` | 2 | Preguntas que aporta cada stand al quiz de su pabellón |
-| `preguntas_banco_stand` | 12 | Preguntas activas que necesita cada stand (y tope del expositor) |
 | `preguntas_quiz_charla` | 5 | Preguntas que se sortean en una charla |
 | `preguntas_banco_charla` | 15 | Preguntas activas que necesita una charla (y tope del ponente) |
 
@@ -194,7 +193,7 @@ El `.clasp.json` del proyecto apunta al proyecto de Apps Script **real**. `clasp
 - [ ] Con `Intentos` vacía, ejecute `prepararFeria`. **Es el último reinicio** (desde el lunes 19 ya no se hace).
 - [ ] Ejecute `prepararCodigos()` (deja una fila por pabellón con código y por charla).
 - [ ] Panel → "Actualizar desde el Sheet" (deja las preguntas en caché).
-- [ ] En el panel, pestaña Pabellones: revise que cada stand muestre `12/12 preguntas` y que ningún pabellón diga "sin líder"; en Charlas, `15/15` y ningún "sin ponente".
+- [ ] En el panel, pestaña Pabellones: revise que cada stand muestre `10/10 preguntas` y que ningún pabellón diga "sin líder"; en Charlas, `15/15` y ningún "sin ponente".
 - [ ] `espera_activa` en `FALSE`; `feria_abierta` en `TRUE`.
 - [ ] Permisos de `USUARIO` en modo semana de charlas (Parte 1.6).
 
@@ -228,7 +227,7 @@ Durante estos días **no** se cambia código ni se reinicia nada. Sí se puede, 
 |---|---|
 | "Falta la columna `unidad_id` en la hoja Intentos" | No se renombró la cabecera (1.1) |
 | "Falta la columna `unidad_id` en Codigos" | No se renombró la cabecera (1.2) |
-| Un pabellón dice "tiene K activas y necesita 12" | A un stand de ese pabellón le faltan preguntas (1.8) |
+| Un pabellón dice "tiene K activas y necesita 10" | A un stand de ese pabellón le faltan preguntas (1.8) |
 | "Agrega la columna `requiere_codigo` en la hoja Pabellones" (al guardar desde el panel) | Falta la columna (1.3) |
 | "Agrega la columna `charla_id` en la hoja Staff" | Falta la columna (1.5) |
 | "Crea primero la hoja Charlas" | Falta la hoja (1.7) |
@@ -242,7 +241,7 @@ Durante estos días **no** se cambia código ni se reinicia nada. Sí se puede, 
 
 - Quiz por pabellón con sorteo de 2 preguntas por stand, corrección y un intento por persona y pabellón.
 - Hoja y vista de charlas con apertura por fecha, código de 5 minutos y sin quiz de entrada.
-- Roles `LIDER`, `EXPOSITOR` y `PONENTE`, con tope de 12 y 15 preguntas activas.
+- Roles `LIDER`, `EXPOSITOR` y `PONENTE`, con tope de 10 y 15 preguntas activas.
 - Panel: pestaña Charlas, asignación de líder, expositor y ponente por correo, avance de preguntas por stand y charla, y aviso de lo que no tiene responsable.
 - Pruebas del editor adaptadas (`probarTodo`, `prueba-feria.gs`, `pruebas-lideres.gs`, simulaciones) y pruebas del simulador local en `simulador/pruebas/`.
 - Documentación actualizada en `docs/`.

@@ -128,7 +128,7 @@ function datosDeEjemplo() {
       ['CHA-007', 'Uso responsable de la IA', 'César Mariluz', -4 * 3600000],
     ] : []),
   ].map(c => [c[0], c[1], c[2], c[3] + corrimientoEspera]);
-  const bancos = stands.map(([id, , nombre]) => [id, nombre, 12]).concat(charlas.map(([id, titulo]) => [id, titulo, 15]));
+  const bancos = stands.map(([id, , nombre]) => [id, nombre, 10]).concat(charlas.map(([id, titulo]) => [id, titulo, 15]));
   bancos.forEach(([id, nombre, cuantas]) => {
     for (let n = 1; n <= cuantas; n++) {
       const correcta = 'ABCD'[(n - 1) % 4];

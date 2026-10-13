@@ -61,6 +61,6 @@ Cargar dos veces el mismo archivo deja las preguntas repetidas.
 
 Para cargarlo, abre el panel admin: en la pestaña Pabellones despliega el pabellón, localiza el stand y pulsa **Cargar JSON**; en la pestaña Charlas despliega la charla y pulsa **Cargar JSON**.
 
-Cada stand necesita al menos 12 preguntas activas para que su pabellón abra el quiz; el servidor sortea 2 de cada stand (el quiz de un pabellón de 4 stands es de 8 preguntas) y no envía las demás al celular. Cada charla necesita al menos 15, y se sortean 5. Doce (stand) y quince (charla) son también el tope de lo que puede tener activo un expositor o un ponente; el admin puede cargar más.
+Cada stand necesita al menos 10 preguntas activas para que su pabellón abra el quiz; el servidor sortea 2 de cada stand (el quiz de un pabellón de 4 stands es de 8 preguntas) y no envía las demás al celular. Cada charla necesita al menos 15, y se sortean 5. Diez (stand) y quince (charla) son también el tope de lo que puede tener activo un expositor o un ponente; el admin puede cargar más.
 
-Un archivo de ejemplo con 12 preguntas activas por stand está en `preguntas_demo_stands.tsv`.
+Un archivo de ejemplo con 10 preguntas activas por stand está en `preguntas_demo_stands.tsv`.

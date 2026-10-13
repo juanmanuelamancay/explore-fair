@@ -28,21 +28,21 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
   // El líder de demo es de PAB-001: el admin genera el de PAB-002
   const codigo = (await llamar(admin, 'generarCodigo', 'PAB-002')).codigo;
   r = await llamar(ana, 'iniciarQuiz', 'PAB-002', codigo);
-  ok(!r.ok && r.motivo === 'SIN_PREGUNTAS' && /Glomo/.test(r.mensaje) && /necesita 12/.test(r.mensaje), 'un stand con 9 de 12 bloquea el pabellón y dice cuál', r);
+  ok(!r.ok && r.motivo === 'SIN_PREGUNTAS' && /Glomo/.test(r.mensaje) && /necesita 10/.test(r.mensaje), 'un stand con 7 de 10 bloquea el pabellón y dice cuál', r);
   // El resto de pabellones sigue abierto
   const c1 = (await llamar(lider, 'generarCodigo', 'PAB-001')).codigo;
   r = await llamar(ana, 'iniciarQuiz', 'PAB-001', c1);
   ok(r.ok && r.preguntas.length === 6, 'otro pabellón abre igual');
 
-  // Admin carga más de 12 en un stand: el quiz sigue sorteando 2 y el admin puede seguir agregando
+  // Admin carga más de 10 en un stand: el quiz sigue sorteando 2 y el admin puede seguir agregando
   const extra = [{ texto: 'Extra', opcion_a: 'a', opcion_b: 'b', opcion_c: 'c', opcion_d: 'd', correcta: 'A', puntos: 10, activo: true }];
   let x = await intenta(admin, 'importarPreguntasAdmin', 'STD-001', extra);
-  ok(x.valor && x.valor.importadas === 1, 'el admin puede pasar de 12 con el JSON');
+  ok(x.valor && x.valor.importadas === 1, 'el admin puede pasar de 10 con el JSON');
   const banco = await llamar(expo, 'obtenerBancoPreguntas');
   const activas = banco.preguntas.filter(p => p.activo).length;
-  ok(activas === 13 && banco.stands[0].maximo === 12, 'el expositor ve 13 activas y su máximo de 12', { activas });
+  ok(activas === 11 && banco.stands[0].maximo === 10, 'el expositor ve 11 activas y su máximo de 10', { activas });
   x = await intenta(expo, 'guardarPreguntaLider', { standId: 'STD-001', texto: 'Otra', opciones: ['a', 'b', 'c', 'd'], correcta: 'A' });
-  ok(x.error && /12 preguntas activas/.test(x.error), 'con el banco lleno el expositor no agrega');
+  ok(x.error && /10 preguntas activas/.test(x.error), 'con el banco lleno el expositor no agrega');
   x = await intenta(admin, 'guardarPreguntaLider', { standId: 'STD-001', texto: 'Del admin', opciones: ['a', 'b', 'c', 'd'], correcta: 'A' });
   ok(x.valor, 'el admin sí puede agregar desde la vista Preguntas', x.error);
 

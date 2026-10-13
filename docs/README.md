@@ -23,7 +23,7 @@ Carpetas del proyecto:
 - `prototipo/`: maquetas de UX y UI con datos de ejemplo.
 - `docs/`: esta documentación.
 
-En la raíz hay además tres archivos de datos de ejemplo para pegar en el Sheet: `preguntas_demo_stands.tsv` (12 preguntas activas por stand), `intentos_demo.tsv` (intentos ya respondidos, uno por persona y pabellón) y `charlas_demo.tsv` (las cinco charlas de la semana previa, con títulos y ponentes por cambiar).
+En la raíz hay además tres archivos de datos de ejemplo para pegar en el Sheet: `preguntas_demo_stands.tsv` (10 preguntas activas por stand), `intentos_demo.tsv` (intentos ya respondidos, uno por persona y pabellón) y `charlas_demo.tsv` (las cinco charlas de la semana previa, con títulos y ponentes por cambiar).
 
 Prototipos navegables, con datos de ejemplo. Son maquetas: la app real cambió después y no coincide en todo con ellos (ver [reglas/ux-ui.md](reglas/ux-ui.md)).
 

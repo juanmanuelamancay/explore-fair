@@ -78,7 +78,7 @@ Google Sheets no valida relaciones; estas reglas las hace cumplir el Apps Script
 6. **Coherencia del código:** un código solo abre el pabellón o la charla para el que se generó.
 7. **Preguntas del intento:** todos los IDs de `preguntas_json` son preguntas activas de los bancos de la unidad del intento al momento de crearlo: en un pabellón, `preguntas_por_stand` de cada uno de sus stands; en una charla, `preguntas_quiz` de su banco.
 8. **Un código activo por unidad:** cada pabellón con código y cada charla tienen una sola fila en `Codigos` y al generar uno nuevo reemplaza al anterior. Un código nuevo no repite el anterior de la unidad ni ninguno activo de otra (si dos generaciones simultáneas eligieran el mismo, no hay efecto: el código solo abre la unidad que se elige en la app). `ANULADO` aparece cuando el admin elimina un pabellón (se anula su código activo) y, junto con `EXPIRADO`, en filas repetidas de una unidad (datos de antes o de una simulación) que la generación deja de lado.
-9. **Banco suficiente:** el quiz de un pabellón se abre cuando **cada** uno de sus stands activos tiene al menos 12 activas (`preguntas_banco_stand`), y el de una charla cuando su banco tiene al menos 15 (`preguntas_banco` de la charla, o `preguntas_banco_charla`). 12 y 15 también son el tope de preguntas activas que un expositor o un ponente puede tener: una pregunta nueva que pasa del tope se rechaza con un mensaje. El admin no tiene ese tope. El servidor sortea `preguntas_por_stand` (2) de cada stand, o `preguntas_quiz` (5) de la charla, y solo esas viajan al celular. Con 4 stands el quiz del pabellón es de 8 preguntas.
+9. **Banco suficiente:** el quiz de un pabellón se abre cuando **cada** uno de sus stands activos tiene al menos 10 activas (constante `PREGUNTAS_BANCO_STAND` en el código, no se lee de Config), y el de una charla cuando su banco tiene al menos 15 (`preguntas_banco` de la charla, o `preguntas_banco_charla`). 10 y 15 también son el tope de preguntas activas que un expositor o un ponente puede tener: una pregunta nueva que pasa del tope se rechaza con un mensaje. El admin no tiene ese tope. El servidor sortea `preguntas_por_stand` (2) de cada stand, o `preguntas_quiz` (5) de la charla, y solo esas viajan al celular. Con 4 stands el quiz del pabellón es de 8 preguntas.
 10. **El quiz de entrada es un pabellón sin código:** es el pabellón activo con `requiere_codigo = FALSE`. En el catálogo inicial es `PAB-000`, con un solo stand (`STD-000`) y `preguntas_por_stand = 4`, así que sortea 4 preguntas. Solo puede haber uno: el panel no deja guardar un segundo.
 11. **Pabellones del mapa:** aparecen los pabellones activos que piden código y tienen al menos un stand activo. Por eso el pabellón del quiz de entrada no se muestra. Los stands se ven dentro del pabellón solo como información.
 12. **El quiz de entrada va primero:** el servidor no deja empezar un pabellón con código hasta que el quiz de entrada esté respondido o vencido. Las charlas no lo piden.
@@ -160,7 +160,7 @@ Los puntos de cada pregunta de una charla se definen en `Preguntas.puntos` (o `p
 | `activo` | Booleano | TRUE | Baja lógica |
 | `creado_en` | Fecha/hora | | Opcional. Se llena al importar un JSON o cuando la crea un expositor o un ponente; el formulario del panel no lo llena |
 
-Un expositor (de un stand) o un ponente (de una charla) con la vista `PREGUNTAS` crea y edita el enunciado, las opciones y la correcta de las preguntas de su banco. No cambia `puntos` ni `activo`: una pregunta nueva vale `puntos_por_defecto` y nace activa. Si el banco ya tiene su tope de preguntas activas (12 en un stand, 15 en una charla), la pregunta nueva se rechaza con un mensaje; puede editar las que ya hay.
+Un expositor (de un stand) o un ponente (de una charla) con la vista `PREGUNTAS` crea y edita el enunciado, las opciones y la correcta de las preguntas de su banco. No cambia `puntos` ni `activo`: una pregunta nueva vale `puntos_por_defecto` y nace activa. Si el banco ya tiene su tope de preguntas activas (10 en un stand, 15 en una charla), la pregunta nueva se rechaza con un mensaje; puede editar las que ya hay.
 
 ### `Staff`
 
@@ -346,7 +346,6 @@ Claves que la app reconoce, con el valor que usa si la fila no existe o su valor
 | `minutos_para_responder` | 5 | Minutos para responder desde que se empieza el quiz |
 | `puntos_por_defecto` | 10 | Puntos de una pregunta sin `puntos`. También define el máximo que anuncia cada quiz: este valor por el número de preguntas |
 | `preguntas_por_stand` | 2 | Cuántas preguntas aporta cada stand al quiz de su pabellón (cada pabellón puede cambiarlo en su columna) |
-| `preguntas_banco_stand` | 12 | Preguntas activas que necesita cada stand para que su pabellón abra el quiz; también el tope del expositor |
 | `preguntas_quiz_charla` | 5 | Preguntas que se sortean en una charla sin `preguntas_quiz` |
 | `preguntas_banco_charla` | 15 | Preguntas activas que necesita una charla sin `preguntas_banco`; también el tope del ponente |
 | `segundos_refresco_board` | 15 | Cada cuánto se actualizan solas las vistas de ranking. Nunca menos de 10 |

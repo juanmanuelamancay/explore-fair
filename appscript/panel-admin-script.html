@@ -65,7 +65,7 @@
   };
   // Stands y preguntas se editan desde cada pabellón, así que no tienen pestaña propia
   const OCULTAS_EN_TABS = ['stands', 'preguntas'];
-  const CONFIG_KEYS = ['minutos_vigencia_codigo', 'minutos_para_responder', 'puntos_por_defecto', 'preguntas_por_stand', 'preguntas_banco_stand', 'preguntas_quiz_charla', 'preguntas_banco_charla', 'segundos_refresco_board', 'segundos_cache_catalogo', 'feria_abierta', 'espera_activa', 'fecha_feria', 'lugar_feria', 'espera_mensaje', 'premios_mensaje'];
+  const CONFIG_KEYS = ['minutos_vigencia_codigo', 'minutos_para_responder', 'puntos_por_defecto', 'preguntas_por_stand', 'preguntas_quiz_charla', 'preguntas_banco_charla', 'segundos_refresco_board', 'segundos_cache_catalogo', 'feria_abierta', 'espera_activa', 'fecha_feria', 'lugar_feria', 'espera_mensaje', 'premios_mensaje'];
   // ESPERA no va aquí: no se asigna por Permisos, la decide espera_activa en Config.
   const VISTAS = ['MAPA', 'CHARLAS', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'];
   let conteos = null;
@@ -223,7 +223,7 @@
     return `<div class="panel-arbol-preguntas">${preguntas.map(pregunta => `<div class="panel-arbol-pregunta"><span>${esc(pregunta.texto)}</span><span class="acciones"><button class="btn-mini" data-entidad="preguntas" data-editar="${pregunta._fila}" aria-label="Editar pregunta" title="Editar">${svg(ICONO.flecha, 17)}</button><button class="btn-mini peligro" data-entidad="preguntas" data-borrar="${pregunta._fila}" aria-label="Eliminar pregunta" title="Eliminar">${svg(ICONO.equis, 16)}</button></span></div>`).join('') || `<p class="panel-arbol-vacio">${vacio}</p>`}</div><div class="panel-arbol-acciones"><button class="btn-arbol" data-nuevo="preguntas" data-stand="${esc(bancoId)}">${svg(ICONO.mas, 16)} Añadir pregunta</button><button class="btn-arbol" data-importar-preguntas="${esc(bancoId)}" data-nombre="${esc(nombre)}">${svg(ICONO.subir, 16)} Cargar JSON</button></div>`;
   }
 
-  /** "8/12 preguntas" y, si faltan, cuántas: lo que el admin necesita ver antes de abrir. */
+  /** "8/10 preguntas" y, si faltan, cuántas: lo que el admin necesita ver antes de abrir. */
   function avancePreguntas(bancoId) {
     const av = ((datos.avance || {}).preguntas || {})[bancoId] || { activas: activasDe(bancoId), necesita: 0 };
     const faltan = Math.max(0, av.necesita - av.activas);

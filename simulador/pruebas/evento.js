@@ -78,10 +78,10 @@ const hoja = async nombre => (await (await fetch(base + '/hoja?nombre=' + nombre
 
   // Expositor
   let banco = await llamar(expo, 'obtenerBancoPreguntas');
-  ok(banco.stands.length === 1 && banco.stands[0].id === 'STD-001' && banco.stands[0].maximo === 12, 'expositor: solo STD-001 con máximo 12', banco.stands);
+  ok(banco.stands.length === 1 && banco.stands[0].id === 'STD-001' && banco.stands[0].maximo === 10, 'expositor: solo STD-001 con máximo 10', banco.stands);
   const nueva = { standId: 'STD-001', texto: 'Nueva', opciones: ['a', 'b', 'c', 'd'], correcta: 'A' };
   x = await intenta(expo, 'guardarPreguntaLider', nueva);
-  ok(x.error && /12 preguntas activas/.test(x.error), 'expositor no puede pasar de 12 preguntas', x);
+  ok(x.error && /10 preguntas activas/.test(x.error), 'expositor no puede pasar de 10 preguntas', x);
   const una = banco.preguntas[0];
   x = await intenta(expo, 'guardarPreguntaLider', { id: una.id, standId: 'STD-001', texto: 'Editada', opciones: una.opciones, correcta: una.correcta });
   ok(x.valor && x.valor.preguntas.find(p => p.id === una.id).texto === 'Editada', 'expositor edita una pregunta existente');
@@ -92,13 +92,13 @@ const hoja = async nombre => (await (await fetch(base + '/hoja?nombre=' + nombre
 
   // Validador
   const vq = await llamar(val, 'verQuiz', 'PAB-001');
-  ok(vq.ok && vq.preguntas.length === 36 && vq.porQuiz === 6, 'validador ve las 36 preguntas del pabellón (hace 6)', { n: vq.preguntas && vq.preguntas.length, porQuiz: vq.porQuiz });
+  ok(vq.ok && vq.preguntas.length === 30 && vq.porQuiz === 6, 'validador ve las 30 preguntas del pabellón (hace 6)', { n: vq.preguntas && vq.preguntas.length, porQuiz: vq.porQuiz });
   x = await llamar(val, 'iniciarQuiz', 'PAB-001', '');
   ok(!x.ok, 'validador no responde', x);
 
   // Admin: catálogo, avance y ranking
   const cat = await llamar(admin, 'obtenerAdminCatalogo');
-  ok(cat.charlas.length === 5 && cat.avance.preguntas['CHA-001'].necesita === 15 && cat.avance.preguntas['STD-001'].necesita === 12, 'panel: charlas y avance de preguntas', cat.avance.preguntas['CHA-001']);
+  ok(cat.charlas.length === 5 && cat.avance.preguntas['CHA-001'].necesita === 15 && cat.avance.preguntas['STD-001'].necesita === 10, 'panel: charlas y avance de preguntas', cat.avance.preguntas['CHA-001']);
   ok(cat.avance.sinResponsable.stands.includes('STD-002') && !cat.avance.sinResponsable.stands.includes('STD-001'), 'panel: stands sin expositor', cat.avance.sinResponsable.stands.slice(0, 3));
   const rk = await llamar(admin, 'obtenerRanking', true);
   ok(rk.filas.length >= 1, 'ranking calculado', rk.filas.length);
