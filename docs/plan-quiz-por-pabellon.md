@@ -20,7 +20,11 @@ Lo que **no** exige código (lo gestiona el admin desde el panel y la `Config`):
 - Tiempo: `minutos_para_responder` ya está en `Config`.
 - Que cada stand tenga sus 12 preguntas: lo asegura el admin antes de abrir. El servidor conserva un rechazo claro ("el stand X tiene n de 12") por si algo falla, pero no hay lógica de espera ni vista de avance para el líder.
 
-## Varios roles en una celda: aplazado
+## Varias filas por correo (implementado 2026-10-13)
+
+Se resolvió con **varias filas activas en `Staff` para el mismo correo** (una por función: LIDER, EXPOSITOR, PONENTE), no con varios roles en una celda. `sesion_()` une las vistas de todas sus filas y `sesion.staffFilas` suma los alcances en `unidadesParaCodigo_` y `bancosParaPreguntas_`. `ADMIN` y `VALIDADOR` van solos: si su primera fila es una de ellas, las demás se ignoran, y el panel rechaza mezclarlas. Un correo no puede repetir rol (un líder en dos pabellones no cabe). Prueba: `simulador/pruebas/doble-rol.js`. El texto de abajo es el diseño anterior, con varios roles en una celda, que ya no se usa.
+
+## Varios roles en una celda: descartado
 
 Decisión del 2026-10-12: el líder de pabellón y los expositores son **personas distintas**. Un correo, una fila, un rol. Todo lo de esta sección queda **fuera del camino crítico**; se deja escrito por si alguien llega a necesitar dos funciones.
 

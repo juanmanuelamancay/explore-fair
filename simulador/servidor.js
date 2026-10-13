@@ -114,13 +114,20 @@ function datosDeEjemplo() {
     ['STD-017', 'PAB-006', 'Synapse'], ['STD-018', 'PAB-006', 'Katalyst'], ['STD-019', 'PAB-006', 'Control-M'],
   ];
   const preguntas = [];
+  // Con la sala de espera encendida las charlas aún no empiezan: la primera cae dentro de 2 días y 3 horas.
+  const corrimientoEspera = process.env.ESPERA === '1' ? 51 * 3600000 : 0;
   const charlas = [
     ['CHA-001', 'Introducción a los custom agents', 'Rosa Quiroz', -2 * 3600000],
     ['CHA-002', 'Taller de prompts efectivos', 'Carlos Mendoza', -600000],
     ['CHA-003', 'Agentes con herramientas', 'Valeria Ortiz', 3 * 3600000],
     ['CHA-004', 'Evaluar la calidad de un agente', 'Marta Salinas', 26 * 3600000],
     ['CHA-005', 'Cierre: lo que viene', 'Rosa Quiroz', 50 * 3600000],
-  ];
+    // Solo con CHARLAS=1, para ver cómo se ven una charla cerrada sin responder (CHA-006) y una ya respondida (CHA-007).
+    ...(process.env.CHARLAS ? [
+      ['CHA-006', 'Fundamentos de IA generativa', 'Daniel Calle', -30 * 3600000],
+      ['CHA-007', 'Uso responsable de la IA', 'César Mariluz', -4 * 3600000],
+    ] : []),
+  ].map(c => [c[0], c[1], c[2], c[3] + corrimientoEspera]);
   const bancos = stands.map(([id, , nombre]) => [id, nombre, 12]).concat(charlas.map(([id, titulo]) => [id, titulo, 15]));
   bancos.forEach(([id, nombre, cuantas]) => {
     for (let n = 1; n <= cuantas; n++) {
@@ -136,9 +143,9 @@ function datosDeEjemplo() {
     Stands: [['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'orden', 'activo', 'creado_en'],
       ...stands.map(([id, pab, nombre], i) => [id, pab, nombre, '', i, true, hoy])],
     Charlas: [['charla_id', 'titulo', 'ponente', 'descripcion', 'inicio', 'fin', 'cierre', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo', 'creado_en'],
-      ...charlas.map(([id, titulo, ponente, desfase], i) => [id, titulo, ponente, 'Charla de ejemplo para la semana previa al evento.',
+      ...charlas.map(([id, titulo, ponente, desfase], i) => [id, titulo, ponente, 'Taller de ejemplo para la semana previa al evento.',
         // Cierra 2 horas después de empezar, pero nunca antes de una hora a partir de ahora (la primera ya empezó hace 2 horas).
-        new Date(Date.now() + desfase), new Date(Date.now() + desfase + 3600000), new Date(Date.now() + Math.max(desfase + 7200000, 3600000)), 15, 5, i, true, hoy])],
+        new Date(Date.now() + desfase), new Date(Date.now() + desfase + 3600000), new Date(Date.now() + (desfase < -3 * 3600000 ? desfase + 7200000 : Math.max(desfase + 7200000, 3600000))), 15, 5, i, true, hoy])],
     Preguntas: [['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo', 'creado_en'], ...preguntas],
     Staff: [['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'charla_id', 'activo'],
       ['admin@demo.com', 'Marta Salinas', 'ADMIN', '', '', '', true],
@@ -155,7 +162,7 @@ function datosDeEjemplo() {
       ['EXPOSITOR', 'PREGUNTAS', true],
       ...['GENERAR_CODIGO', 'PREGUNTAS'].map(v => ['PONENTE', v, true]),
       ...['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS'].map(v => ['VALIDADOR', v, true]),
-      ...['MAPA', 'CHARLAS', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'].map(v => ['ADMIN', v, true])],
+      ...['MAPA', 'CHARLAS', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN', 'ESPERA'].map(v => ['ADMIN', v, true])],
     Config: [['clave', 'valor', 'descripcion'], ['minutos_vigencia_codigo', 5, ''], ['minutos_para_responder', 5, ''],
       ['puntos_por_defecto', 10, ''], ['segundos_refresco_board', process.env.VIVO ? 10 : 15, ''], ['feria_abierta', true, ''],
       ['segundos_cache_ranking', process.env.VIVO ? 5 : 60, ''],
@@ -168,7 +175,8 @@ function datosDeEjemplo() {
       [3, 'Tercer puesto', 'Monitor', true], [4, 'Cuarto puesto', 'Audífonos', true], [5, 'Premio retirado', 'No debe verse', false]],
     Usuarios: [['email', 'nombre', 'registrado_en', 'orden']],
     Codigos: [['codigo', 'unidad_id', 'generado_por', 'creado_en', 'expira_en', 'estado']],
-    Intentos: [['intento_id', 'email', 'unidad_id', 'estado', 'puntaje', 'completado_en', 'correctas', 'pabellon_id', 'codigo', 'iniciado_en', 'vence_en', 'preguntas_json', 'respuestas_json']],
+    Intentos: [['intento_id', 'email', 'unidad_id', 'estado', 'puntaje', 'completado_en', 'correctas', 'pabellon_id', 'codigo', 'iniciado_en', 'vence_en', 'preguntas_json', 'respuestas_json'],
+      ...(process.env.CHARLAS ? [Object.assign(intentoCompletado({ Intentos: [[]] }, 'ana.torres@demo.com', 'CHA-007', 4, Date.now() - 2 * 3600000), { 11: JSON.stringify([1, 2, 3, 4, 5]) })] : [])],
   };
 }
 

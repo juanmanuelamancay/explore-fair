@@ -11,30 +11,24 @@
   <!-- Cuenta regresiva, o el aviso de que ya llegó el día -->
   <section class="tarjeta centro espera-cuenta" id="espera-cuenta" aria-live="polite"></section>
 
-  <!-- Carrusel: empieza en el Objetivo, sigue con Cómo participar, las Charlas (si hay), luego una tarjeta por pabellón
-       (las agrega el script antes de Premios) y termina en Premios.
+  <!-- Carrusel: Objetivo, Cómo sumar puntos (talleres y feria), Talleres (si hay), una sola lámina con todos los pabellones
+       (la agrega el script antes de Premios) y Premios.
        Se desliza con el dedo, avanza solo y los puntos llevan a cada lámina. -->
+  <!-- Los puntos van arriba del carrusel: así se ven siempre, aunque la lámina sea larga, y avisan de que hay más láminas. -->
+  <div class="carrusel-puntos" id="espera-puntos" role="tablist" aria-label="Secciones"></div>
   <div class="carrusel" id="espera-carrusel" hidden>
 
     <!-- Es la lámina más larga: se le da más tiempo antes de avanzar (data-segundos) -->
     <section class="lamina" data-titulo="Objetivo" data-segundos="25">
       <h2 class="titulo-seccion">Objetivo del evento</h2>
       <div class="tarjeta espera-objetivo">
-        <div class="objetivo-cab">
-          <div class="disco-chico" id="espera-objetivo-icono"></div>
-          <h2>Una experiencia práctica</h2>
-        </div>
-        <p class="objetivo-texto">Conocerás qué agentes existen y cuál puede ayudarte, cómo utilizarlo y cómo combinar sus capacidades para resolver retos reales de desarrollo.</p>
-        <p class="objetivo-texto">El evento reúne unas charlas previas y la feria. Los puntos de las dos se suman en un solo ranking.</p>
+        <p class="objetivo-texto objetivo-texto-1">Talleres en Meet y una feria en la sede central. Participa, suma puntos y gana grandes premios.</p>
 
         <p class="objetivo-sub">¿Qué encontrarás?</p>
         <ul class="objetivo-lista">
-          <li><span class="obj-ico"></span>Demos en vivo de agentes en distintas tecnologías y etapas del SDLC</li>
-          <li><span class="obj-ico"></span>Retos técnicos donde verás cómo se combinan los agentes</li>
-          <li><span class="obj-ico"></span>Casos prácticos y experiencias de otros developers</li>
-          <li><span class="obj-ico"></span>Buenas prácticas para mejores resultados y un uso más eficiente de tus créditos</li>
-          <li><span class="obj-ico"></span>Espacios para llevar tus dudas y casos de uso</li>
-          <li><span class="obj-ico"></span>Dinámicas, desafíos y mucho aprendizaje compartido</li>
+          <li><span class="obj-ico"></span>Demos en vivo y retos técnicos con agentes</li>
+          <li><span class="obj-ico"></span>Casos y buenas prácticas de otros developers</li>
+          <li><span class="obj-ico"></span>Espacio para tus dudas, desafíos y dinámicas</li>
         </ul>
 
         <div class="objetivo-meta">
@@ -44,23 +38,25 @@
       </div>
     </section>
 
-    <section class="lamina" data-titulo="Cómo participar">
-      <h2 class="titulo-seccion">Esta app te servirá para…</h2>
-      <p class="espera-intro">Seguir las charlas, recorrer la feria a tu ritmo y completar quizzes para sumar puntos y subir en el ranking. Los puntos de las charlas y los de la feria se acumulan.</p>
+    <section class="lamina" data-titulo="Cómo sumar puntos">
+      <h2 class="titulo-seccion">Dos formas de sumar puntos</h2>
+      <p class="dia-charlas">En los talleres</p>
       <ol class="lista espera-pasos">
-        <li class="fila"><span class="paso">1</span><span class="quien"><b>Asiste a las charlas</b><span>Al terminar cada una, quien la dicta comparte un código. Ingrésalo en la app para responder su quiz y sumar tus primeros puntos.</span></span></li>
-        <li class="fila"><span class="paso">2</span><span class="quien"><b>Responde el quiz de entrada</b><span>Cuando empiece la feria, es lo primero al llegar: te da puntos y abre los pabellones.</span></span></li>
-        <li class="fila"><span class="paso">3</span><span class="quien"><b>Recorre los pabellones</b><span>Al terminar la charla de un pabellón, su líder te da un código. Úsalo para responder el quiz de todo el pabellón.</span></span></li>
-        <li class="fila"><span class="paso">4</span><span class="quien"><b>Suma puntos y sube en el ranking</b><span>Cada respuesta correcta cuenta. Solo hay un intento por charla y por pabellón.</span></span></li>
+        <li class="fila"><span class="paso">1</span><span class="quien"><b>Asiste al taller</b><span>Al terminar recibes un código. Dura pocos minutos.</span></span></li>
+        <li class="fila"><span class="paso">2</span><span class="quien"><b>Responde su quiz</b><span>Un solo intento por taller.</span></span></li>
+      </ol>
+      <p class="dia-charlas">En la feria</p>
+      <ol class="lista espera-pasos">
+        <li class="fila"><span class="paso">1</span><span class="quien"><b>Responde el quiz de entrada</b><span>Es lo primero: suma puntos y abre los pabellones.</span></span></li>
+        <li class="fila"><span class="paso">2</span><span class="quien"><b>Recorre los pabellones</b><span>Pide el código al líder. Un intento por pabellón.</span></span></li>
       </ol>
     </section>
 
     <!-- Las llena el script con las charlas de la hoja Charlas, agrupadas por día; sin charlas, no se muestra -->
-    <section class="lamina" data-titulo="Charlas" id="espera-charlas" hidden></section>
+    <section class="lamina" data-titulo="Talleres" id="espera-charlas" hidden></section>
 
     <section class="lamina" data-titulo="Premios" id="espera-premios" hidden></section>
 
   </div>
-  <div class="carrusel-puntos" id="espera-puntos" role="tablist"></div>
 
 </section>

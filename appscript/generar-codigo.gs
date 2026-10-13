@@ -16,12 +16,13 @@ const LARGO_DE_CODIGO = 4;
  */
 function unidadesParaCodigo_(sesion, catalogo) {
   const todas = pabellonesDelMapa_(catalogo).map(p => ({ id: p.id, nombre: p.nombre, grupo: 'Pabellón', indice: p.indice, tipo: 'PABELLON' }))
-    .concat(charlasDe_(catalogo).map((c, i) => ({ id: c.id, nombre: c.nombre, grupo: 'Charla', indice: i, tipo: 'CHARLA', cierre: c.cierre })));
+    .concat(charlasDe_(catalogo).map((c, i) => ({ id: c.id, nombre: c.nombre, grupo: 'Taller', indice: i, tipo: 'CHARLA', cierre: c.cierre })));
   if (sesion.rol === 'ADMIN') return todas;
-  if (!sesion.staff) return [];
-  if (sesion.rol === 'LIDER') return todas.filter(u => u.tipo === 'PABELLON' && u.id === sesion.staff.pabellonId);
-  if (sesion.rol === 'PONENTE') return todas.filter(u => u.tipo === 'CHARLA' && u.id === sesion.staff.charlaId);
-  return [];
+  // Una persona puede tener varias filas (líder y ponente a la vez): el alcance es la suma de los de cada fila.
+  const filas = filasDeSesion_(sesion);
+  return todas.filter(u => filas.some(f =>
+    (f.rol === 'LIDER' && u.tipo === 'PABELLON' && u.id === f.pabellonId) ||
+    (f.rol === 'PONENTE' && u.tipo === 'CHARLA' && u.id === f.charlaId)));
 }
 
 /**
@@ -69,7 +70,7 @@ function generarCodigoDe_(sesion, unidadId) {
   const catalogo = catalogo_();
   const stand = unidadesParaCodigo_(sesion, catalogo).find(u => u.id === id_(unidadId));
   if (!stand) throw new Error('No puedes generar códigos para este quiz.');
-  if (cierreBloquea_(sesion, stand, Date.now())) throw new Error('La hora de esta charla se venció: ya no se pueden generar códigos.');
+  if (cierreBloquea_(sesion, stand, Date.now())) throw new Error('La hora de este taller se venció: ya no se pueden generar códigos.');
 
   // Cada unidad tiene su fila en Codigos y el código nuevo la reemplaza: no se agrega nada al final de la hoja,
   // así que no hace falta el turno global y dos unidades nunca se esperan. Solo si la fila no existe todavía se

@@ -16,13 +16,14 @@ function bancosParaPreguntas_(sesion, catalogo) {
   });
   charlasDe_(catalogo).forEach((c, i) => {
     const b = c.bancos[0];
-    todos.push({ id: b.id, nombre: c.nombre, pabellon: 'Charla', indice: i, maximo: Math.max(b.minimo, b.cuantas) });
+    todos.push({ id: b.id, nombre: c.nombre, pabellon: 'Taller', indice: i, maximo: Math.max(b.minimo, b.cuantas) });
   });
   if (sesion.rol === 'ADMIN' || sesion.rol === 'VALIDADOR') return todos;
-  if (!sesion.staff) return [];
-  if (sesion.rol === 'EXPOSITOR') return todos.filter(b => b.id === sesion.staff.standId);
-  if (sesion.rol === 'PONENTE') return todos.filter(b => b.id === sesion.staff.charlaId);
-  return [];
+  // Una persona puede tener varias filas (expositor y ponente a la vez): el alcance es la suma de los de cada fila.
+  const filas = filasDeSesion_(sesion);
+  return todos.filter(b => filas.some(f =>
+    (f.rol === 'EXPOSITOR' && b.id === f.standId) ||
+    (f.rol === 'PONENTE' && b.id === f.charlaId)));
 }
 
 /** Preguntas de los bancos que esta persona puede editar, con la respuesta correcta. */

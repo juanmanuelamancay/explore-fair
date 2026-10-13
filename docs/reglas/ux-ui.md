@@ -124,7 +124,7 @@ De arriba hacia abajo:
 2. **Mensaje guía:** franja azul suave con un ícono, un título y una línea de instrucción. Cambia según el momento:
    - Sin quiz de entrada: da la bienvenida e indica responderlo para abrir los pabellones.
    - Con quiz de entrada terminado: indica escuchar la charla y pulsar el pabellón.
-3. **Ayuda:** la franja del mensaje guía es un botón. Su ícono alterna entre una mano y un signo de pregunta, y al tocarla abre la hoja "Cómo participar", con cuatro pasos: empezar con el quiz de entrada, recorrer la feria y escuchar una charla, abrir el quiz del pabellón con el código, y responder para sumar puntos. El último paso aclara que los puestos se ven en la pantalla grande de la feria.
+3. **Ayuda:** la franja del mensaje guía es un botón. Su ícono alterna entre una mano y un signo de pregunta, y al tocarla abre la hoja "Cómo participar", con cuatro pasos: empezar con el quiz de entrada, recorrer la feria y escuchar las charlas de los pabellones (después, el líder del pabellón comparte un código), abrir el quiz del pabellón con el código, y responder para sumar puntos. El último paso aclara que los puestos se ven en la pantalla grande de la feria.
 4. **Mapa radial:** bajo el título "Pabellones", el usuario en el centro y los pabellones repartidos alrededor en un círculo.
 
 Reglas del mapa:
@@ -139,16 +139,9 @@ Reglas del mapa:
 - **Pabellón completo:** cuando el quiz del pabellón está respondido a tiempo, lleva el mismo check verde que el círculo central.
 - **Las posiciones se calculan** según la cantidad de pabellones, empezando arriba. Agregar un pabellón no requiere rediseñar.
 
-### Hoja del pabellón
+### Al tocar un pabellón
 
-Al tocar un pabellón sube una hoja desde abajo, sobre un velo oscuro. Se cierra tocando el velo, con su botón de cerrar o con Escape.
-
-- **Encabezado:** ícono y nombre del pabellón; dice "Pabellón completo" cuando corresponde.
-- **Lista de stands:** solo informativa (círculo con trofeo y nombre). El texto dice que el quiz reúne preguntas de todos.
-- **Pendiente:** chips con las preguntas, los minutos y los puntos posibles, el botón "Responder el quiz del pabellón" y el recordatorio de que se necesita el código del líder.
-- **En curso:** el botón dice "Continuar el quiz" y retoma sin pedir el código.
-- **Respondido:** "Ya respondiste este pabellón: N de M correctas · P pts", sin botón.
-- **Vencido:** "Se te venció el tiempo en este pabellón. No se puede repetir.", sin botón.
+No hay hoja intermedia: el toque lleva directo a la pantalla del quiz, que pide el código del líder (ver "Ingreso de código"). Si el pabellón ya está respondido o vencido, solo sale un aviso ("Ya respondiste este pabellón: N de M · P pts" / "Se te venció el tiempo en este pabellón. No se puede repetir."). Si está en curso, retoma sin pedir el código.
 
 ### Ingreso de código
 
@@ -187,9 +180,9 @@ Pantalla propia, en tono neutro (gris, sin rojo): explica que ese quiz no suma y
 
 Vista `CHARLAS`: lo que ve el usuario en la semana previa al evento, en lugar del mapa. Es una **agenda**, no un recorrido: cada charla es independiente, no hay que terminar una para pasar a otra y cada persona entra a las que quiere (una, dos o todas). Por eso no hay línea que una las charlas ni contadores de avance.
 
-De arriba hacia abajo: cabecera con saludo y puntos, mensaje guía ("Entra a las que quieras: cada una suma puntos por separado…"), una línea "Cada charla: N preguntas · M minutos para responder" (si todas tienen las mismas preguntas; si no, cada tarjeta lo dice) y las charlas agrupadas por día. El día lleva "Hoy" (en azul) o "Mañana" cuando corresponde.
+De arriba hacia abajo: cabecera con saludo y puntos, mensaje guía (misma franja-botón que el mapa, con el ícono que alterna mano y "?": "Te damos la bienvenida a los talleres / Responde cada quiz para sumar puntos."; al tocarla abre la hoja "Cómo participar en los talleres" con cuatro pasos: ubicar el taller en el que está, escucharlo, ingresar el código y responder; los horarios ya están planificados, así que no se elige), una línea "Cada charla: N preguntas · M minutos para responder" (si todas tienen las mismas preguntas; si no, cada tarjeta lo dice) y las charlas agrupadas por día. El día lleva "Hoy" (en azul) o "Mañana" cuando corresponde.
 
-- **Tarjeta abierta o próxima:** ícono de estado, horario de la charla ("16:00 – 17:00"; la hora de fin solo se muestra si es posterior al inicio), etiqueta de estado, título, ponente, descripción y los datos: "Hasta N pts" y "Responde hasta las HH:MM" (el cierre, separado del horario de la charla). La abierta lleva borde azul y el botón "Ingresar código".
+- **Tarjeta abierta o próxima:** ícono de estado, horario de la charla ("16:00 – 17:00"; la hora de fin solo se muestra si es posterior al inicio), etiqueta de estado, título, ponente, descripción y los datos: "Hasta N pts" y "Responde hasta las HH:MM" (el cierre, separado del horario de la charla). La abierta lleva borde azul y el botón "Ingresar código". Los datos van en una sola línea de apoyo ("Hasta 50 pts · Responde hasta las HH:MM"), sin fichas. Solo el taller *En vivo* (o *En curso*) tiene el botón relleno y la etiqueta azul con un punto que parpadea; una abierta que ya terminó lleva el botón secundario, para mantener una sola acción principal por pantalla.
 - **Estados:** *Próxima* (aún no es su hora de inicio, sin botón), *Abierta* / *En vivo* / *En curso* (botón "Ingresar código" o "Continuar el quiz"), *Completada* (borde verde y los puntos ganados en grande: "+20 pts · 2 de 5 correctas"), *Cerrada* y *Se venció* (ver abajo).
 - **Tarjetas compactas:** una charla *Cerrada* (pasó la hora de `cierre`) o *Se venció* ocupa una sola línea de título con su estado y una nota ("La hora para responder se venció (cerró a las HH:MM)"), sin descripción ni datos, para que lo vigente quede arriba. No se muestra como fallo: gris, sin rojo.
 - **La charla vigente a la vista:** al abrir la pantalla, si la primera charla abierta (o, si no hay, la primera próxima) queda fuera de la pantalla, la lista se mueve hasta ella, una sola vez por visita.
@@ -202,17 +195,17 @@ De arriba hacia abajo: cabecera con saludo y puntos, mensaje guía ("Entra a las
 
 Es lo que ve un usuario antes del evento, mientras `espera_activa` está en TRUE. No tiene barra inferior: es su única vista. De arriba hacia abajo:
 
-- **Cuenta regresiva:** cuatro recuadros (días, horas, minutos, segundos) que avanzan cada segundo según la hora del servidor, bajo "El evento de agentes empieza en". Cuenta hasta lo primero que empiece: la primera charla (hoja `Charlas`) o `fecha_feria`, lo que caiga antes. Debajo van esa fecha y hora, un resumen ("Charlas del lunes 19 al miércoles 21 de octubre · Feria el jueves 22 de octubre"), el lugar y un mensaje opcional. Sin ninguna fecha dice "Muy pronto".
-- **Llegada la hora:** la cuenta se reemplaza por "Llegó el día" y la app pregunta al servidor una vez por minuto si ya se abrió. Cuando `espera_activa` pasa a FALSE, la app se vuelve a abrir sola con el mapa; si el navegador no la deja, queda el aviso "Tu acceso cambió" con el botón "Abrir de nuevo". El botón de actualizar hace la misma comprobación al instante.
-- **Carrusel:** debajo de la cuenta va una fila de láminas que empieza en el Objetivo del evento, sigue con Cómo participar, las Charlas (si la hoja tiene charlas), continúa con una tarjeta por cada pabellón (su título de sección es "Descubre agentes de IA") y termina en Premios. Se pasa de una a otra deslizando con el dedo.
-- **Puntos:** bajo el carrusel hay un punto por lámina; el de la lámina a la vista se alarga y se pinta de azul. Tocar un punto lleva a esa lámina.
+- **Cuenta regresiva:** cuatro recuadros (días, horas, minutos, segundos) que avanzan cada segundo según la hora del servidor, bajo "Los talleres de agentes empiezan en" (o "La feria de agentes empieza en" si no hay talleres cargados). Cuenta hasta lo primero que empiece: el primer taller (hoja `Charlas`) o `fecha_feria`, lo que caiga antes. Debajo van esa fecha y hora, una línea por mecánica ("Talleres del lunes 19 al miércoles 21 de octubre" y "Feria el jueves 22 de octubre"), el lugar y un mensaje opcional. Sin ninguna fecha dice "Muy pronto".
+- **Llegada la hora:** la cuenta se queda en 00:00:00 (no hay pantalla de "llegó el día": el admin apaga `espera_activa` y activa `CHARLAS` en `Permisos` antes) y la app pregunta al servidor una vez por minuto si ya se abrió. Cuando `espera_activa` pasa a FALSE, la app se vuelve a abrir sola con el mapa; si el navegador no la deja, queda el aviso "Tu acceso cambió" con el botón "Abrir de nuevo". El botón de actualizar hace la misma comprobación al instante.
+- **Carrusel:** debajo de la cuenta van cinco láminas: Objetivo del evento, Cómo sumar puntos, Talleres (si la hoja tiene talleres), Pabellones y Premios. Se pasa de una a otra deslizando con el dedo; cada deslizamiento avanza una sola lámina.
+- **Puntos:** sobre el carrusel (así se ven aunque la lámina sea larga) hay un punto por lámina, de 28 × 44 px de área táctil; el de la lámina a la vista se alarga y se pinta de azul. Tocar un punto lleva a esa lámina.
 - **Avance solo:** cambia de lámina cada 6 segundos y al llegar a la última vuelve a la primera. Se detiene 12 segundos cuando la persona lo toca, y no avanza con la app en segundo plano, con movimiento reducido activado, ni cuando la persona ya bajó y dejó el inicio del carrusel fuera de la pantalla.
 - **Alto variable:** el carrusel toma el alto de la lámina a la vista.
 - **Premios:** título, la frase "Participando y aprendiendo podrás ganar:" y la lista con la medalla de cada puesto (ver "Medallas de puesto"). La feria entrega cuatro premios; del cuarto puesto en adelante la medalla es azul, con corona azul (clase `azul` en `espera-style.html`). Es la última lámina. Si no hay premios cargados, no aparece y el carrusel termina en el último pabellón.
-- **Objetivo:** primera lámina, "Objetivo del evento": una frase sobre la experiencia práctica, otra que explica que el evento reúne unas charlas previas y la feria y que sus puntos se suman en un solo ranking, la lista de seis cosas que se encontrarán (demos en vivo, retos técnicos, casos prácticos, buenas prácticas, espacio para dudas, dinámicas) y, en un recuadro azul, la frase con la que se espera que cada persona termine: "Sé qué agente puede ayudarme y cómo empezar a utilizarlo en mi día a día." Es la lámina más alta y se queda 25 segundos antes de avanzar (`data-segundos`), el resto 6.
-- **Cómo participar:** titulada "Esta app te servirá para…", con una frase de apertura que incluye que los puntos de las charlas y los de la feria se acumulan, y cuatro pasos fijos: asistir a las charlas (el código del ponente abre el quiz), responder el quiz de entrada cuando empiece la feria, recorrer los pabellones (el código del líder abre el quiz de todo el pabellón) y sumar puntos para subir en el ranking.
-- **Charlas:** lámina "Empieza con las charlas", entre Cómo participar y los pabellones. Un rótulo por día ("Lunes, 19 de octubre") y, debajo, una fila por charla con su hora (en un recuadro azul), el título y el ponente. Sale de la hoja `Charlas`; sin charlas activas no aparece.
-- **Tarjeta de pabellón:** ícono y nombre en su color, cantidad de stands y la lista de sus stands con su abreviatura. Es solo informativa, no se puede tocar. Un pabellón nuevo en el Sheet agrega su tarjeta sin tocar código.
+- **Objetivo:** primera lámina, "Objetivo del evento": una frase ("Talleres en Meet y una feria en la sede central. Participa, suma puntos y gana grandes premios."), tres viñetas bajo "¿Qué encontrarás?" (demos y retos, casos y buenas prácticas, espacio para dudas y dinámicas) y, en un recuadro azul, la frase con la que se espera que cada persona termine: "Sé qué agente puede ayudarme y cómo empezar a utilizarlo en mi día a día." Es la lámina más alta y se queda 25 segundos antes de avanzar (`data-segundos`), el resto 6.
+- **Cómo sumar puntos:** titulada "Dos formas de sumar puntos", con dos bloques de dos pasos, cada uno con una línea de apoyo: En los talleres (asistir y recibir el código, que dura pocos minutos; responder su quiz, un intento) y En la feria (quiz de entrada; recorrer los pabellones con el código del líder, un intento por pabellón).
+- **Talleres:** lámina "Empieza con los talleres", sin texto de introducción. Un rótulo por día ("Lunes, 19 de octubre") y, debajo, una fila por taller con su hora (en un recuadro azul), el título y el ponente. Sale de la hoja `Charlas`; sin talleres activos no aparece.
+- **Pabellones:** una sola lámina con una fila por pabellón (ícono y nombre en su color, y la cantidad de stands). Tocar la fila la abre y muestra sus stands con su abreviatura; el carrusel ajusta su alto. Un pabellón nuevo en el Sheet agrega su fila sin tocar código.
 
 El `ADMIN` ve esta misma pantalla como una pestaña más, "Espera", mientras la sala está activa.
 
@@ -338,8 +331,8 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
 
 | Estado | Dónde se ve | Cómo se ve |
 |---|---|---|
-| Pendiente | Hoja del pabellón; agenda de charlas | Botón "Responder el quiz del pabellón" / "Ingresar código" |
-| En curso | Hoja del pabellón; agenda de charlas | Botón "Continuar el quiz" |
+| Pendiente | Pantalla del quiz; agenda de charlas | Botón "Responder el quiz del pabellón" / "Ingresar código" |
+| En curso | Pantalla del quiz; agenda de charlas | Botón "Continuar el quiz" |
 | Respondido | Hoja del pabellón, mapa, agenda de charlas | Check verde, aciertos y puntos; llena el arco del pabellón y suma a los puntos |
 | Vencido | Hoja del pabellón; agenda de charlas | Mensaje "Se te venció el tiempo", 0 pts; no permite reintento |
 

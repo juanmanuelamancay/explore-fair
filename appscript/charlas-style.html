@@ -26,8 +26,13 @@
   .ch-card h2 { font-size: 17px; line-height: 1.3; margin-top: 8px; }
   .ch-ponente { font-size: 14px; color: var(--texto-2); margin-top: 2px; }
   .ch-desc { font-size: 14px; color: #3c4043; margin-top: 8px; }
-  .ch-datos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .ch-datos { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 8px; font-size: 13px; color: var(--texto-2); }
   .ch-cierre { display: inline-flex; align-items: center; gap: 4px; }
+  .ch-sep { color: var(--borde); }
+  .ch-card.en-vivo .ch-etiqueta { background: var(--azul); color: #fff; }
+  .ch-card.en-vivo .ch-etiqueta::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #fff; vertical-align: 1px; animation: ch-parpadeo 1.4s ease-in-out infinite; }
+  @keyframes ch-parpadeo { 50% { opacity: .3; } }
+  @media (prefers-reduced-motion: reduce) { .ch-card.en-vivo .ch-etiqueta::before { animation: none; } }
   .ch-card .btn { margin-top: 12px; }
   .ch-nota { font-size: 13px; color: var(--texto-2); margin-top: 8px; }
   .ch-card:not(.compacta) .ch-nota { margin-top: 10px; }

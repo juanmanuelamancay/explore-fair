@@ -11,7 +11,7 @@
   // Bloqueo por códigos incorrectos: vale para toda la persona, no para un stand. Hora (ms) hasta la que no puede escribir.
   let bloqueoHasta = 0;
   let cuentaAtras = null;
-  const textoVolver = () => (q.volver === 'charlas' ? 'Volver a las charlas' : 'Volver al mapa');
+  const textoVolver = () => (q.volver === 'charlas' ? 'Volver a los talleres' : 'Volver al mapa');
   const duracion = s => (s % 60 === 0 ? (s / 60) + (s === 60 ? ' minuto' : ' minutos') : s + ' segundos');
 
   // El validador recorre las preguntas sin responderlas: sin reloj, sin intento y sin puntos.
@@ -54,7 +54,7 @@
     const revisar = () => {
       if (Date.now() + q.desfase <= q.unidad.cierre) return;
       clearInterval(q.vigila);
-      toast('La hora para responder esta charla se venció.');
+      toast('La hora para responder este taller se venció.');
       App.ir(q.volver);
     };
     q.vigila = setInterval(revisar, 1000);
@@ -358,7 +358,7 @@
         <div class="disco-grande">${svg(ICONO.reloj, 36)}</div>
         <h2>Se acabó el tiempo</h2>
         <p class="sec" style="margin-top:8px">No alcanzaste a enviar tus respuestas de ${esc(q.titulo)}, así que este quiz no suma puntos.</p>
-        <p class="sec" style="margin-top:8px">Todavía puedes sumar ${q.volver === 'charlas' ? 'en las demás charlas' : 'en los demás pabellones'}.</p>
+        <p class="sec" style="margin-top:8px">Todavía puedes sumar ${q.volver === 'charlas' ? 'en los demás talleres' : 'en los demás pabellones'}.</p>
       </div>
       <button class="btn" data-ir="${q.volver}">${textoVolver()}</button>`;
     window.scrollTo(0, 0);

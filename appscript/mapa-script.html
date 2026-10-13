@@ -131,43 +131,6 @@
       </svg>${pabellones}${centro}`;
   }
 
-  /**
-   * El quiz es del pabellón entero: cada stand aporta unas pocas preguntas. Los stands se muestran como información
-   * y el botón de abajo abre el quiz del pabellón.
-   */
-  function abrirPabellon(id) {
-    const p = datos.pabellones.find(x => x.id === id);
-    if (!p) return;
-    const tono = paleta(p.indice);
-    const filas = p.stands.map(s => `<li><div class="item">
-        <span class="estado-stand">${svg(ICONO.trofeo, 20)}</span>
-        <span class="nom"><b>${esc(s.nombre)}</b></span></div></li>`).join('');
-
-    let estado;
-    if (p.estado === 'COMPLETADO') {
-      estado = `<p class="hoja-seccion">Ya respondiste este pabellón: ${p.correctas} de ${p.total} correctas · ${p.puntaje} pts</p>`;
-    } else if (p.estado === 'VENCIDO') {
-      estado = '<p class="hoja-seccion">Se te venció el tiempo en este pabellón. No se puede repetir.</p>';
-    } else {
-      estado = `<div class="datos" style="padding:8px 16px 0">
-          <span class="chip">${p.numPreguntas} preguntas</span><span class="chip">${INICIO.minutosParaResponder} minutos</span><span class="chip">Hasta ${p.puntosMax} pts</span></div>
-        <div style="padding:12px 16px 0"><button class="btn" data-iniciar>${p.estado === 'EN_CURSO' ? 'Continuar el quiz' : 'Responder el quiz del pabellón'}</button></div>
-        ${p.estado === 'EN_CURSO' ? '' : '<p class="aviso" style="margin:8px 16px 4px">Necesitas el código que da el líder al terminar la charla.</p>'}`;
-    }
-
-    const hoja = App.abrirHoja(`
-      <div style="--c:${tono.color};--t:${tono.tinte}">
-        <div class="hoja-cab">
-          <span class="icono">${svg(tono.icono)}</span>
-          <div><p class="sec chico">Pabellón${p.estado === 'COMPLETADO' ? ' completo' : ''}</p><h2>${esc(p.nombre)}</h2></div>
-        </div>
-        <p class="hoja-seccion">Los stands de este pabellón. El quiz reúne preguntas de todos.</p>
-        <ul>${filas}</ul>
-        ${estado}
-      </div>`);
-    hoja.onclick = e => { if (e.target.closest('[data-iniciar]')) abrirQuiz(p, p); };
-  }
-
   /** Abre la pantalla del quiz de un pabellón o del quiz de entrada (pabellon = null). */
   function abrirQuiz(unidad, pabellon) {
     if (!unidad) return;
@@ -207,10 +170,10 @@ function abrirComoJugar() {
         <li class="paso-ayuda">
           <b class="numero">2</b>
           <div>
-            <b>Recorre la feria y escucha una charla</b>
+            <b>Recorre la feria y escucha las charlas de los pabellones</b>
             <span>
-              Puedes visitar los pabellones y stands en el orden que quieras.
-              Al terminar una charla, el líder compartirá un código.
+              Después de escuchar las charlas, el líder del pabellón
+              te compartirá un código.
             </span>
           </div>
         </li>
@@ -252,9 +215,10 @@ function abrirComoJugar() {
     if (!datos) return;
     const pabellon = e.target.closest('[data-pab]');
     if (pabellon) {
-      // El servidor también lo impide; aquí solo se avisa antes de abrir la hoja.
+      // El servidor también lo impide; aquí solo se avisa antes de abrir el quiz.
       if (pabellon.classList.contains('bloqueado')) return toast('Primero responde el quiz de entrada: pulsa tu círculo.');
-      return abrirPabellon(pabellon.dataset.pab);
+      const p = datos.pabellones.find(x => x.id === pabellon.dataset.pab);
+      return abrirQuiz(p, p);
     }
     if (e.target.closest('[data-unidad]')) abrirQuiz(datos.entrada, null);
   });

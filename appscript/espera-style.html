@@ -3,7 +3,8 @@
   .espera-cuenta { margin-top: 16px; }
   .espera-cuenta h2 { font-size: 20px; }
   .espera-cuenta .cuando { margin-top: 14px; font-size: 15px; font-weight: 500; }
-  .espera-cuenta .donde-es { font-size: 14px; color: var(--texto-2); }
+  .espera-cuenta .reloj-grande + .donde-es { margin-top: 14px; }
+  .espera-cuenta .donde-es { margin-top: 2px; font-size: 14px; color: var(--texto-2); }
   .espera-cuenta .mensaje { margin-top: 12px; font-size: 14px; color: var(--texto-2); }
 
   .reloj-grande { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
@@ -19,6 +20,7 @@
   .objetivo-cab { display: flex; align-items: center; gap: 12px; }
   .objetivo-cab h2 { font-size: 18px; font-weight: 500; }
   .disco-chico { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--azul-suave); color: var(--azul); }
+  .objetivo-texto.objetivo-texto-1 { margin-top: 0; }
   .objetivo-texto { margin-top: 12px; font-size: 14px; line-height: 1.45; color: var(--texto-2); }
   .objetivo-sub { margin-top: 18px; font-size: 14px; font-weight: 500; }
   .objetivo-lista { list-style: none; margin: 8px 0 0; padding: 0; }
@@ -45,13 +47,33 @@
 
   /* Carrusel: premios, reglas y una tarjeta por pabellón */
   .carrusel {
-    position: relative; display: flex; align-items: flex-start; gap: 16px; margin-top: 12px;
+    position: relative; display: flex; align-items: flex-start; gap: 16px;
     overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none;
-    overscroll-behavior-x: contain; transition: height .25s ease;
+    overscroll-behavior-x: contain; overflow-anchor: none; transition: height .25s ease;
   }
   .carrusel::-webkit-scrollbar { display: none; }
-  .lamina { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; }
+  /* scroll-snap-stop: always hace que un deslizamiento se detenga en la siguiente lámina, por fuerte que sea el impulso. */
+  .lamina { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
   .lamina .titulo-seccion { margin-top: 12px; }
+
+  /* Lámina de pabellones: una fila por pabellón; al tocarla se ven sus stands. */
+  .pab-fila { border-bottom: 1px solid var(--borde-suave); background: var(--fondo); }
+  .pab-fila:last-child { border-bottom: 0; }
+  .pab-cab { width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 16px; min-height: 60px; text-align: left; }
+  .pab-fila .icono { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--t); color: var(--c); flex: none; }
+  .pab-fila .quien { flex: 1; min-width: 0; }
+  .pab-fila .quien b { display: block; font-size: 15px; }
+  .pab-fila .quien span { font-size: 12px; color: var(--texto-2); }
+  .pab-fila .flecha { flex: none; color: var(--texto-2); transform: rotate(90deg); transition: transform .2s; }
+  .pab-fila.abierta .flecha { transform: rotate(-90deg); }
+  /* Los stands se despliegan con una fila de grid que pasa de 0fr a 1fr: el alto se anima sin medirlo. */
+  .pab-stands { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease; }
+  .pab-fila.abierta .pab-stands { grid-template-rows: 1fr; }
+  .pab-stands ul { min-height: 0; overflow: hidden; margin: 0; padding: 0 16px 0 68px; list-style: none; opacity: 0; transition: opacity .25s ease, padding .3s ease; }
+  .pab-fila.abierta .pab-stands ul { opacity: 1; padding-bottom: 12px; }
+  .pab-fila li { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 14px; }
+  .pab-fila .abr { width: 32px; height: 32px; font-size: 10px; }
+  @media (prefers-reduced-motion: reduce) { .pab-fila .flecha, .pab-stands, .pab-stands ul { transition: none; } }
 
   .pab-tarjeta { padding: 20px; }
   .pab-tarjeta .titulo { display: flex; align-items: center; gap: 14px; }
@@ -63,8 +85,12 @@
   .pab-tarjeta li:last-child { border-bottom: 0; padding-bottom: 0; }
   .pab-tarjeta .abr { width: 40px; height: 40px; font-size: 11px; }
 
-  .carrusel-puntos { display: flex; justify-content: center; margin-top: 8px; }
-  .carrusel-puntos button { width: 24px; height: 32px; display: grid; place-items: center; }
+  /* Área táctil de 44 px de alto (la regla del proyecto); de ancho 28 px para que quepan los diez puntos en 375 px. */
+  .carrusel-puntos { display: flex; justify-content: center; margin-top: 4px; }
+  .carrusel-puntos button { width: 28px; height: 44px; display: grid; place-items: center; }
   .carrusel-puntos button::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--borde); transition: width .2s, background .2s; }
   .carrusel-puntos button.activa::before { width: 20px; border-radius: 4px; background: var(--azul); }
+  @media (prefers-reduced-motion: reduce) {
+    .carrusel, .carrusel-puntos button::before { transition: none; }
+  }
 </style>

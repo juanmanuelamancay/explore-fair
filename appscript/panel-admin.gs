@@ -334,12 +334,22 @@ function adminValidarUnicidad_(entidad, registro, fila) {
   if (entidad === 'stands') campos = ['stand_id'];
   if (entidad === 'charlas') campos = ['charla_id'];
   if (entidad === 'preguntas') campos = ['pregunta_id'];
-  if (entidad === 'staff') campos = ['email'];
   if (entidad === 'config') campos = ['clave'];
   if (entidad === 'permisos') {
     if (filas.some(f => f._fila !== (fila && fila._fila) && texto_(f.rol).toUpperCase() === registro.rol && texto_(f.vista).toUpperCase() === registro.vista)) {
       throw new Error('Ya existe ese permiso para el rol indicado.');
     }
+  }
+  if (entidad === 'staff') {
+    // Una persona del staff puede tener una fila por función (líder, expositor, ponente), pero no dos del mismo rol.
+    // ADMIN y VALIDADOR van solos: no se mezclan con ninguna otra fila activa.
+    const correo = texto_(registro.email).toLowerCase();
+    const otras = filas.filter(f => f._fila !== (fila && fila._fila) && texto_(f.email).toLowerCase() === correo);
+    if (otras.some(f => texto_(f.rol).toUpperCase() === registro.rol)) throw new Error('Ese correo ya tiene una fila con el rol ' + registro.rol + '.');
+    const solo = rol => rol === 'ADMIN' || rol === 'VALIDADOR';
+    if (registro.activo && solo(registro.rol) && otras.some(f => adminBooleano_(f, 'activo'))) throw new Error(registro.rol + ' va solo: ese correo ya tiene otra fila activa.');
+    if (registro.activo && !solo(registro.rol) && otras.some(f => adminBooleano_(f, 'activo') && solo(texto_(f.rol).toUpperCase()))) throw new Error('Ese correo es ' + otras.find(f => solo(texto_(f.rol).toUpperCase())).rol + ' y ese rol va solo.');
+    return;
   }
   campos.forEach(campo => {
     if (filas.some(f => f._fila !== (fila && fila._fila) && texto_(f[campo]).toUpperCase() === texto_(registro[campo]).toUpperCase())) {
@@ -378,11 +388,11 @@ function adminValidarRelaciones_(entidad, registro, fila) {
     adminNumero_(registro, 'orden', 0);
   }
   if (entidad === 'charlas') {
-    if (!registro.titulo) throw new Error('Escribe un título para la charla.');
+    if (!registro.titulo) throw new Error('Escribe un título para el taller.');
     if (!fechaEnMs_(registro.inicio)) throw new Error('Escribe la fecha y la hora de inicio, por ejemplo 2026-10-19 18:00.');
     if (registro.fin && !fechaEnMs_(registro.fin)) throw new Error('La fecha de fin no tiene un formato válido. Ejemplo: 2026-10-19 19:00.');
     if (registro.cierre && !fechaEnMs_(registro.cierre)) throw new Error('La hora de cierre no tiene un formato válido. Ejemplo: 2026-10-19 19:30.');
-    if (registro.cierre && fechaEnMs_(registro.cierre) <= fechaEnMs_(registro.inicio)) throw new Error('El cierre tiene que ser posterior al inicio de la charla.');
+    if (registro.cierre && fechaEnMs_(registro.cierre) <= fechaEnMs_(registro.inicio)) throw new Error('El cierre tiene que ser posterior al inicio del taller.');
     adminNumero_(registro, 'orden', 0);
     if (registro.preguntas_banco !== '') adminNumero_(registro, 'preguntas_banco', 1);
     if (registro.preguntas_quiz !== '') adminNumero_(registro, 'preguntas_quiz', 1);
@@ -391,7 +401,7 @@ function adminValidarRelaciones_(entidad, registro, fila) {
     }
   }
   if (entidad === 'preguntas') {
-    if (!standActivo(registro.stand_id) && !charlaActiva(registro.stand_id)) throw new Error('La pregunta necesita un stand o una charla activos válidos.');
+    if (!standActivo(registro.stand_id) && !charlaActiva(registro.stand_id)) throw new Error('La pregunta necesita un stand o un taller activos válidos.');
     adminValidarContenidoPregunta_(registro);
   }
   if (entidad === 'staff') {
@@ -415,7 +425,7 @@ function adminValidarRelaciones_(entidad, registro, fila) {
       registro.pabellon_id = stand.pabellon_id;
       registro.charla_id = '';
     } else if (registro.rol === 'PONENTE') {
-      if (!registro.charla_id || !charlaActiva(registro.charla_id)) throw new Error('El ponente necesita una charla activa.');
+      if (!registro.charla_id || !charlaActiva(registro.charla_id)) throw new Error('El ponente necesita un taller activo.');
       registro.pabellon_id = '';
       registro.stand_id = '';
     } else {
@@ -428,7 +438,7 @@ function adminValidarRelaciones_(entidad, registro, fila) {
       }
     }
     // Sin la columna, guardar o agregar la fila descarta el valor en silencio: avisa antes de guardar.
-    if (registro.charla_id && encabezados_(HOJA.STAFF).indexOf('charla_id') < 0) throw new Error('Agrega la columna charla_id en la hoja Staff para asignar una charla.');
+    if (registro.charla_id && encabezados_(HOJA.STAFF).indexOf('charla_id') < 0) throw new Error('Agrega la columna charla_id en la hoja Staff para asignar un taller.');
   }
   if (entidad === 'permisos') {
     if (!registro.rol || !registro.vista || registro.vista === 'ESPERA' || !Object.prototype.hasOwnProperty.call(ARCHIVO_DE_VISTA, registro.vista)) throw new Error('El rol o la vista no son válidos.');
@@ -530,13 +540,15 @@ function adminPlanResponsable_(def, correo, registro, idAnterior, nombre) {
     throw new Error('El rol ' + def.rol + ' no tiene permisos activos. Configura primero al menos una vista.');
   }
 
-  const existente = staff.find(f => texto_(f.email).toLowerCase() === correo);
+  // Una persona puede tener una fila por función; ADMIN y VALIDADOR van solos y no se les suma ninguna.
+  const delCorreo = staff.filter(f => texto_(f.email).toLowerCase() === correo);
+  const soloActiva = delCorreo.find(f => ['ADMIN', 'VALIDADOR'].indexOf(texto_(f.rol).toUpperCase()) >= 0 && adminBooleano_(f, 'activo'));
+  if (soloActiva) throw new Error(correo + ' ya está en Staff como ' + texto_(soloActiva.rol).toUpperCase() + ', un rol que va solo. Si hace falta cambiarle el rol, hazlo desde la pestaña Staff.');
+  const existente = delCorreo.find(f => texto_(f.rol).toUpperCase() === def.rol);
   if (!existente) {
     plan.agregar = Object.assign({ email: correo, nombre: nombre, rol: def.rol, activo: true }, ubicacion);
     return plan;
   }
-  const rol = texto_(existente.rol).toUpperCase();
-  if (rol !== def.rol) throw new Error(correo + ' ya está en Staff como ' + rol + '. Si hace falta cambiarle el rol, hazlo desde la pestaña Staff.');
   if (adminBooleano_(existente, 'activo')) {
     if (id_(existente[def.campo]) === id_(registro[def.campo])) {
       // Ya responde de esto mismo (había dos): solo se reemplaza al primero.
@@ -545,7 +557,7 @@ function adminPlanResponsable_(def, correo, registro, idAnterior, nombre) {
     }
     // Solo en este camino de error se leen los nombres, para que el aviso diga dónde responde.
     const nombreDe = (entidad, campo, id) => { const f = adminFilas_(entidad).find(x => id_(x[campo]) === id_(id)); return f ? (f.nombre || f.titulo) + ' (' + id_(id) + ')' : id_(id); };
-    const donde = existente.charla_id ? 'de la charla ' + nombreDe('charlas', 'charla_id', existente.charla_id)
+    const donde = existente.charla_id ? 'del taller ' + nombreDe('charlas', 'charla_id', existente.charla_id)
       : existente.stand_id ? 'del stand ' + nombreDe('stands', 'stand_id', existente.stand_id)
       : 'del pabellón ' + (existente.pabellon_id ? nombreDe('pabellones', 'pabellon_id', existente.pabellon_id) : '');
     throw new Error(correo + ' ya es ' + def.nombreRol + ' ' + donde.trim() + '. Quítalo de ahí primero.');
@@ -627,7 +639,7 @@ function importarPreguntasAdmin(standId, preguntas) {
   const bancoId = id_(standId);
   const destino = adminFilas_('stands').find(s => s.stand_id === bancoId && adminBooleano_(s, 'activo'))
     || adminFilas_('charlas').find(c => c.charla_id === bancoId && adminBooleano_(c, 'activo'));
-  if (!destino) throw new Error('El stand o la charla seleccionados no existen o están inactivos.');
+  if (!destino) throw new Error('El stand o el taller seleccionados no existen o están inactivos.');
   const stand = { stand_id: bancoId };
   if (!Array.isArray(preguntas) || !preguntas.length) throw new Error('El JSON debe contener un arreglo con al menos una pregunta.');
   if (preguntas.length > 200) throw new Error('Puedes importar como máximo 200 preguntas por archivo.');
@@ -674,7 +686,7 @@ function borrarAdminRegistro(entidad, numeroDeFila) {
   const fila = adminFilas_(entidad).find(f => f._fila === Number(numeroDeFila));
   if (!fila) throw new Error('El registro ya no existe. Actualiza la lista.');
   if (entidad === 'stands' && adminFilas_('preguntas').some(p => p.stand_id === fila.stand_id && adminBooleano_(p, 'activo'))) throw new Error('No puedes desactivar un stand con preguntas activas. Desactiva primero sus preguntas.');
-  if (entidad === 'charlas' && adminFilas_('preguntas').some(p => p.stand_id === fila.charla_id && adminBooleano_(p, 'activo'))) throw new Error('No puedes desactivar una charla con preguntas activas. Desactiva primero sus preguntas.');
+  if (entidad === 'charlas' && adminFilas_('preguntas').some(p => p.stand_id === fila.charla_id && adminBooleano_(p, 'activo'))) throw new Error('No puedes desactivar un taller con preguntas activas. Desactiva primero sus preguntas.');
   if (entidad === 'staff' && texto_(fila.email).toLowerCase() === sesion.email) throw new Error('No puedes desactivar tu propio acceso de administrador.');
   if (entidad === 'permisos' && fila.rol === 'ADMIN' && fila.vista === 'PANEL_ADMIN' && adminFilas_('permisos').filter(p => p.rol === 'ADMIN' && p.vista === 'PANEL_ADMIN' && adminBooleano_(p, 'activo')).length < 2) throw new Error('Debe quedar al menos un permiso PANEL_ADMIN activo para ADMIN.');
 

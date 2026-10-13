@@ -200,7 +200,7 @@ const App = (() => {
   // vista de Permisos -> nombre de la vista en el navegador, en el orden de la barra inferior
   const NAVEGACION = [
     { vista: 'MAPA', nombre: 'mapa', texto: 'Mapa', icono: ICONO.mapa },
-    { vista: 'CHARLAS', nombre: 'charlas', texto: 'Charlas', icono: ICONO.megafono },
+    { vista: 'CHARLAS', nombre: 'charlas', texto: 'Talleres', icono: ICONO.megafono },
     { vista: 'GENERAR_CODIGO', nombre: 'generar-codigo', texto: 'Código', icono: ICONO.llave },
     { vista: 'PREGUNTAS', nombre: 'preguntas', texto: 'Preguntas', icono: 'M5 4h14v16H5zM9 9h6M9 13h6M9 17h3' },
     { vista: 'PANEL_ADMIN', nombre: 'panel-admin', texto: 'Panel', icono: ICONO.escudo },
@@ -218,12 +218,23 @@ const App = (() => {
     if (actual && vistas[actual].alOcultar) vistas[actual].alOcultar();
     cerrarAviso();
     cerrarHoja();
+    const anterior = actual;
     actual = nombre;
-    document.querySelectorAll('.vista').forEach(s => { s.hidden = s.id !== 'vista-' + nombre; });
+    // Entrar al quiz avanza desde la derecha, volver de él retrocede desde la izquierda; entre pestañas solo se funde.
+    const entrada = !anterior || anterior === nombre ? '' : nombre === 'quiz' ? 'entra-adelante' : anterior === 'quiz' ? 'entra-atras' : 'entra';
+    document.querySelectorAll('.vista').forEach(s => {
+      s.classList.remove('entra', 'entra-adelante', 'entra-atras');
+      s.hidden = s.id !== 'vista-' + nombre;
+      if (!s.hidden && entrada) s.classList.add(entrada);
+    });
     const conNav = destinos.length > 1 && !vistas[nombre].sinNav;
     $('nav').hidden = !conNav;
     $('app').classList.toggle('sin-nav', !conNav);
-    $('nav-dentro').querySelectorAll('button').forEach(b => b.classList.toggle('activa', b.dataset.ir === nombre));
+    $('nav-dentro').querySelectorAll('button').forEach(b => {
+      b.classList.toggle('activa', b.dataset.ir === nombre);
+      // La pestaña activa queda a la vista aunque la barra se deslice (sin mover la página).
+      if (b.dataset.ir === nombre && !$('nav').hidden) b.scrollIntoView({ block: 'nearest', inline: 'center' });
+    });
     window.scrollTo(0, 0);
     if (vistas[nombre].alMostrar) vistas[nombre].alMostrar(datos || {});
   }
@@ -245,6 +256,7 @@ const App = (() => {
     const vista = vistas[actual];
     if (!vista || !vista.alRefrescar || boton.disabled) return;
     const MINIMO_MS = 600;   // para que el giro se alcance a ver aunque la respuesta sea inmediata
+    const ENFRIAMIENTO_MS = 8000;   // tiempo mínimo entre un refresco y el siguiente
     const inicio = Date.now();
     boton.disabled = true;
     boton.classList.add('girando');
@@ -252,7 +264,9 @@ const App = (() => {
     const acceso = comprobarAcceso();
     const datos = Promise.resolve(vista.alRefrescar()).catch(() => {});
     Promise.all([acceso, datos]).then(() => {
-      setTimeout(() => { boton.disabled = false; boton.classList.remove('girando'); }, Math.max(0, MINIMO_MS - (Date.now() - inicio)));
+      // El giro para al terminar; el botón queda bloqueado hasta cumplir el enfriamiento, para que no se martille el servidor.
+      setTimeout(() => boton.classList.remove('girando'), Math.max(0, MINIMO_MS - (Date.now() - inicio)));
+      setTimeout(() => { boton.disabled = false; }, Math.max(0, ENFRIAMIENTO_MS - (Date.now() - inicio)));
     });
   }
 

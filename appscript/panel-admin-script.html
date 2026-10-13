@@ -25,13 +25,13 @@
       { clave: 'preguntas_por_stand', etiqueta: 'Preguntas por stand', tipo: 'number', opcional: true, ayuda: () => 'Vacío = el valor de Config (preguntas_por_stand). El quiz del pabellón suma las de todos sus stands.' },
       { clave: 'orden', etiqueta: 'Orden', tipo: 'number' }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
     ] },
-    charlas: { titulo: 'Charlas', singular: 'charla', icono: ICONO.megafono, campos: [
+    charlas: { titulo: 'Talleres', singular: 'taller', icono: ICONO.megafono, campos: [
       { clave: 'charla_id', etiqueta: 'ID', readonlyNuevo: true }, { clave: 'titulo', etiqueta: 'Título' }, { clave: 'ponente', etiqueta: 'Nombre del ponente', opcional: true },
       { clave: 'descripcion', etiqueta: 'Descripción', tipo: 'textarea', ancho: true, opcional: true },
-      { clave: 'inicio', etiqueta: 'Inicio (desde aquí se puede responder)', tipo: 'fecha' }, { clave: 'fin', etiqueta: 'Fin de la charla (solo informativo)', tipo: 'fecha', opcional: true },
+      { clave: 'inicio', etiqueta: 'Inicio (desde aquí se puede responder)', tipo: 'fecha' }, { clave: 'fin', etiqueta: 'Fin del taller (solo informativo)', tipo: 'fecha', opcional: true },
       { clave: 'cierre', etiqueta: 'Cierre (hasta aquí se puede responder y generar código)', tipo: 'fecha', opcional: true },
       // No es una columna de Charlas: el servidor lo guarda en Staff como PONENTE de esta charla (genera su código y edita sus preguntas).
-      { clave: 'ponente_email', etiqueta: 'Correo del ponente', tipo: 'email', opcional: true, ancho: true, ayuda: ayudaResponsable('charlas', 'la charla') },
+      { clave: 'ponente_email', etiqueta: 'Correo del ponente', tipo: 'email', opcional: true, ancho: true, ayuda: ayudaResponsable('charlas', 'el taller') },
       { clave: 'preguntas_banco', etiqueta: 'Preguntas del banco', tipo: 'number', opcional: true, ayuda: () => 'Vacío = el valor de Config (preguntas_banco_charla, 15). Es el tope del ponente y el mínimo para abrir el quiz.' },
       { clave: 'preguntas_quiz', etiqueta: 'Preguntas que se responden', tipo: 'number', opcional: true, ayuda: () => 'Vacío = el valor de Config (preguntas_quiz_charla, 5). Se sortean del banco.' },
       { clave: 'orden', etiqueta: 'Orden', tipo: 'number' }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
@@ -44,14 +44,14 @@
       { clave: 'orden', etiqueta: 'Orden', tipo: 'number' }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
     ] },
     preguntas: { titulo: 'Preguntas', singular: 'pregunta', icono: ICONO.megafono, campos: [
-      { clave: 'pregunta_id', etiqueta: 'ID', readonlyNuevo: true }, { clave: 'stand_id', etiqueta: 'Stand o charla', tipo: 'stand' },
+      { clave: 'pregunta_id', etiqueta: 'ID', readonlyNuevo: true }, { clave: 'stand_id', etiqueta: 'Stand o taller', tipo: 'stand' },
       { clave: 'texto', etiqueta: 'Enunciado', tipo: 'textarea', ancho: true }, { clave: 'opcion_a', etiqueta: 'Opción A' }, { clave: 'opcion_b', etiqueta: 'Opción B' },
       { clave: 'opcion_c', etiqueta: 'Opción C' }, { clave: 'opcion_d', etiqueta: 'Opción D' }, { clave: 'correcta', etiqueta: 'Correcta', tipo: 'correcta' },
       { clave: 'puntos', etiqueta: 'Puntos', tipo: 'number' }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
     ] },
     staff: { titulo: 'Staff', singular: 'persona de staff', icono: ICONO.escudo, campos: [
       { clave: 'email', etiqueta: 'Correo', tipo: 'email' }, { clave: 'nombre', etiqueta: 'Nombre' }, { clave: 'rol', etiqueta: 'Rol', tipo: 'rol' },
-      { clave: 'pabellon_id', etiqueta: 'Pabellón', tipo: 'pabellon', opcional: true }, { clave: 'stand_id', etiqueta: 'Stand', tipo: 'stand', opcional: true }, { clave: 'charla_id', etiqueta: 'Charla', tipo: 'charla', opcional: true }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
+      { clave: 'pabellon_id', etiqueta: 'Pabellón', tipo: 'pabellon', opcional: true }, { clave: 'stand_id', etiqueta: 'Stand', tipo: 'stand', opcional: true }, { clave: 'charla_id', etiqueta: 'Taller', tipo: 'charla', opcional: true }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
     ] },
     permisos: { titulo: 'Permisos', singular: 'permiso', icono: ICONO.candado, campos: [
       { clave: 'rol', etiqueta: 'Rol', tipo: 'rol' }, { clave: 'vista', etiqueta: 'Vista', tipo: 'vista' }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
@@ -83,6 +83,8 @@
   const filas = n => n + (n === 1 ? ' fila' : ' filas');
   const hayDatos = () => conteos && HOJAS.some(h => conteos[h.hoja] > 0);
   const entidad = () => ENTIDADES[entidadActual];
+  const CONFIG_BOOLEANAS = ['feria_abierta', 'espera_activa'];
+  const interruptor = (encendido, atributos, nombre) => `<button type="button" class="interruptor ${encendido ? 'encendido' : ''}" role="switch" aria-checked="${encendido}" aria-label="${esc(nombre)}" title="${encendido ? 'Activo: toca para desactivar' : 'Inactivo: toca para activar'}" ${atributos}><i></i></button>`;
   const registroActivo = fila => entidadActual === 'config' || fila.activo === true || /^(true|1|si|sí|verdadero)$/i.test(String(fila.activo));
   const valor = (fila, campo) => fila && fila[campo] !== undefined ? fila[campo] : '';
 
@@ -211,7 +213,7 @@
   }
 
   function nombrePabellon(id) { const f = (datos.pabellones || []).find(p => p.pabellon_id === id); return esc(f ? f.nombre : id || 'Sin pabellón'); }
-  function nombreCharla(id) { const f = (datos.charlas || []).find(c => c.charla_id === id); return esc(f ? f.titulo : id || 'Sin charla'); }
+  function nombreCharla(id) { const f = (datos.charlas || []).find(c => c.charla_id === id); return esc(f ? f.titulo : id || 'Sin taller'); }
   function nombreBanco(id) { return (datos.charlas || []).some(c => c.charla_id === id) ? nombreCharla(id) : nombreStand(id); }
   function nombreStand(id) { const f = (datos.stands || []).find(s => s.stand_id === id); return esc(f ? f.nombre : id || 'Sin stand'); }
 
@@ -263,10 +265,10 @@
     const charlas = (datos.charlas || []).filter(c => (!soloActivos || registroActivo(c)) && (!busqueda || JSON.stringify([c, ...(datos.preguntas || []).filter(q => q.stand_id === c.charla_id)]).toLowerCase().indexOf(busqueda.toLowerCase()) >= 0));
     const contenedor = $('panel-editor');
     if (!charlas.length) {
-      contenedor.innerHTML = `<div class="panel-vacio"><strong>${busqueda ? 'No encontramos coincidencias' : 'Todavía no hay charlas'}</strong><span>${busqueda ? 'Prueba con otro texto.' : 'Agrega la primera charla con el botón +. Antes crea la hoja Charlas en el Sheet.'}</span></div>`;
+      contenedor.innerHTML = `<div class="panel-vacio"><strong>${busqueda ? 'No encontramos coincidencias' : 'Todavía no hay talleres'}</strong><span>${busqueda ? 'Prueba con otro texto.' : 'Agrega el primer taller con el botón +. Antes crea la hoja Charlas en el Sheet.'}</span></div>`;
       return;
     }
-    contenedor.innerHTML = `<div class="panel-resumen">${charlas.length} ${charlas.length === 1 ? 'charla' : 'charlas'} visibles${soloActivos ? ' · solo activas' : ''}</div><div class="panel-arbol">${charlas.map(charla => {
+    contenedor.innerHTML = `<div class="panel-resumen">${charlas.length} ${charlas.length === 1 ? 'taller' : 'talleres'} visibles${soloActivos ? ' · solo activas' : ''}</div><div class="panel-arbol">${charlas.map(charla => {
       const abierto = !!busqueda || pabellonesAbiertos.has(charla.charla_id);
       const ponente = nombreDe('PONENTE', 'charla_id', charla.charla_id);
       const detalle = esc(charla.charla_id) + ' · ' + esc(charla.inicio) + ' · ' + avancePreguntas(charla.charla_id) + (ponente ? ' · Ponente: ' + ponente : sinResponsable('charlas', charla.charla_id) ? ' · sin ponente' : '');
@@ -280,7 +282,8 @@
     const todos = datos.permisos || [];
     const grupos = [...new Set(todos.map(p => p.rol))].map(rol => {
       const del = todos.filter(p => p.rol === rol);
-      const visibles = del.filter(p => (!soloActivos || registroActivo(p)) && (!q || JSON.stringify([rol, p]).toLowerCase().indexOf(q) >= 0));
+      // Aquí "Solo activos" no se aplica: un permiso apagado tiene que verse para poder volver a encenderlo.
+      const visibles = del.filter(p => (!q || JSON.stringify([rol, p]).toLowerCase().indexOf(q) >= 0));
       return { rol, visibles, activas: del.filter(registroActivo).length, abierto: !!q || rolesAbiertos.has(rol) };
     }).filter(g => g.visibles.length);
     const contenedor = $('panel-editor');
@@ -288,7 +291,7 @@
       contenedor.innerHTML = `<div class="panel-vacio"><strong>${busqueda ? 'No encontramos coincidencias' : 'Todavía no hay permisos'}</strong><span>${busqueda ? 'Prueba con otro texto.' : 'Agrega el primer permiso con el botón +.'}</span></div>`;
       return;
     }
-    contenedor.innerHTML = `<div class="panel-resumen">${grupos.length} ${grupos.length === 1 ? 'rol' : 'roles'} visibles${soloActivos ? ' · solo activos' : ''}</div><div class="panel-lista">${grupos.map(g => `<article class="panel-rol ${g.abierto ? 'abierto' : ''} ${g.activas ? '' : 'inactivo'}"><header class="panel-arbol-cabecera"><button class="panel-arbol-toggle" data-toggle-rol="${esc(g.rol)}" aria-expanded="${g.abierto}"><span class="icono">${svg(ENTIDADES.permisos.icono, 19)}</span><span class="quien"><b>${esc(g.rol)}</b><span>${g.activas} ${g.activas === 1 ? 'vista activa' : 'vistas activas'}</span></span><span class="chevron">${svg(ICONO.flecha, 18)}</span></button></header>${g.abierto ? `<div class="panel-rol-vistas">${g.visibles.map(p => `<div class="panel-vista-chip ${registroActivo(p) ? '' : 'inactivo'}"><span>${esc(p.vista)}</span><span class="acciones"><button class="btn-mini" data-entidad="permisos" data-editar="${p._fila}" aria-label="Editar vista ${esc(p.vista)}" title="Editar">${svg(ICONO.flecha, 17)}</button><button class="btn-mini peligro" data-entidad="permisos" data-borrar="${p._fila}" aria-label="Desactivar vista ${esc(p.vista)}" title="Desactivar">${svg(ICONO.equis, 16)}</button></span></div>`).join('')}</div><div class="panel-rol-acciones"><button class="btn-arbol" data-nuevo="permisos" data-rol="${esc(g.rol)}">${svg(ICONO.mas, 16)} Añadir vista</button></div>` : ''}</article>`).join('')}</div>`;
+    contenedor.innerHTML = `<div class="panel-resumen">${grupos.length} ${grupos.length === 1 ? 'rol' : 'roles'} visibles</div><div class="panel-lista">${grupos.map(g => `<article class="panel-rol ${g.abierto ? 'abierto' : ''} ${g.activas ? '' : 'inactivo'}"><header class="panel-arbol-cabecera"><button class="panel-arbol-toggle" data-toggle-rol="${esc(g.rol)}" aria-expanded="${g.abierto}"><span class="icono">${svg(ENTIDADES.permisos.icono, 19)}</span><span class="quien"><b>${esc(g.rol)}</b><span>${g.activas} ${g.activas === 1 ? 'vista activa' : 'vistas activas'}</span></span><span class="chevron">${svg(ICONO.flecha, 18)}</span></button></header>${g.abierto ? `<div class="panel-rol-vistas">${g.visibles.map(p => `<div class="panel-vista-chip ${registroActivo(p) ? '' : 'inactivo'}"><span>${esc(p.vista)}</span><span class="acciones"><button class="btn-mini" data-entidad="permisos" data-editar="${p._fila}" aria-label="Editar vista ${esc(p.vista)}" title="Editar">${svg(ICONO.flecha, 17)}</button></span>${interruptor(registroActivo(p), `data-alternar="permisos" data-fila="${p._fila}"`, 'Vista ' + p.vista)}</div>`).join('')}</div><div class="panel-rol-acciones"><button class="btn-arbol" data-nuevo="permisos" data-rol="${esc(g.rol)}">${svg(ICONO.mas, 16)} Añadir vista</button></div>` : ''}</article>`).join('')}</div>`;
   }
 
   function pintarEditor() {
@@ -314,7 +317,7 @@
     contenedor.innerHTML = `<div class="panel-resumen">${lista.length} ${lista.length === 1 ? entidad().singular : plural} visibles${soloActivos ? ' · solo activos' : ''}</div><div class="panel-lista">${lista.map(fila => {
       // Aquí solo llegan Staff, Configuración y Premios: Pabellones y Permisos se dibujan aparte.
       const titulo = entidadActual === 'config' ? fila.clave : entidadActual === 'premios' ? fila.titulo : fila.nombre;
-      return `<article class="panel-registro ${registroActivo(fila) ? '' : 'inactivo'}"><span class="icono">${svg(entidad().icono, 19)}</span><span class="quien"><b>${esc(titulo || 'Sin título')}</b><span>${resumen(fila)}</span></span><span class="acciones"><button class="btn-mini" data-editar="${fila._fila}" aria-label="Editar ${esc(titulo)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-borrar="${fila._fila}" aria-label="Desactivar ${esc(titulo)}" title="Desactivar">${svg(ICONO.equis, 18)}</button></span></article>`;
+      return `<article class="panel-registro ${registroActivo(fila) ? '' : 'inactivo'}"><span class="icono">${svg(entidad().icono, 19)}</span><span class="quien"><b>${esc(titulo || 'Sin título')}</b><span>${resumen(fila)}</span></span><span class="acciones">${entidadActual === 'config' && CONFIG_BOOLEANAS.indexOf(String(fila.clave)) >= 0 ? interruptor(String(fila.valor).toUpperCase() === 'TRUE', `data-alternar="config" data-fila="${fila._fila}"`, fila.clave) : ''}<button class="btn-mini" data-editar="${fila._fila}" aria-label="Editar ${esc(titulo)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-borrar="${fila._fila}" aria-label="Desactivar ${esc(titulo)}" title="Desactivar">${svg(ICONO.equis, 18)}</button></span></article>`;
     }).join('')}</div>`;
   }
 
@@ -350,7 +353,7 @@
   }
 
   function abrirImportacionPreguntas(standId, standNombre) {
-    App.abrirHoja(`<form class="formulario-admin" id="admin-json-form"><h2>Cargar preguntas</h2><p>Destino: <b>${esc(standNombre)}</b>. El sistema asignará las preguntas a este stand o charla y generará las IDs.</p><label class="campo-admin"><span>Archivo JSON</span><input id="admin-json-archivo" type="file" accept=".json,application/json" required></label><p class="json-ayuda">El archivo debe ser un arreglo de objetos con: texto, opcion_a, opcion_b, opcion_c, opcion_d, correcta, puntos y activo.</p><p class="json-estado" id="admin-json-estado">Selecciona un archivo para validarlo.</p><div class="acciones-form"><button class="btn" id="admin-json-guardar" type="submit" disabled>Cargar preguntas</button><button class="btn texto" type="button" data-cerrar>Cancelar</button></div></form>`);
+    App.abrirHoja(`<form class="formulario-admin" id="admin-json-form"><h2>Cargar preguntas</h2><p>Destino: <b>${esc(standNombre)}</b>. El sistema asignará las preguntas a este stand o taller y generará las IDs.</p><label class="campo-admin"><span>Archivo JSON</span><input id="admin-json-archivo" type="file" accept=".json,application/json" required></label><p class="json-ayuda">El archivo debe ser un arreglo de objetos con: texto, opcion_a, opcion_b, opcion_c, opcion_d, correcta, puntos y activo.</p><p class="json-estado" id="admin-json-estado">Selecciona un archivo para validarlo.</p><div class="acciones-form"><button class="btn" id="admin-json-guardar" type="submit" disabled>Cargar preguntas</button><button class="btn texto" type="button" data-cerrar>Cancelar</button></div></form>`);
     const form = $('admin-json-form');
     const archivo = $('admin-json-archivo');
     const estado = $('admin-json-estado');
@@ -388,7 +391,7 @@
 
   function abrirFormulario(fila, tipo = entidadActual, iniciales = {}) {
     const nuevo = !fila;
-    const verboNuevo = tipo === 'preguntas' || tipo === 'charlas' ? 'Nueva' : 'Nuevo';
+    const verboNuevo = tipo === 'preguntas' ? 'Nueva' : 'Nuevo';
     const baseDefecto = tipo === 'pabellones' ? { orden: (datos.pabellones || []).length + 1, requiere_codigo: true, activo: true } : tipo === 'stands' ? { orden: 1, activo: true } : tipo === 'charlas' ? { orden: (datos.charlas || []).length + 1, activo: true } : tipo === 'preguntas' ? { puntos: 10, correcta: 'A', activo: true } : tipo === 'staff' ? { activo: true, rol: 'LIDER' } : tipo === 'permisos' ? { activo: true, rol: 'LIDER', vista: 'RANKING' } : tipo === 'premios' ? { orden: (datos.premios || []).length + 1, activo: true } : {};
     // Al editar, el campo del responsable arranca con el correo de quien responde hoy. Un pabellón con el dato vacío pide código.
     const responsable = RESPONSABLES[tipo];
@@ -417,6 +420,19 @@
     };
   }
 
+  /** Cambia en un toque Permisos.activo o un valor TRUE/FALSE de Config, sin abrir el formulario. */
+  function alternarRegistro(boton) {
+    const tipo = boton.dataset.alternar;
+    const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.fila));
+    if (!fila || boton.disabled) return;
+    const entrada = tipo === 'config'
+      ? { _fila: fila._fila, clave: fila.clave, valor: String(fila.valor).toUpperCase() === 'TRUE' ? 'FALSE' : 'TRUE', descripcion: fila.descripcion || '' }
+      : { _fila: fila._fila, rol: fila.rol, vista: fila.vista, activo: !registroActivo(fila) };
+    boton.disabled = true;
+    servidor('guardarAdminRegistro', tipo, entrada).then(nuevos => { datos = nuevos; toast('Cambio guardado.'); pintar(); })
+      .catch(error => { toast(error && error.message ? error.message : 'No se pudo guardar.'); boton.disabled = false; });
+  }
+
   function abrirBorrado(fila, tipo = entidadActual) {
     const titulo = tipo === 'config' ? fila.clave : tipo === 'premios' || tipo === 'charlas' ? fila.titulo : tipo === 'staff' ? fila.nombre : fila.nombre || fila.texto || fila.rol + ' · ' + fila.vista;
     const esPabellon = tipo === 'pabellones';
@@ -433,7 +449,7 @@
   }
 
   $('panel-tabs').addEventListener('click', e => { const boton = e.target.closest('[data-entidad]'); if (!boton) return; entidadActual = boton.dataset.entidad; busqueda = ''; $('panel-buscar').value = ''; pintarTabs(); pintarEditor(); });
-  $('panel-editor').addEventListener('click', e => { const toggle = e.target.closest('[data-toggle-pab]'); if (toggle) { const id = toggle.dataset.togglePab; if (pabellonesAbiertos.has(id)) pabellonesAbiertos.delete(id); else pabellonesAbiertos.add(id); return pintarEditor(); } const toggleRol = e.target.closest('[data-toggle-rol]'); if (toggleRol) { const rol = toggleRol.dataset.toggleRol; if (rolesAbiertos.has(rol)) rolesAbiertos.delete(rol); else rolesAbiertos.add(rol); return pintarEditor(); } const boton = e.target.closest('button'); if (!boton) return; if (boton.dataset.importarPreguntas) return abrirImportacionPreguntas(boton.dataset.importarPreguntas, boton.dataset.nombre || ''); if (boton.dataset.nuevo) return abrirFormulario(null, boton.dataset.nuevo, { pabellon_id: boton.dataset.pabellon || '', stand_id: boton.dataset.stand || '', ...(boton.dataset.rol ? { rol: boton.dataset.rol } : {}) }); const tipo = boton.dataset.entidad || entidadActual; const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.editar || boton.dataset.borrar)); if (!fila) return; if (boton.dataset.editar) abrirFormulario(fila, tipo); else abrirBorrado(fila, tipo); });
+  $('panel-editor').addEventListener('click', e => { const toggle = e.target.closest('[data-toggle-pab]'); if (toggle) { const id = toggle.dataset.togglePab; if (pabellonesAbiertos.has(id)) pabellonesAbiertos.delete(id); else pabellonesAbiertos.add(id); return pintarEditor(); } const toggleRol = e.target.closest('[data-toggle-rol]'); if (toggleRol) { const rol = toggleRol.dataset.toggleRol; if (rolesAbiertos.has(rol)) rolesAbiertos.delete(rol); else rolesAbiertos.add(rol); return pintarEditor(); } const boton = e.target.closest('button'); if (!boton) return; if (boton.dataset.alternar) return alternarRegistro(boton); if (boton.dataset.importarPreguntas) return abrirImportacionPreguntas(boton.dataset.importarPreguntas, boton.dataset.nombre || ''); if (boton.dataset.nuevo) return abrirFormulario(null, boton.dataset.nuevo, { pabellon_id: boton.dataset.pabellon || '', stand_id: boton.dataset.stand || '', ...(boton.dataset.rol ? { rol: boton.dataset.rol } : {}) }); const tipo = boton.dataset.entidad || entidadActual; const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.editar || boton.dataset.borrar)); if (!fila) return; if (boton.dataset.editar) abrirFormulario(fila, tipo); else abrirBorrado(fila, tipo); });
   $('panel-nuevo').addEventListener('click', () => abrirFormulario(null));
   $('panel-buscar').addEventListener('input', e => { busqueda = e.target.value; pintarEditor(); });
   $('panel-solo-activos').addEventListener('change', e => { soloActivos = e.target.checked; pintarEditor(); });
@@ -447,7 +463,7 @@
 
   $('panel-actualizar').addEventListener('click', () => {
     const boton = $('panel-actualizar'); boton.disabled = true;
-    servidor('actualizarCatalogo').then(r => toast(`Listo: ${r.pabellones} pabellones, ${r.stands} stands, ${r.charlas} charlas y ${r.preguntas} preguntas activas. Preguntas listas en ${r.standsListos} bancos.`)).catch(error => toast(error && error.message ? error.message : 'No se pudo actualizar.')).then(() => { boton.disabled = false; });
+    servidor('actualizarCatalogo').then(r => toast(`Listo: ${r.pabellones} pabellones, ${r.stands} stands, ${r.charlas} talleres y ${r.preguntas} preguntas activas. Preguntas listas en ${r.standsListos} bancos.`)).catch(error => toast(error && error.message ? error.message : 'No se pudo actualizar.')).then(() => { boton.disabled = false; });
   });
 
   function abrirConfirmacion() {

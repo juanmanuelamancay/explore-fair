@@ -26,7 +26,7 @@
     if (!datos) App.cargando(contenido);
     cargar();
     // El validador no edita: se le avisa quién mantiene las preguntas.
-    if (soloLectura) mostrarAviso('Sobre estas preguntas', 'Estas preguntas serán actualizadas por los expositores de cada stand y los ponentes de cada charla según su presentación.');
+    if (soloLectura) mostrarAviso('Sobre estas preguntas', 'Estas preguntas serán actualizadas por los expositores de cada stand y los ponentes de cada taller según su presentación.');
   }
 
   function cargar() {
@@ -40,7 +40,7 @@
   function pintar() {
     if (!datos.stands.length) {
       contenido.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.llave, 32)}</div><h2>No tienes nada asignado</h2>
-        <p>Pide a un administrador que te asigne tu stand o tu charla.</p></div>`;
+        <p>Pide a un administrador que te asigne tu stand o tu taller.</p></div>`;
       return;
     }
     const stand = datos.stands.find(s => s.id === standId);

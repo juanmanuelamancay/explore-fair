@@ -39,7 +39,7 @@
     if (!stands.length) {
       $('codigo-stand').innerHTML = '';
       tarjeta.innerHTML = `<div class="disco-grande">${svg(ICONO.llave, 32)}</div><h2>No tienes nada asignado</h2>
-        <p class="aviso">Pide a un administrador que te asigne tu pabellón o tu charla.</p>`;
+        <p class="aviso">Pide a un administrador que te asigne tu pabellón o tu taller.</p>`;
       return;
     }
     const s = stand();
@@ -47,7 +47,7 @@
     const activo = s.activo;
 
     $('codigo-guia-icono').innerHTML = svg(activo ? ICONO.megafono : ICONO.llave, 20);
-    $('codigo-guia-titulo').textContent = activo ? 'Comparte este código' : 'Al terminar tu charla';
+    $('codigo-guia-titulo').textContent = activo ? 'Comparte este código' : 'Al terminar tu taller';
     $('codigo-guia-texto').textContent = activo ? 'Dilo en voz alta o muestra tu pantalla.' : 'Genera el código para que respondan el quiz.';
 
     const restaurarCarril = recordarCarril($('codigo-stand'));
@@ -56,7 +56,7 @@
            <span class="abr">${esc(abreviatura(s.nombre))}</span>
            <div><span class="etiqueta-pab">${esc(s.grupo)}</span><b>${esc(s.nombre)}</b></div>
          </div>`
-      : `<div class="carril chips" role="tablist" aria-label="Pabellones y charlas">
+      : `<div class="carril chips" role="tablist" aria-label="Pabellones y talleres">
            ${stands.map(x => {
              const t = paleta(x.indice);
              return `<button class="chip-stand ${x.id === s.id ? 'activo' : ''}" role="tab" aria-selected="${x.id === s.id}"
@@ -72,11 +72,11 @@
     // Charla cerrada: ya no hay código ni botón (el admin sí sigue viendo el suyo, ver abajo).
     if (s.cerrada) {
       $('codigo-guia-icono').innerHTML = svg(ICONO.candado, 20);
-      $('codigo-guia-titulo').textContent = 'La charla ya cerró';
+      $('codigo-guia-titulo').textContent = 'El taller ya cerró';
       $('codigo-guia-texto').textContent = 'La hora para generar códigos se venció.';
       tarjeta.innerHTML = `
         <div class="disco-grande">${svg(ICONO.candado, 32)}</div>
-        <h2>Charla cerrada</h2>
+        <h2>Taller cerrado</h2>
         <p class="aviso">Cerró a las ${horaDe(s.cierre)}. Ya no se pueden generar códigos ni responder el quiz.</p>`;
       return;
     }
@@ -96,7 +96,7 @@
         <h2>El código venció</h2>
         ${casillas(vencidos[s.id], 'vencida')}
         <button class="btn" data-accion="pedir">Generar código nuevo</button>
-        <p class="aviso">Úsalo si alguien no alcanzó a ingresar o al terminar otra charla.</p>`;
+        <p class="aviso">Úsalo si alguien no alcanzó a ingresar o al terminar otro taller.</p>`;
     } else {
       tarjeta.innerHTML = `
         <div class="disco-grande">${svg(ICONO.llave, 32)}</div>
@@ -108,7 +108,7 @@
     if (s.cierre) {
       const yaCerro = Date.now() + desfase > s.cierre;
       tarjeta.insertAdjacentHTML('beforeend', yaCerro
-        ? `<p class="aviso">Esta charla cerró a las ${horaDe(s.cierre)}; como admin todavía puedes generar un código.</p>`
+        ? `<p class="aviso">Este taller cerró a las ${horaDe(s.cierre)}; como admin todavía puedes generar un código.</p>`
         : `<p class="aviso">Puedes generar códigos hasta las ${horaDe(s.cierre)}.</p>`);
     }
   }

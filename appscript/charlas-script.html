@@ -16,7 +16,10 @@
   function mostrar() {
     const primerNombre = INICIO.nombre.split(' ')[0];
     $('charlas-saludo').textContent = 'Hola, ' + primerNombre.charAt(0).toUpperCase() + primerNombre.slice(1);
-    $('charlas-guia-icono').innerHTML = svg(ICONO.megafono, 20);
+    // Mismo ícono que el mapa: una mano que gira y se vuelve "?", porque la franja abre la ayuda.
+    $('charlas-guia-icono').innerHTML = `
+      <span class="guia-icono-cara guia-icono-mano">${svg(ICONO.toque, 20)}</span>
+      <span class="guia-icono-cara guia-icono-pregunta" aria-hidden="true">?</span>`;
     centrado = false;
     if (!datos) App.cargando(ruta);
     else aplicarResultadoReciente();
@@ -34,7 +37,7 @@
       App.estado.puntos = r.puntos;
       pintar();
     }).catch(() => {
-      if (datos) toast('No pudimos actualizar las charlas.');
+      if (datos) toast('No pudimos actualizar los talleres.');
       else App.error(ruta, cargar);
     });
   }
@@ -83,11 +86,12 @@
 
     let datosDeLaCharla = '';
     if (!compacta && c.estado !== 'COMPLETADO') {
-      datosDeLaCharla = '<div class="ch-datos">' +
-        (uniforme ? '' : `<span class="chip">${c.numPreguntas} preguntas</span>`) +
-        `<span class="chip">Hasta ${c.puntosMax} pts</span>` +
-        (vigente && c.cierre ? `<span class="chip ch-cierre">${reloj} Responde hasta las ${hora(c.cierre)}</span>` : '') +
-        '</div>';
+      // Una sola línea de apoyo en lugar de varias fichas: lo que importa es la hora de cierre.
+      const partes = [];
+      if (!uniforme) partes.push(`${c.numPreguntas} preguntas`);
+      partes.push(`Hasta ${c.puntosMax} pts`);
+      if (vigente && c.cierre) partes.push(`<span class="ch-cierre">${reloj} Responde hasta las ${hora(c.cierre)}</span>`);
+      datosDeLaCharla = '<p class="ch-datos">' + partes.join('<span class="ch-sep" aria-hidden="true">·</span>') + '</p>';
     }
 
     let accion = '';
@@ -97,12 +101,13 @@
     } else if (c.estado === 'COMPLETADO') {
       accion = `<p class="ch-resultado"><b class="tnum">+${c.puntaje} pts</b><span>${c.correctas} de ${c.total} correctas</span></p>`;
     } else if (c.estado === 'VENCIDO') {
-      accion = '<p class="ch-nota">Se te venció el tiempo en esta charla. No se puede repetir.</p>';
+      accion = '<p class="ch-nota">Se te venció el tiempo en este taller. No se puede repetir.</p>';
     } else if (a.clase.indexOf('cerrada') >= 0) {
       accion = `<p class="ch-nota">La hora para responder se venció (cerró a las ${hora(c.cierre)}).</p>`;
     } else if (a.clase.indexOf('abierta') >= 0 && !datos.soloLectura) {
-      accion = `<button class="btn" data-quiz="${esc(c.id)}">${c.estado === 'EN_CURSO' ? 'Continuar el quiz' : 'Ingresar código'}</button>
-        ${c.estado === 'EN_CURSO' ? '' : '<p class="ch-nota">El código lo comparte quien dicta la charla al terminar.</p>'}`;
+      // Una sola acción principal: solo el taller en vivo (o el que ya empezó) lleva el botón relleno.
+      const principal = a.clase.indexOf('en-vivo') >= 0;
+      accion = `<button class="btn${principal ? '' : ' secundario'}" data-quiz="${esc(c.id)}">${c.estado === 'EN_CURSO' ? 'Continuar el quiz' : 'Ingresar código'}</button>`;
     }
 
     return `
@@ -127,11 +132,11 @@
     $('charlas-puntos').textContent = datos.puntos;
     $('charlas-kpis').style.display = datos.soloLectura ? 'none' : '';
     if (!datos.charlas.length) {
-      ruta.innerHTML = '<p class="ch-vacio">Todavía no hay charlas programadas.</p>';
+      ruta.innerHTML = '<p class="ch-vacio">Todavía no hay talleres programados.</p>';
       return;
     }
     const uniforme = esUniforme();
-    let html = uniforme ? `<p class="ch-resumen">Cada charla: ${datos.charlas[0].numPreguntas} preguntas · ${INICIO.minutosParaResponder} minutos para responder.</p>` : '';
+    let html = uniforme ? `<p class="ch-resumen">Cada taller: ${datos.charlas[0].numPreguntas} preguntas · ${INICIO.minutosParaResponder} minutos para responder.</p>` : '';
     let diaActual = null;
     datos.charlas.forEach((c, i) => {
       const grupo = c.inicio ? claveDia(c.inicio) : 'sin-fecha';
@@ -162,8 +167,29 @@
     const indice = datos.charlas.findIndex(c => c.id === boton.dataset.quiz);
     if (indice < 0) return;
     const tono = paleta(indice);
-    App.ir('quiz', { unidad: datos.charlas[indice], etiqueta: 'Charla', titulo: datos.charlas[indice].nombre, volver: 'charlas', color: tono.color, tinte: tono.tinte, desfase: desfase });
+    App.ir('quiz', { unidad: datos.charlas[indice], etiqueta: 'Taller', titulo: datos.charlas[indice].nombre, volver: 'charlas', color: tono.color, tinte: tono.tinte, desfase: desfase });
   });
+
+  function abrirComoJugar() {
+    const pasos = [
+      ['Ubica tu taller', 'Busca en la lista el taller en el que estás ahora o el que estás escuchando.'],
+      ['Escucha el taller', 'Al terminar, quien lo dicta compartirá un código.'],
+      ['Ingresa el código', 'Pulsa "Ingresar código" en la tarjeta del taller y escribe las 4 letras.'],
+      ['Responde y suma puntos', `Tienes ${INICIO.minutosParaResponder} minutos y un intento. La hora de cierre aparece en cada tarjeta.`],
+    ];
+    const modal = App.abrirHoja(`
+      <div class="hoja-texto">
+        <h2 id="como-jugar-titulo">Cómo participar en los talleres</h2>
+        <p>Asiste a los talleres y responde su quiz para sumar puntos.</p>
+        <ol class="pasos-ayuda">${pasos.map((p, i) => `
+          <li class="paso-ayuda"><b class="numero">${i + 1}</b><div><b>${p[0]}</b><span>${p[1]}</span></div></li>`).join('')}
+        </ol>
+      </div>`);
+    modal.setAttribute('aria-labelledby', 'como-jugar-titulo');
+    modal.setAttribute('tabindex', '-1');
+    modal.focus();
+  }
+  $('charlas-como-jugar').addEventListener('click', abrirComoJugar);
 
   App.registrar('charlas', { alMostrar: mostrar, alOcultar: ocultar, alRefrescar: cargar });
 })();

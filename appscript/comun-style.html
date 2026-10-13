@@ -87,6 +87,40 @@
   .guia.ok { background: var(--verde-suave); }
   .guia.ok .icono { color: var(--verde); }
 
+  /* La franja guía es un botón que abre la ayuda (mapa y talleres); la hoja de pasos también es común. */
+  .guia { width: 100%; text-align: left; cursor: pointer; }
+  .guia:active { background: #dce8fc; }
+  .guia-texto { flex: 1; min-width: 0; }
+  .guia-texto b { display: block; }
+  .guia-texto span { display: block; }
+  .guia .icono { position: relative; perspective: 120px; transform-style: preserve-3d; overflow: hidden; }
+  .guia-icono-cara {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  }
+  .guia-icono-pregunta { color: var(--azul); font-size: 20px; font-weight: 500; transform: rotateY(180deg); }
+  .guia-icono-mano { animation: guia-moneda-mano 3.6s ease-in-out infinite; }
+  .guia-icono-pregunta { animation: guia-moneda-pregunta 3.6s ease-in-out infinite; }
+  @keyframes guia-moneda-mano {
+    0%, 35% { opacity: 1; transform: rotateY(0); }
+    50%, 100% { opacity: 0; transform: rotateY(180deg); }
+  }
+  @keyframes guia-moneda-pregunta {
+    0%, 35% { opacity: 0; transform: rotateY(-180deg); }
+    50%, 85% { opacity: 1; transform: rotateY(0); }
+    100% { opacity: 0; transform: rotateY(180deg); }
+  }
+
+  .pasos-ayuda { margin-top: 16px; }
+  .paso-ayuda { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--borde-suave); }
+  .paso-ayuda:last-child { border-bottom: 0; }
+  .paso-ayuda .numero {
+    width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    background: var(--azul-suave); color: var(--azul); font-weight: 500;
+  }
+  .paso-ayuda b { display: block; font-size: 15px; }
+  .paso-ayuda span { display: block; margin-top: 2px; color: var(--texto-2); font-size: 14px; }
+
   /* Tarjetas y botones */
   .tarjeta { border: 1px solid var(--borde); border-radius: 24px; padding: 24px 20px; }
   .centro { text-align: center; }
@@ -189,9 +223,12 @@
     background: var(--superficie); border-top: 1px solid var(--borde-suave);
     padding-bottom: env(safe-area-inset-bottom);
   }
-  #nav .dentro { max-width: 480px; margin: 0 auto; display: flex; height: var(--nav-h); }
-  #nav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--texto-2); }
-  #nav .pastilla { width: 64px; height: 32px; border-radius: 16px; display: grid; place-items: center; transition: background .15s; }
+  /* Con muchos destinos (el admin tiene hasta siete) los botones se reparten el ancho y se achican para caber en un celular chico;
+     si aun así no caben, la barra se desliza de lado. */
+  #nav .dentro { max-width: 480px; margin: 0 auto; display: flex; height: var(--nav-h); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  #nav .dentro::-webkit-scrollbar { display: none; }
+  #nav button { flex: 1 0 0; min-width: 46px; padding: 0 1px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 500; color: var(--texto-2); }
+  #nav .pastilla { width: min(64px, 100%); height: 32px; border-radius: 16px; display: grid; place-items: center; transition: background .15s; }
   #nav button.activa { color: var(--texto); }
   #nav button.activa .pastilla { background: #d3e3fd; color: #0b57d0; }
 
@@ -225,6 +262,14 @@
   .aviso-tiempo { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: #8ab4f8; transform-origin: left; animation: aviso-tiempo var(--s, 8s) linear forwards; }
   @keyframes aviso-tiempo { from { transform: scaleX(1); } to { transform: scaleX(0); } }
   @media (prefers-reduced-motion: reduce) { .aviso-tiempo { display: none; } }
+
+  /* Cambio de vista: misma curva que la hoja inferior; el desplazamiento es corto para no abrir scroll horizontal. */
+  .vista.entra { animation: vista-entra .22s cubic-bezier(.2, 0, 0, 1) both; }
+  .vista.entra-adelante { animation: vista-adelante .26s cubic-bezier(.2, 0, 0, 1) both; }
+  .vista.entra-atras { animation: vista-atras .26s cubic-bezier(.2, 0, 0, 1) both; }
+  @keyframes vista-entra { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes vista-adelante { from { opacity: 0; transform: translateX(28px); } }
+  @keyframes vista-atras { from { opacity: 0; transform: translateX(-28px); } }
 
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>

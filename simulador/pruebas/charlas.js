@@ -32,7 +32,7 @@ const hoja = async nombre => (await (await fetch(base + '/hoja?nombre=' + nombre
 
   // Ponente
   let cod = await llamar(pon, 'obtenerCodigos');
-  ok(cod.unidades.length === 1 && cod.unidades[0].id === 'CHA-001' && cod.unidades[0].grupo === 'Charla', 'ponente: solo ve su charla', cod.unidades);
+  ok(cod.unidades.length === 1 && cod.unidades[0].id === 'CHA-001' && cod.unidades[0].grupo === 'Taller', 'ponente: solo ve su charla', cod.unidades);
   x = await intenta(pon, 'generarCodigo', 'CHA-002');
   ok(x.error, 'ponente no genera el código de otra charla', x);
   const g = await llamar(pon, 'generarCodigo', 'CHA-001');

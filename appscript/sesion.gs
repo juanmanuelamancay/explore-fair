@@ -10,14 +10,33 @@ const SEGUNDOS_CACHE_USUARIO = 21600;   // máximo que permite CacheService
 // Aunque Permisos le agregue otra, no la recibe.
 const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS'];
 
-/** Rol y vistas de quien hace la llamada. El rol sale de Staff; quien no está ahí es USUARIO. */
+/**
+ * Filas de Staff que valen para este correo. Una persona del staff puede tener varias filas activas (líder, expositor y
+ * ponente a la vez), una por función. ADMIN y VALIDADOR van solos: si la primera fila es una de ellas, las demás se ignoran.
+ * Quien además tiene una función real deja de contar su fila USUARIO.
+ */
+function filasDeStaff_(catalogo, email) {
+  const filas = catalogo.staff.filter(s => s.email === email);
+  if (filas.length && (filas[0].rol === 'ADMIN' || filas[0].rol === 'VALIDADOR')) return [filas[0]];
+  const conFuncion = filas.filter(s => s.rol !== 'USUARIO');
+  return conFuncion.length ? conFuncion : filas;
+}
+
+/**
+ * Rol y vistas de quien hace la llamada. El rol sale de Staff; quien no está ahí es USUARIO.
+ * "rol" y "staff" son los de la primera fila y los usan las comprobaciones de un solo rol (admin, validador, usuario);
+ * "staffFilas" trae todas las filas y las usan las vistas que calculan un alcance (códigos y preguntas).
+ */
 function sesion_() {
   const email = texto_(Session.getActiveUser().getEmail()).toLowerCase();
   if (!email) throw new Error('No pudimos identificar tu cuenta. Entra con tu cuenta de la empresa.');
   const catalogo = catalogo_();
-  const staff = catalogo.staff.find(s => s.email === email) || null;
+  const staffFilas = filasDeStaff_(catalogo, email);
+  const staff = staffFilas[0] || null;
   const rol = staff ? staff.rol : 'USUARIO';
-  let vistas = catalogo.permisos.filter(p => p.rol === rol).map(p => p.vista);
+  const roles = staffFilas.length ? staffFilas.map(s => s.rol) : ['USUARIO'];
+  let vistas = catalogo.permisos.filter(p => roles.indexOf(p.rol) >= 0).map(p => p.vista)
+    .filter((v, i, todas) => todas.indexOf(v) === i);
   if (rol === 'VALIDADOR') vistas = vistas.filter(v => VISTAS_DEL_VALIDADOR.indexOf(v) >= 0);
   // Sala de espera: mientras está activa, quien tiene rol USUARIO solo ve esa vista y no puede
   // llamar a nada más. Da igual si no está en Staff o si está ahí con rol USUARIO.
@@ -26,7 +45,13 @@ function sesion_() {
   if (enEspera) vistas = ['ESPERA'];
   // El admin y el validador la reciben como una vista más, para ver lo mismo que verán los usuarios.
   else if (catalogo.config.espera_activa && (rol === 'ADMIN' || rol === 'VALIDADOR')) vistas = vistas.concat('ESPERA');
-  return { email: email, rol: rol, staff: staff, vistas: vistas, enEspera: enEspera };
+  return { email: email, rol: rol, staff: staff, staffFilas: staffFilas, vistas: vistas, enEspera: enEspera };
+}
+
+/** Filas de Staff de una sesión. Las sesiones armadas en memoria por las pruebas solo traen "staff" y "rol". */
+function filasDeSesion_(sesion) {
+  if (sesion.staffFilas) return sesion.staffFilas;
+  return sesion.staff ? [Object.assign({ rol: sesion.rol }, sesion.staff)] : [];
 }
 
 /** Toda función que el navegador puede llamar empieza con esto: ocultar una vista no es seguridad. */

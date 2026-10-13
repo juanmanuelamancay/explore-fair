@@ -68,7 +68,7 @@ function bancoIncompleto_(bancos) {
 }
 
 function mensajeBancoIncompleto_(unidad, falta) {
-  if (falta.sinBancos) return unidad.tipo === 'CHARLA' ? 'Esta charla todavía no tiene su banco de preguntas.' : 'Este pabellón todavía no tiene stands activos.';
+  if (falta.sinBancos) return unidad.tipo === 'CHARLA' ? 'Este taller todavía no tiene su banco de preguntas.' : 'Este pabellón todavía no tiene stands activos.';
   const necesita = Math.max(falta.banco.minimo, falta.banco.cuantas);
   return 'Este quiz todavía no tiene sus preguntas listas: "' + falta.banco.nombre + '" tiene ' + falta.tiene + ' activas y necesita ' + necesita + '.';
 }
@@ -90,7 +90,7 @@ function iniciarQuiz(unidadId, codigo) {
   const ahora = new Date();
   if (unidad.tipo === 'PABELLON' && !catalogo.config.feria_abierta) return falla_('CERRADA', 'La feria todavía no está abierta.');
   if (unidad.tipo === 'CHARLA' && unidad.inicio && ahora.getTime() < unidad.inicio) {
-    const respuesta = falla_('AUN_NO', 'Esta charla todavía no empieza.');
+    const respuesta = falla_('AUN_NO', 'Este taller todavía no empieza.');
     respuesta.empiezaEn = unidad.inicio;
     return respuesta;
   }
@@ -103,7 +103,7 @@ function iniciarQuiz(unidadId, codigo) {
   // Con el quiz ya en curso (arriba) se puede terminar aunque pase el cierre; empezar uno nuevo, no. Va antes del código
   // para que un intento tardío no cuente como código fallado.
   if (charlaCerrada_(unidad, ahora.getTime())) {
-    const cerrada = falla_('CIERRE', 'La hora para responder esta charla se venció.');
+    const cerrada = falla_('CIERRE', 'La hora para responder este taller se venció.');
     cerrada.cerroEn = unidad.cierre;
     return cerrada;
   }

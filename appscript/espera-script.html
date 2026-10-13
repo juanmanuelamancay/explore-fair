@@ -44,26 +44,35 @@
 
     pintarCharlas();
 
-    $('espera-objetivo-icono').innerHTML = svg(ICONO.mapa, 22);
     document.querySelectorAll('.obj-ico').forEach(e => { e.innerHTML = svg(ICONO.check, 12, 'currentColor', 3); });
 
-    // Una tarjeta por pabellón, después de Cómo participar y antes de Premios, que cierra el carrusel.
+    // Una sola lámina con todos los pabellones, antes de Premios, que cierra el carrusel. Cada fila se abre para ver sus stands.
     carrusel.hidden = false;   // se muestra recién con todas sus láminas, no solo con la fija
     carrusel.querySelectorAll('.lamina.de-pabellon').forEach(l => l.remove());
-    $('espera-premios').insertAdjacentHTML('beforebegin', datos.pabellones.map(p => {
-      const tono = paleta(p.indice);
-      return `
-        <section class="lamina de-pabellon" data-titulo="Pabellón ${esc(p.nombre)}">
-          <h2 class="titulo-seccion">Descubre agentes de IA</h2>
-          <div class="tarjeta pab-tarjeta" style="--c:${tono.color};--t:${tono.tinte}">
-            <div class="titulo">
-              <span class="icono">${svg(tono.icono, 26)}</span>
-              <div><span class="etiqueta-pab">${p.stands.length} ${p.stands.length === 1 ? 'stand' : 'stands'}</span><h2>${esc(p.nombre)}</h2></div>
-            </div>
-            <ul>${p.stands.map(s => `<li><span class="abr">${esc(abreviatura(s))}</span>${esc(s)}</li>`).join('')}</ul>
-          </div>
-        </section>`;
-    }).join(''));
+    if (datos.pabellones.length) {
+      $('espera-premios').insertAdjacentHTML('beforebegin', `
+        <section class="lamina de-pabellon" data-titulo="Pabellones">
+          <h2 class="titulo-seccion">En la feria descubre agentes de IA</h2>
+          <div class="lista">${datos.pabellones.map(p => {
+            const tono = paleta(p.indice);
+            return `<div class="pab-fila" style="--c:${tono.color};--t:${tono.tinte}">
+              <button class="pab-cab" aria-expanded="false">
+                <span class="icono">${svg(tono.icono, 22)}</span>
+                <span class="quien"><b>${esc(p.nombre)}</b><span>${p.stands.length} ${p.stands.length === 1 ? 'stand' : 'stands'}</span></span>
+                <span class="flecha">${svg(ICONO.flecha, 20)}</span>
+              </button>
+              <div class="pab-stands"><ul>${p.stands.map(s => `<li><span class="abr">${esc(abreviatura(s))}</span>${esc(s)}</li>`).join('')}</ul></div>
+            </div>`;
+          }).join('')}</div>
+        </section>`);
+      carrusel.querySelectorAll('.pab-cab').forEach(b => b.addEventListener('click', () => {
+        const fila = b.parentElement;
+        const abrir = !fila.classList.contains('abierta');
+        fila.classList.toggle('abierta', abrir);
+        b.setAttribute('aria-expanded', abrir);
+        seguirAltura();
+      }));
+    }
     armarCarrusel();
   }
 
@@ -86,8 +95,7 @@
     const filas = dias.map(d => `<p class="dia-charlas">${esc(diaLargo(d.inicio))}</p>
       <ul class="lista espera-charlas">${d.charlas.map(c => `<li class="fila"><span class="hora-charla tnum">${horaCorta(c.inicio)}</span><span class="quien"><b>${esc(c.titulo)}</b>${c.ponente ? `<span>${esc(c.ponente)}</span>` : ''}</span></li>`).join('')}</ul>`).join('');
     lamina.innerHTML = `
-      <h2 class="titulo-seccion">Empieza con las charlas</h2>
-      <p class="espera-intro">Al terminar cada charla, quien la dicta comparte un código. Ingrésalo en la app, responde su quiz y suma puntos para el ranking.</p>
+      <h2 class="titulo-seccion">Empieza con los talleres</h2>
       ${filas}`;
   }
 
@@ -115,14 +123,38 @@
     requestAnimationFrame(() => irALamina(activa, false));
   }
 
-  function marcarActiva() {
+  function marcarActiva(ajustarAlto = true) {
     puntos.querySelectorAll('button').forEach((b, i) => {
       b.classList.toggle('activa', i === activa);
       b.setAttribute('aria-selected', i === activa);
     });
-    // El carrusel toma el alto de la lámina a la vista, para no dejar un hueco bajo las más cortas.
+    if (ajustarAlto) ajustarAltura();
+  }
+
+  /** Mientras una fila se abre o se cierra, el carrusel acompaña su alto cuadro a cuadro, sin su propia transición. */
+  let siguiendoAltura = 0;
+  function seguirAltura() {
+    const hasta = Date.now() + 400;
+    if (siguiendoAltura) { siguiendoAltura = hasta; return; }
+    siguiendoAltura = hasta;
+    carrusel.style.transition = 'none';
+    const cuadro = () => {
+      ajustarAltura();
+      if (Date.now() < siguiendoAltura) requestAnimationFrame(cuadro);
+      else { siguiendoAltura = 0; carrusel.style.transition = ''; }
+    };
+    requestAnimationFrame(cuadro);
+  }
+
+  /** El carrusel toma el alto de la lámina a la vista, para no dejar un hueco bajo las más cortas. */
+  function ajustarAltura() {
     if (laminas[activa]) carrusel.style.height = laminas[activa].offsetHeight + 'px';
   }
+
+  // Con el dedo encima el alto no se toca: cambiarlo a media deslizada mueve todo lo de abajo y la vista tiembla.
+  // Se ajusta cuando el carrusel se detiene.
+  let esperaAlto = null;
+  const alDetenerse = () => { clearTimeout(esperaAlto); esperaAlto = setTimeout(ajustarAltura, 120); };
 
   function irALamina(indice, suave) {
     if (!laminas.length) return;
@@ -139,7 +171,8 @@
     if (Date.now() < enMovimientoHasta) return;
     const cerca = laminas.reduce((mejor, l, i) =>
       Math.abs(l.offsetLeft - carrusel.scrollLeft) < Math.abs(laminas[mejor].offsetLeft - carrusel.scrollLeft) ? i : mejor, 0);
-    if (cerca !== activa) { activa = cerca; marcarActiva(); }
+    if (cerca !== activa) { activa = cerca; marcarActiva(false); }
+    alDetenerse();
   }, { passive: true });
 
   ['pointerdown', 'touchstart', 'wheel'].forEach(evento => {
@@ -165,38 +198,36 @@
     irALamina(activa + 1, true);
   }
 
-  /** "Charlas del lunes 19 al miércoles 21 de octubre · Feria el jueves 22 de octubre", con las fechas de las hojas. */
+  /** "15 de octubre", "15 al 17 de octubre" o "30 de octubre al 2 de noviembre". */
+  function rangoDeDias(desde, hasta) {
+    const dia = ms => new Date(ms).toLocaleDateString('es', { day: 'numeric' });
+    const mes = ms => new Date(ms).toLocaleDateString('es', { month: 'long' });
+    if (claveDia(desde) === claveDia(hasta)) return dia(desde) + ' de ' + mes(desde);
+    return mes(desde) === mes(hasta) ? dia(desde) + ' al ' + dia(hasta) + ' de ' + mes(hasta)
+      : dia(desde) + ' de ' + mes(desde) + ' al ' + dia(hasta) + ' de ' + mes(hasta);
+  }
+
+  /** Una línea por mecánica: "Talleres: 15 al 17 de octubre" y "Feria: 22 de octubre · Auditorio principal", con las fechas de las hojas. */
   function resumenDelEvento() {
     const partes = [];
-    if (datos.charlas.length) {
-      const primera = datos.charlas[0].inicio, ultima = datos.charlas[datos.charlas.length - 1].inicio;
-      const corto = ms => new Date(ms).toLocaleDateString('es', { weekday: 'long', day: 'numeric' });
-      const mes = ms => new Date(ms).toLocaleDateString('es', { month: 'long' });
-      partes.push(claveDia(primera) === claveDia(ultima) ? 'Charlas el ' + corto(primera) + ' de ' + mes(primera)
-        : 'Charlas del ' + corto(primera) + ' al ' + corto(ultima) + ' de ' + mes(ultima));
-    }
-    if (datos.fechaFeria) partes.push('Feria el ' + new Date(datos.fechaFeria).toLocaleDateString('es', { weekday: 'long', day: 'numeric' }) + ' de ' + new Date(datos.fechaFeria).toLocaleDateString('es', { month: 'long' }));
-    return partes.join(' · ');
+    if (datos.charlas.length) partes.push('Talleres: ' + rangoDeDias(datos.charlas[0].inicio, datos.charlas[datos.charlas.length - 1].inicio));
+    const feria = [datos.fechaFeria ? rangoDeDias(datos.fechaFeria, datos.fechaFeria) : '', datos.lugar].filter(Boolean).join(' · ');
+    if (feria) partes.push('Feria: ' + feria);
+    return partes;
   }
 
   function pintarCuenta() {
-    const cuando = !datos.fecha ? '' : new Date(datos.fecha).toLocaleString('es', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
-    const resumen = resumenDelEvento();
+    const resumen = resumenDelEvento();   // una línea por frase: unidas en una sola se cortaban a mitad de camino en el celular
     const pie = `
-      ${cuando ? `<p class="cuando">${esc(cuando.charAt(0).toUpperCase() + cuando.slice(1))}</p>` : ''}
-      ${resumen ? `<p class="donde-es">${esc(resumen)}</p>` : ''}
-      ${datos.lugar ? `<p class="donde-es">${esc(datos.lugar)}</p>` : ''}
+      ${resumen.map(r => `<p class="donde-es">${esc(r)}</p>`).join('')}
       ${datos.mensaje ? `<p class="mensaje">${esc(datos.mensaje)}</p>` : ''}`;
 
     if (!datos.fecha) {
       cuenta.innerHTML = `<div class="disco-grande">${svg(ICONO.reloj, 34)}</div><h2>Muy pronto</h2>
-        <p class="aviso">Estamos preparando las charlas y la feria de agentes.</p>${pie}`;
-    } else if (restante() === 0) {
-      cuenta.innerHTML = `<div class="disco-grande" style="--t:var(--verde-suave);--c:var(--verde)">${svg(ICONO.check, 34, 'currentColor', 2.5)}</div>
-        <h2>Llegó el día</h2><p class="aviso">El evento está por empezar. Esta pantalla cambiará sola cuando abra.</p>${pie}`;
+        <p class="aviso">Estamos preparando los talleres y la feria de agentes.</p>${pie}`;
     } else {
       cuenta.innerHTML = `
-        <p class="sec chico">El evento de agentes empieza en</p>
+        <p class="sec chico">${datos.charlas.length ? 'Los talleres de agentes empiezan en' : 'La feria de agentes empieza en'}</p>
         <div class="reloj-grande tnum" role="timer">
           <div><b id="espera-d">0</b><span>días</span></div>
           <div><b id="espera-h">0</b><span>horas</span></div>
@@ -219,12 +250,9 @@
     if (!datos) return;
     avanzarSolo();
     if (!datos.fecha) return;
-    if (restante() > 0) {
-      if ($('espera-d')) pintarNumeros(); else pintarCuenta();
-      return;
-    }
-    if ($('espera-d')) pintarCuenta();   // la cuenta acaba de llegar a cero
-    if (document.hidden || Date.now() - ultimaComprobacion < SEGUNDOS_ENTRE_COMPROBACIONES * 1000) return;
+    if ($('espera-d')) pintarNumeros(); else pintarCuenta();
+    // En cero se queda en 00:00:00 hasta que se apague la espera; mientras tanto se pregunta si ya puede entrar.
+    if (restante() > 0 || document.hidden || Date.now() - ultimaComprobacion < SEGUNDOS_ENTRE_COMPROBACIONES * 1000) return;
     ultimaComprobacion = Date.now();
     App.comprobarAcceso();
   }
