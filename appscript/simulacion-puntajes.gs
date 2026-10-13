@@ -56,9 +56,9 @@ function escribirTandaPuntajes_() {
   try {
     const catalogo = catalogo_();
     const puntosPorAcierto = Number(catalogo.config.puntos_por_defecto) || 10;
-    // Una persona no repite el mismo stand: se revisa lo que ya existe, incluidas las tandas anteriores.
+    // Una persona no repite el mismo pabellón: se revisa lo que ya existe, incluidas las tandas anteriores.
     const yaEscritos = leerHoja_(HOJA.INTENTOS).filter(esSimulado_);
-    const usados = new Set(yaEscritos.map(f => texto_(f.email).toLowerCase() + '|' + id_(f.stand_id)));
+    const usados = new Set(yaEscritos.map(f => texto_(f.email).toLowerCase() + '|' + id_(f.unidad_id)));
 
     // Las personas simuladas se registran como en la app: con su número de orden, que les da su bloque de filas en Intentos.
     const todas = Array.from({ length: PUNTAJES_PERSONAS }, (_, i) => i + 1);
@@ -70,13 +70,13 @@ function escribirTandaPuntajes_() {
     }
     const encabezados = encabezados_(HOJA.INTENTOS);
 
-    // Personas al azar, distintas entre sí, y solo las que todavía tienen un stand por hacer.
+    // Personas al azar, distintas entre sí, y solo las que todavía tienen un pabellón por hacer.
     const orden = todas.slice().sort(() => Math.random() - 0.5);
     let escritos = 0;
     for (const i of orden) {
       if (escritos === PUNTAJES_POR_TANDA) break;
       const email = correoSim_(i);
-      const pendientes = catalogo.stands.filter(s => !usados.has(email + '|' + s.id));
+      const pendientes = catalogo.unidades.filter(u => u.tipo === 'PABELLON' && u.requiereCodigo && !usados.has(email + '|' + u.id));
       if (!pendientes.length) continue;
       if (!tieneOrden_(enUsuarios, email)) continue;
       // Cada persona escribe en su bloque, en la primera fila que no usó.
@@ -85,11 +85,11 @@ function escribirTandaPuntajes_() {
       const stand = pendientes[Math.floor(Math.random() * pendientes.length)];
       usados.add(email + '|' + stand.id);
 
-      // Puntaje distinto en cada intento: de 1 a 4 respuestas correctas.
-      const correctas = 1 + Math.floor(Math.random() * PREGUNTAS_POR_QUIZ);
+      // Puntaje distinto en cada intento: de 1 respuesta correcta a todas las del pabellón.
+      const correctas = 1 + Math.floor(Math.random() * stand.porQuiz);
       escribirFila_(HOJA.INTENTOS, fila, {
         intento_id: nuevoIntentoId_(),
-        email: email, stand_id: stand.id, pabellon_id: stand.pabellonId, codigo: '',
+        email: email, unidad_id: stand.id, pabellon_id: stand.id, codigo: '',
         preguntas_json: '[]', iniciado_en: new Date(Date.now() - 3 * 60000), vence_en: new Date(Date.now() + 2 * 60000),
         estado: 'COMPLETADO', respuestas_json: '[]',
         correctas: correctas, puntaje: correctas * puntosPorAcierto, completado_en: new Date(),

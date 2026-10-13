@@ -1,36 +1,37 @@
 /**
- * Prueba de líderes al mismo tiempo: un líder ficticio por stand con código (18 en la base actual) hace lo mismo
- * que hace un líder en la app, a la misma hora y en olas:
+ * Prueba de líderes al mismo tiempo: un líder ficticio por pabellón con código y un ponente ficticio por charla (11 en
+ * la base del evento: 6 pabellones y 5 charlas) hacen lo mismo que hacen en la app, a la misma hora y en olas:
  *  1. abre o actualiza la pantalla "Código" (obtenerCodigos), y
  *  2. toca "Generar" (generarCodigo). La app solo deja una generación a la vez por líder.
  * Cada llamada incluye la comprobación de permisos que hace la app (exigirVista_). La primera ola es la ráfaga
- * real (18 a la vez, sin código previo); las siguientes son cambios de código a la vez, el peor caso.
+ * real (todos a la vez, sin código previo); las siguientes son cambios de código a la vez, el peor caso.
  * Después de cada generación, fuera de la medición, comprueba lo que vería la app: el código nuevo vale, el
  * anterior ya no, la pantalla muestra el nuevo. Al final, ya vencidos los códigos, que ninguno salga como activo.
  *
  * Ejecutar a mano desde el editor, en este orden:
  *  1. iniciarPruebaLideres()  -> prepara la hoja y programa un disparador por líder. Todos esperan 3 minutos y empiezan a la vez.
  *  2. revisarPruebaLideres()  -> cuando terminen los disparadores (se puede correr varias veces): resume tiempos y revisa las reglas.
- *  3. limpiarPruebaLideres()  -> vacía los códigos de la prueba (cada stand conserva su fila), los disparadores y la hoja de resultados.
+ *  3. limpiarPruebaLideres()  -> vacía los códigos de la prueba (cada pabellón y charla conserva su fila), los disparadores y la hoja de resultados.
  *
  * Los líderes no están en Staff: cada disparador arma la sesión en memoria, así que no se escribe nada en
  * Staff ni en Permisos. La comprobación de permisos se mide con la cuenta que ejecuta la prueba (tiene que ser ADMIN).
  * Sus correos usan SIM_DOMINIO, y por eso limpiarPruebaLideres() los reconoce.
- * Como generan códigos reales para esos stands, corre la prueba en una copia del libro.
+ * Como generan códigos reales para esos pabellones y charlas, corre la prueba en una copia del libro.
  * Apps Script permite 20 disparadores por usuario: mientras corre, no debe haber otros (por ejemplo, una simulación).
  */
 
-const PRUEBA_LIDERES_N = 18;               // un líder por stand con código; cámbialo si la base tiene más stands
+const PRUEBA_LIDERES_MAX = 19;             // un líder por pabellón con código y un ponente por charla; Apps Script permite 20 disparadores
 const PRUEBA_LIDERES_RONDAS = 3;           // olas: la primera genera, las otras dos cambian el código a la vez
 const PRUEBA_LIDERES_ESPERA_MS = 180000;   // la primera ola arranca 3 minutos después de iniciar
 const PRUEBA_LIDERES_PAUSA_MS = 45000;     // entre una ola y la siguiente (un disparador no puede pasar de 6 minutos)
 const PRUEBA_LIDERES_HOJA = 'PruebaLideres';
-const PRUEBA_LIDERES_ENCABEZADOS = ['lider', 'stand_id', 'ronda', 'codigo', 'ms', 'pantalla', 'sesion', 'leer', 'escribir', 'confirmar', 'cache',
+const PRUEBA_LIDERES_ENCABEZADOS = ['lider', 'unidad_id', 'ronda', 'codigo', 'ms', 'pantalla', 'sesion', 'leer', 'escribir', 'confirmar', 'cache',
   'nuevo_valido', 'anterior_invalido', 'pantalla_ok', 'resultado'];
 const PRUEBA_LIDERES_CLAVE_TURNOS = 'PRUEBA_LIDERES_TURNOS';
 const PRUEBA_LIDERES_CLAVE_SALIDA = 'PRUEBA_LIDERES_SALIDA';
+const PRUEBA_LIDERES_CLAVE_CUANTOS = 'PRUEBA_LIDERES_CUANTOS';
 
-/** 1. Elige los stands, arma el turno de cada líder y programa los disparadores. */
+/** 1. Elige los pabellones y charlas, arma el turno de cada líder y programa los disparadores. */
 function iniciarPruebaLideres() {
   exigirAdminFresco_();
   const propiedades = PropertiesService.getScriptProperties();
@@ -38,24 +39,22 @@ function iniciarPruebaLideres() {
     throw new Error('La prueba ya está preparada. Ejecuta limpiarPruebaLideres() antes de volver a iniciarla.');
   }
   const catalogo = catalogo_();
-  const stands = catalogo.stands.filter(s => s.requiereCodigo).slice(0, PRUEBA_LIDERES_N);
-  if (stands.length < PRUEBA_LIDERES_N) {
-    throw new Error('Hacen falta ' + PRUEBA_LIDERES_N + ' stands activos con código y hay ' + stands.length + '.');
-  }
+  const stands = unidadesParaCodigo_({ rol: 'ADMIN' }, catalogo).slice(0, PRUEBA_LIDERES_MAX);
+  if (!stands.length) throw new Error('No hay ningún pabellón ni charla activos con código.');
 
-  // No se reemplazan códigos reales: si alguno de estos stands tiene un código vigente que no es de la prueba, se para.
+  // No se reemplazan códigos reales: si alguna de estas unidades tiene un código vigente que no es de la prueba, se para.
   const ahora = Date.now();
   const ids = stands.map(s => s.id);
   const reales = leerHoja_(HOJA.CODIGOS).filter(c =>
     estaVigente_(c, ahora) && ids.indexOf(id_(c.stand_id)) >= 0 && !generadoPorSimulacion_(c));
   if (reales.length) {
-    throw new Error('Hay códigos activos reales en estos stands (' + reales.map(c => id_(c.stand_id)).join(', ') + '). Corre la prueba en una copia del libro.');
+    throw new Error('Hay códigos activos reales en estos pabellones o charlas (' + reales.map(c => id_(c.stand_id)).join(', ') + '). Corre la prueba en una copia del libro.');
   }
 
   const turnos = stands.map((s, i) => {
-    const turno = { email: 'lider-' + String(i + 1).padStart(2, '0') + SIM_DOMINIO, standId: s.id, pabellonId: s.pabellonId };
-    if (!standsALiderar_(sesionDeLiderPrueba_(turno), catalogo).some(x => x.id === s.id)) {
-      throw new Error('El stand ' + s.id + ' no sale en el mapa; no se le puede asignar un líder.');
+    const turno = { email: 'lider-' + String(i + 1).padStart(2, '0') + SIM_DOMINIO, unidadId: s.id, tipo: s.tipo };
+    if (!unidadesParaCodigo_(sesionDeLiderPrueba_(turno), catalogo).some(x => x.id === s.id)) {
+      throw new Error('La unidad ' + s.id + ' no sale entre las de los líderes; no se le puede asignar uno.');
     }
     return turno;
   });
@@ -67,6 +66,7 @@ function iniciarPruebaLideres() {
 
   propiedades.setProperty(PRUEBA_LIDERES_CLAVE_TURNOS, JSON.stringify(turnos));
   propiedades.setProperty(PRUEBA_LIDERES_CLAVE_SALIDA, String(Date.now() + PRUEBA_LIDERES_ESPERA_MS));
+  propiedades.setProperty(PRUEBA_LIDERES_CLAVE_CUANTOS, String(turnos.length));
   borrarDisparadoresPruebaLideres_();
   turnos.forEach(() => ScriptApp.newTrigger('pasoPruebaLideres_').timeBased().after(10000).create());
   console.log(turnos.length + ' líderes preparados: ' + ids.join(', ') + '. La primera ola es en ' +
@@ -86,7 +86,7 @@ function pasoPruebaLideres_() {
     const espera = salida + (ronda - 1) * PRUEBA_LIDERES_PAUSA_MS - Date.now();
     if (espera > 0) Utilities.sleep(espera);
 
-    const fila = { lider: turno.email, stand_id: turno.standId, ronda: ronda, resultado: 'OK' };
+    const fila = { lider: turno.email, unidad_id: turno.unidadId, ronda: ronda, resultado: 'OK' };
     try {
       // 1. Abre o actualiza la pantalla "Código".
       let inicio = Date.now();
@@ -98,15 +98,15 @@ function pasoPruebaLideres_() {
       ULTIMA_MEDIDA_CODIGO_ = null;
       inicio = Date.now();
       fila.sesion = permisoDePrueba_();
-      fila.codigo = generarCodigoDe_(sesion, turno.standId).codigo;
+      fila.codigo = generarCodigoDe_(sesion, turno.unidadId).codigo;
       fila.ms = Date.now() - inicio;
       Object.assign(fila, ULTIMA_MEDIDA_CODIGO_);
 
       // 3. Lo que vería la app. Va fuera de la medición, pero suma carga como la de los asistentes al ingresar el código.
       const ahora = Date.now();
-      fila.nuevo_valido = codigoValido_(turno.standId, fila.codigo, ahora) ? 'SI' : 'NO';
-      fila.anterior_invalido = anterior ? (codigoValido_(turno.standId, anterior, ahora) ? 'NO' : 'SI') : '';
-      const mostrado = obtenerCodigosDe_(sesion).stands.find(s => s.id === turno.standId);
+      fila.nuevo_valido = codigoValido_(turno.unidadId, fila.codigo, ahora) ? 'SI' : 'NO';
+      fila.anterior_invalido = anterior ? (codigoValido_(turno.unidadId, anterior, ahora) ? 'NO' : 'SI') : '';
+      const mostrado = obtenerCodigosDe_(sesion).unidades.find(s => s.id === turno.unidadId);
       fila.pantalla_ok = mostrado && mostrado.activo && mostrado.activo.codigo === fila.codigo ? 'SI' : 'NO';
       anterior = fila.codigo;
     } catch (error) {
@@ -151,13 +151,14 @@ function revisarPruebaLideres() {
   if (!libro_().getSheetByName(PRUEBA_LIDERES_HOJA)) throw new Error('No hay prueba de líderes. Ejecuta iniciarPruebaLideres().');
 
   const filas = leerHoja_(PRUEBA_LIDERES_HOJA);
-  const esperadas = PRUEBA_LIDERES_N * PRUEBA_LIDERES_RONDAS;
+  const cuantos = Number(PropertiesService.getScriptProperties().getProperty(PRUEBA_LIDERES_CLAVE_CUANTOS)) || 0;
+  const esperadas = cuantos * PRUEBA_LIDERES_RONDAS;
   console.log('Filas: ' + filas.length + ' de ' + esperadas + (filas.length < esperadas ? ' (aún no terminan todos: vuelve a revisar)' : ''));
   const fallas = filas.filter(f => texto_(f.resultado) !== 'OK');
   console.log('Con error: ' + (fallas.length ? fallas.map(f => f.lider + ' ronda ' + f.ronda + ': ' + f.resultado).join(' | ') : 'ninguno'));
   // Lideres que sí dejaron su registro: si falta alguno, su disparador falló (mirar Ejecuciones).
   const lideres = [...new Set(filas.map(f => texto_(f.lider)))];
-  console.log('Líderes con registro: ' + lideres.length + ' de ' + PRUEBA_LIDERES_N);
+  console.log('Líderes con registro: ' + lideres.length + ' de ' + cuantos);
   const resumen = (nombre, lista) => {
     if (!lista.length) return;
     const orden = lista.slice().sort((a, b) => a - b);
@@ -165,7 +166,7 @@ function revisarPruebaLideres() {
     console.log(nombre + ': mínimo ' + orden[0] + ' · mediana ' + orden[Math.floor(orden.length / 2)] + ' · p90 ' +
       orden[Math.min(orden.length - 1, Math.floor(orden.length * 0.9))] + ' · máximo ' + orden[orden.length - 1] + ' · promedio ' + promedio);
   };
-  // Ola 1: la ráfaga real (18 a la vez, sin código previo). Olas 2 y 3: los 18 cambian el código a la vez.
+  // Ola 1: la ráfaga real (todos a la vez, sin código previo). Olas 2 y 3: todos cambian el código a la vez.
   for (let ronda = 1; ronda <= PRUEBA_LIDERES_RONDAS; ronda++) {
     const deLaOla = filas.filter(f => Number(f.ronda) === ronda && f.ms !== '');
     resumen('Ola ' + ronda + ' · tocar "Generar" (ms)', deLaOla.map(f => Number(f.ms)));
@@ -188,21 +189,21 @@ function revisarPruebaLideres() {
   // Lo que quedó en Codigos y en la caché, comparado con lo que devolvió cada generación.
   const codigos = leerHoja_(HOJA.CODIGOS).filter(generadoPorSimulacion_);
   const ahora = Date.now();
-  const standsPrueba = [...new Set(filas.map(f => id_(f.stand_id)))];
+  const standsPrueba = [...new Set(filas.map(f => id_(f.unidad_id)))];
   const problemas = [];
   const activos = [];
   let porTiempo = 0;
   standsPrueba.forEach(standId => {
-    const delStand = codigos.filter(c => id_(c.stand_id) === standId);
+    const delStand = codigos.filter(c => id_(c.unidad_id) === standId);
     // ACTIVO es el estado en la hoja. Un código vencido por tiempo sigue ACTIVO hasta que se reemplace.
     const marcados = delStand.filter(c => texto_(c.estado).toUpperCase() === 'ACTIVO');
-    const ok = filas.filter(f => id_(f.stand_id) === standId && f.resultado === 'OK');
+    const ok = filas.filter(f => id_(f.unidad_id) === standId && f.resultado === 'OK');
     const ultima = ok.length ? ok.reduce((a, b) => (Number(b.ronda) > Number(a.ronda) ? b : a)) : null;
     const cache = cacheLeer_('codigo:' + standId);
 
     if (!ok.length) problemas.push(standId + ': ninguna de sus generaciones funcionó');
     if (marcados.length !== (ok.length ? 1 : 0)) problemas.push(standId + ': códigos ACTIVO ' + marcados.length + ', se esperaba ' + (ok.length ? 1 : 0));
-    // Cada stand tiene una sola fila en Codigos: cada código nuevo reemplaza al anterior en esa fila.
+    // Cada unidad tiene una sola fila en Codigos: cada código nuevo reemplaza al anterior en esa fila.
     if (delStand.length > 1) problemas.push(standId + ': ' + delStand.length + ' filas en Codigos, se esperaba 1');
     if (ultima && texto_(marcados[0] && marcados[0].codigo) !== texto_(ultima.codigo)) problemas.push(standId + ': el ACTIVO no es el de la última ronda');
     // La caché solo se compara mientras el código sigue vigente por tiempo.
@@ -212,25 +213,25 @@ function revisarPruebaLideres() {
     if (marcados[0]) activos.push(texto_(marcados[0].codigo));
 
     // Lo que mostraría la app ahora: el código mientras sigue vigente y nada una vez vencido (la app lo pinta como "venció").
-    const infoStand = catalogo_().stands.find(s => s.id === standId);
-    const delLider = filas.find(f => id_(f.stand_id) === standId);
+    const infoStand = unidadesParaCodigo_({ rol: 'ADMIN' }, catalogo_()).find(s => s.id === standId);
+    const delLider = filas.find(f => id_(f.unidad_id) === standId);
     if (infoStand && delLider && marcados[0]) {
-      const sesionLider = sesionDeLiderPrueba_({ email: texto_(delLider.lider), standId: standId, pabellonId: infoStand.pabellonId });
-      const visto = (obtenerCodigosDe_(sesionLider).stands.find(s => s.id === standId) || {}).activo;
+      const sesionLider = sesionDeLiderPrueba_({ email: texto_(delLider.lider), unidadId: standId, tipo: infoStand.tipo });
+      const visto = (obtenerCodigosDe_(sesionLider).unidades.find(s => s.id === standId) || {}).activo;
       if (aunVigente && (!visto || visto.codigo !== texto_(marcados[0].codigo))) problemas.push(standId + ': la pantalla no muestra su código vigente');
       if (!aunVigente && visto) problemas.push(standId + ': la pantalla sigue mostrando como activo un código vencido');
     }
   });
   const repetidos = activos.filter((c, i) => activos.indexOf(c) !== i);
-  if (repetidos.length) problemas.push('códigos ACTIVO repetidos entre stands: ' + repetidos.join(', '));
+  if (repetidos.length) problemas.push('códigos ACTIVO repetidos entre unidades: ' + repetidos.join(', '));
 
-  console.log('Stands revisados: ' + standsPrueba.length + ' · códigos ACTIVO distintos: ' + new Set(activos).size +
+  console.log('Pabellones y charlas revisados: ' + standsPrueba.length + ' · códigos ACTIVO distintos: ' + new Set(activos).size +
     ' · todavía vigentes por tiempo: ' + porTiempo);
   console.log('Problemas: ' + (problemas.length ? problemas.join(' | ') : 'ninguno'));
 }
 
 /**
- * 3. Vacía los códigos de la prueba (cada stand conserva su fila con el stand_id), borra los disparadores y la hoja
+ * 3. Vacía los códigos de la prueba (cada unidad conserva su fila con el unidad_id), borra los disparadores y la hoja
  * de resultados. Los datos reales no se tocan.
  */
 function limpiarPruebaLideres() {
@@ -239,6 +240,7 @@ function limpiarPruebaLideres() {
   const propiedades = PropertiesService.getScriptProperties();
   propiedades.deleteProperty(PRUEBA_LIDERES_CLAVE_TURNOS);
   propiedades.deleteProperty(PRUEBA_LIDERES_CLAVE_SALIDA);
+  propiedades.deleteProperty(PRUEBA_LIDERES_CLAVE_CUANTOS);
   const libro = libro_();
   const hoja = libro.getSheetByName(PRUEBA_LIDERES_HOJA);
   if (hoja) libro.deleteSheet(hoja);
@@ -253,7 +255,7 @@ function limpiarPruebaLideres() {
   limpiarCache_();
 }
 
-/** Deja en blanco todo menos el stand_id en las filas de Codigos que generó la prueba. Quien llama tiene el turno global. */
+/** Deja en blanco todo menos el unidad_id en las filas de Codigos que generó la prueba. Quien llama tiene el turno global. */
 function vaciarCodigosDePrueba_() {
   const leida = leerCodigos_('');
   const generadoPor = leida.encabezados.indexOf('generado_por');
@@ -316,9 +318,14 @@ function permisoDePrueba_() {
   return Date.now() - inicio;
 }
 
-/** La sesión que usaría la app para este líder, armada en memoria. */
+/** La sesión que usaría la app para este líder (de un pabellón) o ponente (de una charla), armada en memoria. */
 function sesionDeLiderPrueba_(turno) {
-  return { email: turno.email, rol: 'LIDER', staff: { standId: turno.standId, pabellonId: turno.pabellonId }, vistas: ['GENERAR_CODIGO'], enEspera: false };
+  const esCharla = turno.tipo === 'CHARLA';
+  return {
+    email: turno.email, rol: esCharla ? 'PONENTE' : 'LIDER',
+    staff: esCharla ? { charlaId: turno.unidadId } : { pabellonId: turno.unidadId },
+    vistas: ['GENERAR_CODIGO'], enEspera: false,
+  };
 }
 
 /** Códigos creados por la prueba (su generador es un correo de simulación). */

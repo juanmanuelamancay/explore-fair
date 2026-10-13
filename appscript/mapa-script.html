@@ -36,36 +36,34 @@
     App.estado.recien = null;
     if (!reciente) return;
 
-    const esEntrada = !!datos.entrada && datos.entrada.id === reciente.standId;
-    let stand = esEntrada ? datos.entrada : null;
-    let pabellon = null;
-    if (!stand) datos.pabellones.forEach(p => p.stands.forEach(s => { if (s.id === reciente.standId) { stand = s; pabellon = p; } }));
-    if (!stand || stand.estado === 'COMPLETADO' || stand.estado === 'VENCIDO') return;
+    const esEntrada = !!datos.entrada && datos.entrada.id === reciente.unidadId;
+    const pabellon = esEntrada ? null : datos.pabellones.find(p => p.id === reciente.unidadId);
+    const unidad = esEntrada ? datos.entrada : pabellon;
+    if (!unidad || unidad.estado === 'COMPLETADO' || unidad.estado === 'VENCIDO') return;
 
-    // El anillo del pabellón arranca desde lo que tenía antes del stand recién respondido.
-    const desde = pabellon ? progreso(pabellon) : 0;
-    Object.assign(stand, { estado: reciente.estado, correctas: reciente.correctas, total: reciente.total, puntaje: reciente.puntaje });
+    Object.assign(unidad, { estado: reciente.estado, correctas: reciente.correctas, total: reciente.total, puntaje: reciente.puntaje });
     datos.puntos += reciente.puntaje;
     App.estado.puntos = datos.puntos;
 
-    const sumando = pabellon ? { pabId: pabellon.id, desde: desde, puntos: reciente.puntaje } : null;
+    // El anillo del pabellón se llena desde cero hasta completo.
+    const sumando = pabellon ? { pabId: pabellon.id, desde: 0, puntos: reciente.puntaje } : null;
     pintar(esEntrada, sumando);
     if (esEntrada) {
       animandoHasta = Date.now() + APERTURA.inicioMs + APERTURA.pasoMs * (datos.pabellones.length - 1) + APERTURA.duracionMs;
       toast('Ya puedes visitar los pabellones.');
-    } else if (sumando) {
+    } else if (sumando && reciente.estado === 'COMPLETADO') {
       animandoHasta = Date.now() + SUMA.totalMs;
-      sumar(sumando, pabellon, stand);
+      sumar(sumando, pabellon);
     }
   }
 
-  /** Porcentaje de stands completados de un pabellón. */
+  /** Porcentaje del anillo de un pabellón: el quiz es uno solo, así que está vacío o lleno. */
   function progreso(p) {
-    return p.stands.filter(s => s.estado === 'COMPLETADO').length / p.stands.length * 100;
+    return p.estado === 'COMPLETADO' ? 100 : 0;
   }
 
   /** Anillo que se llena hasta el nuevo progreso y los puntos que suben. */
-  function sumar(sumando, pabellon, stand) {
+  function sumar(sumando, pabellon) {
     const kpi = $('mapa-puntos');
     kpi.classList.remove('sube');
     void kpi.offsetWidth;
@@ -76,7 +74,7 @@
       void nodo.offsetWidth; // fuerza el estado inicial para que la transición corra
       nodo.style.setProperty('--p', progreso(pabellon));
     });
-    toast(sumando.puntos ? `+${sumando.puntos} puntos en ${stand.nombre}` : `Completaste ${stand.nombre}`);
+    toast(sumando.puntos ? `+${sumando.puntos} puntos en ${pabellon.nombre}` : `Completaste ${pabellon.nombre}`);
   }
 
   /** Con abriendo = true los pabellones se dibujan cerrados y se abren uno tras otro. */
@@ -99,17 +97,16 @@
     const pabellones = datos.pabellones.map((p, i) => {
       const angulo = (-90 + i * 360 / datos.pabellones.length) * Math.PI / 180;
       const x = 50 + RADIO * Math.cos(angulo), y = 50 + RADIO * Math.sin(angulo);
-      const hechos = p.stands.filter(s => s.estado === 'COMPLETADO');
-      const puntos = hechos.reduce((suma, s) => suma + s.puntaje, 0);
-      const completo = hechos.length === p.stands.length;
+      const completo = p.estado === 'COMPLETADO';
+      const puntos = completo ? p.puntaje : 0;
       const tono = paleta(p.indice);
       const esSumando = !!sumando && sumando.pabId === p.id;
       return `
         <button class="punto pab ${entradaHecha ? (abriendo ? 'abriendo' : '') : 'bloqueado'} ${esSumando ? 'sumando' : ''}" data-pab="${esc(p.id)}" aria-disabled="${!entradaHecha}"
-                style="left:${x}%;top:${y}%;--c:${tono.color};--t:${tono.tinte};--p:${esSumando ? sumando.desde : hechos.length / p.stands.length * 100};--retraso:${APERTURA.inicioMs + i * APERTURA.pasoMs}ms;--duracion:${APERTURA.duracionMs}ms"
-                aria-label="Pabellón ${esc(p.nombre)}${entradaHecha ? '' : ', bloqueado hasta responder el quiz de entrada'}${completo ? ' completo' : ''}${hechos.length ? ', ' + puntos + ' puntos' : ''}">
+                style="left:${x}%;top:${y}%;--c:${tono.color};--t:${tono.tinte};--p:${esSumando ? sumando.desde : progreso(p)};--retraso:${APERTURA.inicioMs + i * APERTURA.pasoMs}ms;--duracion:${APERTURA.duracionMs}ms"
+                aria-label="Pabellón ${esc(p.nombre)}${entradaHecha ? '' : ', bloqueado hasta responder el quiz de entrada'}${completo ? ' completo' : ''}${completo ? ', ' + puntos + ' puntos' : ''}">
           <span class="disco"><span>${svg(tono.icono, 26)}</span>${completo ? `<i class="hecho ${esSumando ? 'recien' : ''}">${svg(ICONO.check, 13, '#fff', 3)}</i>` : ''}${entradaHecha && !abriendo ? '' : `<i class="candado">${svg(ICONO.candado, 12, '#5f6368', 2.5)}</i>`}${esSumando && sumando.puntos ? `<i class="sumado">+${sumando.puntos}</i>` : ''}</span>
-          <span class="rot">${esc(p.nombreCorto || p.nombre)}${hechos.length ? `<small>${puntos} pts</small>` : ''}</span>
+          <span class="rot">${esc(p.nombreCorto || p.nombre)}${completo ? `<small>${puntos} pts</small>` : ''}</span>
         </button>`;
     }).join('');
 
@@ -121,7 +118,7 @@
         : entrada.estado === 'EN_CURSO' ? 'Continúa aquí<small>Quiz de entrada</small>'
         : 'Empieza aquí<small>Quiz de entrada</small>';
       centro = `
-        <button class="punto yo-nodo ${soloLectura || !entradaHecha ? 'pendiente' : ''}" data-stand="${esc(entrada.id)}" style="left:50%;top:50%"
+        <button class="punto yo-nodo ${soloLectura || !entradaHecha ? 'pendiente' : ''}" data-unidad="${esc(entrada.id)}" style="left:50%;top:50%"
                 aria-label="${hecha ? 'Quiz de entrada respondido, ' + entrada.puntaje + ' puntos' : 'Quiz de entrada'}">
           <span class="disco">${esc(iniciales(INICIO.nombre))}${hecha ? `<span class="hecho ${abriendo ? 'recien' : ''}">${svg(ICONO.check, 14, '#fff', 3)}</span>` : ''}</span>
           <span class="rot">${rotulo}</span>
@@ -134,54 +131,53 @@
       </svg>${pabellones}${centro}`;
   }
 
+  /**
+   * El quiz es del pabellón entero: cada stand aporta unas pocas preguntas. Los stands se muestran como información
+   * y el botón de abajo abre el quiz del pabellón.
+   */
   function abrirPabellon(id) {
     const p = datos.pabellones.find(x => x.id === id);
     if (!p) return;
     const tono = paleta(p.indice);
-    const completo = p.stands.every(s => s.estado === 'COMPLETADO');
-    // Todos los stands tienen las mismas preguntas y puntos, así que la fila solo dice el estado.
-    // El círculo muestra ese estado (no la sigla), y el nombre aparece una sola vez.
-    const filas = p.stands.map(s => {
-      if (s.estado === 'COMPLETADO') return `<li><div class="item hecho">
-        <span class="estado-stand hecho">${svg(ICONO.check, 20, '#fff', 3)}</span>
-        <span class="nom"><b>${esc(s.nombre)}</b><span>${s.correctas} de ${s.total} correctas</span></span>
-        <span class="fin tnum">${s.puntaje} pts</span></div></li>`;
-      if (s.estado === 'VENCIDO') return `<li><div class="item vencido">
-        <span class="estado-stand vencido">${svg(ICONO.equis, 18)}</span>
-        <span class="nom"><b>${esc(s.nombre)}</b><span>Se venció el tiempo</span></span>
-        <span class="fin tnum">0 pts</span></div></li>`;
-      const enCurso = s.estado === 'EN_CURSO';
-      // Pendiente no lleva subtítulo: basta con el nombre y la flecha.
-      const detalle = enCurso ? '<span>En curso · toca para continuar</span>' : '';
-      return `<li><button class="item" data-stand="${esc(s.id)}">
-        <span class="estado-stand ${enCurso ? 'en-curso' : 'pendiente'}">${svg(enCurso ? ICONO.play : ICONO.check, 20)}</span>
-        <span class="nom"><b>${esc(s.nombre)}</b>${detalle}</span>
-        <span class="fin">${svg(ICONO.flecha, 20)}</span></button></li>`;
-    }).join('');
+    const filas = p.stands.map(s => `<li><div class="item">
+        <span class="estado-stand">${svg(ICONO.trofeo, 20)}</span>
+        <span class="nom"><b>${esc(s.nombre)}</b></span></div></li>`).join('');
+
+    let estado;
+    if (p.estado === 'COMPLETADO') {
+      estado = `<p class="hoja-seccion">Ya respondiste este pabellón: ${p.correctas} de ${p.total} correctas · ${p.puntaje} pts</p>`;
+    } else if (p.estado === 'VENCIDO') {
+      estado = '<p class="hoja-seccion">Se te venció el tiempo en este pabellón. No se puede repetir.</p>';
+    } else {
+      estado = `<div class="datos" style="padding:8px 16px 0">
+          <span class="chip">${p.numPreguntas} preguntas</span><span class="chip">${INICIO.minutosParaResponder} minutos</span><span class="chip">Hasta ${p.puntosMax} pts</span></div>
+        <div style="padding:12px 16px 0"><button class="btn" data-iniciar>${p.estado === 'EN_CURSO' ? 'Continuar el quiz' : 'Responder el quiz del pabellón'}</button></div>
+        ${p.estado === 'EN_CURSO' ? '' : '<p class="aviso" style="margin:8px 16px 4px">Necesitas el código que da el líder al terminar la charla.</p>'}`;
+    }
 
     const hoja = App.abrirHoja(`
       <div style="--c:${tono.color};--t:${tono.tinte}">
         <div class="hoja-cab">
           <span class="icono">${svg(tono.icono)}</span>
-          <div><p class="sec chico">Pabellón${completo ? ' completo' : ''}</p><h2>${esc(p.nombre)}</h2></div>
+          <div><p class="sec chico">Pabellón${p.estado === 'COMPLETADO' ? ' completo' : ''}</p><h2>${esc(p.nombre)}</h2></div>
         </div>
-        <p class="hoja-seccion">Descubre los stands, responde aquí y gana puntos</p>
+        <p class="hoja-seccion">Los stands de este pabellón. El quiz reúne preguntas de todos.</p>
         <ul>${filas}</ul>
-        <p class="aviso" style="margin:8px 16px 4px">Necesitas el código que da el líder al terminar la charla.</p>
+        ${estado}
       </div>`);
-    hoja.onclick = e => {
-      const fila = e.target.closest('[data-stand]');
-      if (fila) abrirStand(fila.dataset.stand, p);
-    };
+    hoja.onclick = e => { if (e.target.closest('[data-iniciar]')) abrirQuiz(p, p); };
   }
 
-  function abrirStand(id, pabellon) {
-    const stand = pabellon ? pabellon.stands.find(s => s.id === id) : datos.entrada;
-    if (!stand) return;
-    if (stand.estado === 'COMPLETADO') return toast(`Ya respondiste ${stand.nombre}: ${stand.correctas} de ${stand.total} · ${stand.puntaje} pts`);
-    if (stand.estado === 'VENCIDO') return toast(`Se te venció el tiempo en ${stand.nombre}. No se puede repetir.`);
+  /** Abre la pantalla del quiz de un pabellón o del quiz de entrada (pabellon = null). */
+  function abrirQuiz(unidad, pabellon) {
+    if (!unidad) return;
+    if (unidad.estado === 'COMPLETADO') return toast(`Ya respondiste ${unidad.nombre}: ${unidad.correctas} de ${unidad.total} · ${unidad.puntaje} pts`);
+    if (unidad.estado === 'VENCIDO') return toast(`Se te venció el tiempo en ${unidad.nombre}. No se puede repetir.`);
     const tono = pabellon ? paleta(pabellon.indice) : PALETA[0];
-    App.ir('quiz', { stand: stand, pabellon: pabellon ? pabellon.nombre : 'General', color: tono.color, tinte: tono.tinte });
+    App.ir('quiz', {
+      unidad: unidad, etiqueta: pabellon ? 'Pabellón' : 'General', titulo: pabellon ? pabellon.nombre : 'Quiz de entrada',
+      volver: 'mapa', color: tono.color, tinte: tono.tinte,
+    });
   }
 
 function abrirComoJugar() {
@@ -222,10 +218,10 @@ function abrirComoJugar() {
         <li class="paso-ayuda">
           <b class="numero">3</b>
           <div>
-            <b>Abre el quiz del stand</b>
+            <b>Abre el quiz del pabellón</b>
             <span>
-              En la app, pulsa el pabellón donde estás, selecciona el stand
-              de la charla e introduce el código.
+              En la app, pulsa el pabellón donde estás
+              e introduce el código.
             </span>
           </div>
         </li>
@@ -260,8 +256,7 @@ function abrirComoJugar() {
       if (pabellon.classList.contains('bloqueado')) return toast('Primero responde el quiz de entrada: pulsa tu círculo.');
       return abrirPabellon(pabellon.dataset.pab);
     }
-    const stand = e.target.closest('[data-stand]');
-    if (stand) abrirStand(stand.dataset.stand, null);
+    if (e.target.closest('[data-unidad]')) abrirQuiz(datos.entrada, null);
   });
 
   App.registrar('mapa', { alMostrar: cargar, alRefrescar: cargar });

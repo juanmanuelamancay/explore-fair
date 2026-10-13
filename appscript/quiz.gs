@@ -1,5 +1,7 @@
 /**
  * Vista QUIZ: validar el código, entregar las preguntas sin la respuesta correcta y corregir en el servidor.
+ * Se responde una unidad: un pabellón (cada uno de sus stands aporta unas pocas preguntas de su banco) o una charla
+ * (un solo banco). El intento, el código, el índice y el puntaje van por unidad (ver catalogo_().unidades en datos.gs).
  * Los intentos de cada persona se leen y escriben en su índice (indice.gs); la hoja Intentos se escribe
  * dos veces por intento: al empezar y al enviar. Las dos veces en la misma fila, que es del bloque de la
  * persona: no se agrega nada al final de la hoja, así que no hace falta el turno global.
@@ -31,94 +33,135 @@ function primeraLlegada_(intentoId) {
   return ahora;
 }
 
+/** Vista que da acceso a cada tipo de unidad: los pabellones se abren desde el mapa y las charlas, desde su ruta. */
+const VISTA_DE_UNIDAD = { PABELLON: 'MAPA', CHARLA: 'CHARLAS' };
+
+function exigirAccesoAUnidad_(sesion, unidad) {
+  if (sesion.vistas.indexOf(VISTA_DE_UNIDAD[unidad.tipo]) < 0) throw new Error('No tienes permiso para esta acción.');
+}
+
+/** Las preguntas activas de cada banco de la unidad (un stand por banco en un pabellón; la charla tiene uno solo). */
+function bancosDeUnidad_(unidad, sinCache) {
+  return unidad.bancos.map(b => ({ banco: b, preguntas: preguntasDeStand_(b.id, sinCache) }));
+}
+
+/** Todas las preguntas activas de la unidad en una lista, cada una con el ID de su banco. */
+function preguntasDeUnidad_(unidad, bancos) {
+  const todas = [];
+  (bancos || bancosDeUnidad_(unidad)).forEach(b => b.preguntas.forEach(p => todas.push(Object.assign({ bancoId: b.banco.id }, p))));
+  return todas;
+}
+
+/** Primer banco al que le faltan preguntas activas, o null si todos están completos. Una unidad sin bancos tampoco está lista. */
+function bancoIncompleto_(bancos) {
+  if (!bancos.length) return { sinBancos: true };
+  const falta = bancos.find(b => b.preguntas.length < Math.max(b.banco.minimo, b.banco.cuantas));
+  return falta ? { banco: falta.banco, tiene: falta.preguntas.length } : null;
+}
+
+function mensajeBancoIncompleto_(unidad, falta) {
+  if (falta.sinBancos) return unidad.tipo === 'CHARLA' ? 'Esta charla todavía no tiene su banco de preguntas.' : 'Este pabellón todavía no tiene stands activos.';
+  const necesita = Math.max(falta.banco.minimo, falta.banco.cuantas);
+  return 'Este quiz todavía no tiene sus preguntas listas: "' + falta.banco.nombre + '" tiene ' + falta.tiene + ' activas y necesita ' + necesita + '.';
+}
+
 /**
- * Crea el intento y devuelve las preguntas sorteadas. Si la persona ya tiene un intento
- * en curso para ese stand (cerró la app y volvió), devuelve las mismas preguntas sin pedir código.
+ * Crea el intento y devuelve las preguntas sorteadas: cuantas preguntas de cada banco de la unidad. Si la persona ya tiene
+ * un intento en curso para esa unidad (cerró la app y volvió), devuelve las mismas preguntas sin pedir código.
+ *
+ * Solo el usuario (quien no está en Staff) tiene número de orden y bloque en Intentos. Admin, líder, expositor y ponente no
+ * responden quizzes: no reciben número ni fila en Usuarios, y sin número no hay dónde escribir el intento.
  */
-/**
- * Solo el usuario (quien no está en Staff) tiene número de orden y bloque en Intentos. Admin y líder no responden
- * quizzes: no reciben número ni fila en Usuarios, y sin número no hay dónde escribir el intento.
- */
-function iniciarQuiz(standId, codigo) {
+function iniciarQuiz(unidadId, codigo) {
   const sesion = exigirVista_('QUIZ');
   if (sesion.rol !== 'USUARIO') return falla_('STAFF', 'Tu rol no responde quizzes.');
   const catalogo = catalogo_();
-  const stand = catalogo.stands.find(s => s.id === id_(standId));
-  if (!stand) return falla_('STAND', 'Este stand no está disponible.');
-  if (!catalogo.config.feria_abierta) return falla_('CERRADA', 'La feria todavía no está abierta.');
-
-  let banco = preguntasDeStand_(stand.id);
+  const unidad = unidadPorId_(catalogo, unidadId);
+  if (!unidad) return falla_('STAND', 'Este quiz no está disponible.');
+  exigirAccesoAUnidad_(sesion, unidad);
   const ahora = new Date();
+  if (unidad.tipo === 'PABELLON' && !catalogo.config.feria_abierta) return falla_('CERRADA', 'La feria todavía no está abierta.');
+  if (unidad.tipo === 'CHARLA' && unidad.inicio && ahora.getTime() < unidad.inicio) {
+    const respuesta = falla_('AUN_NO', 'Esta charla todavía no empieza.');
+    respuesta.empiezaEn = unidad.inicio;
+    return respuesta;
+  }
+
+  let bancos = bancosDeUnidad_(unidad);
 
   const mios = miIndice_(sesion);
-  if (mios[stand.id]) return retomarIndice_(mios[stand.id], banco, ahora);
+  if (mios[unidad.id]) return retomarIndice_(mios[unidad.id], unidad, bancos, ahora);
 
-  // El quiz de entrada va primero: ningún stand se abre hasta haberlo terminado (respondido o vencido).
-  const entrada = catalogo.stands.find(s => !s.requiereCodigo);
-  if (stand.requiereCodigo && entrada) {
+  // El quiz de entrada va primero: ningún pabellón con código se abre hasta haberlo terminado (respondido o vencido).
+  // Las charlas son aparte: no lo piden.
+  const entrada = unidadDeEntrada_(catalogo);
+  if (unidad.tipo === 'PABELLON' && unidad.requiereCodigo && entrada) {
     const deEntrada = mios[entrada.id];
     const enCurso = deEntrada && deEntrada.e === 'EN_CURSO' && deEntrada.v > ahora.getTime();
     if (!deEntrada || enCurso) return falla_('ENTRADA', 'Primero responde el quiz de entrada.');
   }
 
-  if (stand.requiereCodigo) {
-    const rechazo = revisarCodigo_(stand.id, codigo);
+  if (unidad.requiereCodigo) {
+    const rechazo = revisarCodigo_(unidad.id, codigo);
     if (rechazo) return rechazo;
   }
 
   // Puede ser la caché de antes de cargar las preguntas en el Sheet: se relee una vez antes de fallar.
-  if (banco.length < PREGUNTAS_POR_BANCO) banco = preguntasDeStand_(stand.id, true);
-  if (banco.length < PREGUNTAS_POR_BANCO) {
-    return falla_('SIN_PREGUNTAS', 'Este stand todavía no tiene sus preguntas listas: tiene ' + banco.length + ' activas y necesita ' + PREGUNTAS_POR_BANCO + '.');
-  }
-  const sorteadas = sortear_(banco, stand.numPreguntas);
+  let falta = bancoIncompleto_(bancos);
+  if (falta && !falta.sinBancos) { bancos = bancosDeUnidad_(unidad, true); falta = bancoIncompleto_(bancos); }
+  if (falta) return falla_('SIN_PREGUNTAS', mensajeBancoIncompleto_(unidad, falta));
+
+  const sorteadas = [];
+  bancos.forEach(b => sortear_(b.preguntas, b.banco.cuantas).forEach(pregunta => sorteadas.push(pregunta)));
   const venceEn = new Date(ahora.getTime() + catalogo.config.minutos_para_responder * 60000);
   const intento = {
     id: nuevoIntentoId_(), e: 'EN_CURSO', i: ahora.getTime(), v: venceEn.getTime(),
     q: sorteadas.map(p => p.id), r: [], a: [], c: 0, p: 0, t: 0, s: 0,
-    f: 0, k: stand.requiereCodigo ? texto_(codigo).toUpperCase() : '',
+    f: 0, k: unidad.requiereCodigo ? texto_(codigo).toUpperCase() : '',
   };
 
   const creado = conBloqueoPropio_(() => {
     // Con el bloqueo el índice se lee de nuevo: dos toques seguidos no deben crear dos intentos.
     const indice = miIndice_(sesion);
-    if (indice[stand.id]) return { repetido: indice[stand.id] };
+    if (indice[unidad.id]) return { repetido: indice[unidad.id] };
     const encabezados = encabezados_(HOJA.INTENTOS);
+    if (encabezados.indexOf('unidad_id') < 0) throw new Error('Falta la columna "unidad_id" en la hoja Intentos. Avisa a un administrador.');
     const reservadas = Object.keys(indice).map(s => indice[s].f).filter(Boolean);
     intento.f = filaLibreDe_(miOrden_(sesion), sesion.email, encabezados, reservadas);
     // Primero el índice: si la hoja falla después, el reintento encuentra este mismo intento con su fila ya reservada.
-    guardarEnIndice_(stand.id, intento);
-    escribirInicio_(sesion.email, stand, intento, encabezados);
+    guardarEnIndice_(unidad.id, intento);
+    escribirInicio_(sesion.email, unidad, intento, encabezados);
     intento.s = 1;
-    guardarEnIndice_(stand.id, intento);
+    guardarEnIndice_(unidad.id, intento);
     return { nuevo: intento };
   });
-  if (creado.repetido) return retomarIndice_(creado.repetido, banco, ahora);
+  if (creado.repetido) return retomarIndice_(creado.repetido, unidad, bancos, ahora);
   return inicioDeQuiz_(intento.id, sorteadas, venceEn.getTime());
 }
 
-/** Lo que lleva la fila de un intento al empezar. */
-function filaDeInicio_(email, standId, pabellonId, intento) {
+/** Lo que lleva la fila de un intento al empezar. pabellon_id es una copia: solo los pabellones la llevan. */
+function filaDeInicio_(email, unidad, intento) {
   return {
-    intento_id: intento.id, email: email, stand_id: standId, pabellon_id: pabellonId, codigo: intento.k || '',
+    intento_id: intento.id, email: email, unidad_id: unidad.id, pabellon_id: unidad.tipo === 'PABELLON' ? unidad.id : '', codigo: intento.k || '',
     preguntas_json: JSON.stringify(intento.q),
     iniciado_en: new Date(intento.i), vence_en: new Date(intento.v), estado: 'EN_CURSO',
   };
 }
 
 /** Escribe la fila de inicio en la fila reservada del intento y la confirma. Esa fila es del bloque de la persona: nadie más escribe ahí. */
-function escribirInicio_(email, stand, intento, encabezados) {
-  escribirFila_(HOJA.INTENTOS, intento.f, filaDeInicio_(email, stand.id, stand.pabellonId, intento), encabezados);
+function escribirInicio_(email, unidad, intento, encabezados) {
+  escribirFila_(HOJA.INTENTOS, intento.f, filaDeInicio_(email, unidad, intento), encabezados);
   SpreadsheetApp.flush();
 }
 
 /** Intento que ya existe en el índice: no crea nada, solo vuelve a mostrar sus preguntas o dice por qué no se puede. */
-function retomarIndice_(intento, banco, ahora) {
-  if (intento.e === 'COMPLETADO') return falla_('YA_RESPONDIDO', 'Ya respondiste este stand.');
+function retomarIndice_(intento, unidad, bancos, ahora) {
+  if (intento.e === 'COMPLETADO') return falla_('YA_RESPONDIDO', 'Ya respondiste este quiz.');
   if (intento.e !== 'EN_CURSO' || intento.v <= ahora.getTime()) {
-    return falla_('VENCIDO', 'Se te venció el tiempo en este stand. No se puede repetir.');
+    return falla_('VENCIDO', 'Se te venció el tiempo en este quiz. No se puede repetir.');
   }
-  const preguntas = intento.q.map(id => banco.find(p => p.id === id)).filter(Boolean);
+  const todas = preguntasDeUnidad_(unidad, bancos);
+  const preguntas = intento.q.map(id => todas.find(p => p.id === id)).filter(Boolean);
   return inicioDeQuiz_(intento.id, preguntas, intento.v);
 }
 
@@ -131,22 +174,26 @@ function inicioDeQuiz_(intentoId, preguntas, venceEnMs) {
 }
 
 /**
- * Vista QUIZ del VALIDADOR: recorre las preguntas de un stand sin responderlas. No pide código, no crea intento
- * ni reloj y no escribe en Intentos, Usuarios ni en su índice. Recibe todas las preguntas activas del stand
+ * Vista QUIZ del VALIDADOR: recorre las preguntas de una unidad sin responderlas. No pide código, no crea intento
+ * ni reloj y no escribe en Intentos, Usuarios ni en su índice. Recibe todas las preguntas activas de la unidad
  * (en el evento cada usuario recibe solo "porQuiz" de ellas, al azar), sin la respuesta correcta.
  */
-function verQuiz(standId) {
+function verQuiz(unidadId) {
   const sesion = exigirVista_('QUIZ');
   if (sesion.rol !== 'VALIDADOR') return falla_('NO_VALIDADOR', 'Esta pantalla es solo para el validador.');
-  const stand = catalogo_().stands.find(s => s.id === id_(standId));
-  if (!stand) return falla_('STAND', 'Este stand no está disponible.');
-  let banco = preguntasDeStand_(stand.id);
+  const unidad = unidadPorId_(catalogo_(), unidadId);
+  if (!unidad) return falla_('STAND', 'Este quiz no está disponible.');
+  exigirAccesoAUnidad_(sesion, unidad);
+  let bancos = bancosDeUnidad_(unidad);
   // Puede ser la caché de antes de cargar las preguntas en el Sheet: se relee una vez antes de fallar.
-  if (!banco.length) banco = preguntasDeStand_(stand.id, true);
-  if (!banco.length) return falla_('SIN_PREGUNTAS', 'Este stand todavía no tiene preguntas activas.');
+  if (!bancos.some(b => b.preguntas.length)) bancos = bancosDeUnidad_(unidad, true);
+  const preguntas = preguntasDeUnidad_(unidad, bancos);
+  if (!preguntas.length) return falla_('SIN_PREGUNTAS', 'Este quiz todavía no tiene preguntas activas.');
+  const nombreDeBanco = {};
+  unidad.bancos.forEach(b => { nombreDeBanco[b.id] = b.nombre; });
   return {
-    ok: true, porQuiz: stand.numPreguntas,
-    preguntas: banco.map(p => ({ id: p.id, texto: p.texto, opciones: p.opciones })),
+    ok: true, porQuiz: unidad.porQuiz,
+    preguntas: preguntas.map(p => ({ id: p.id, texto: p.texto, opciones: p.opciones, origen: unidad.bancos.length > 1 ? nombreDeBanco[p.bancoId] : '' })),
   };
 }
 
@@ -170,7 +217,7 @@ const CLAVE_FALLOS_CODIGO = 'fallos-codigo';
  * quedaría contada. Mientras dura el bloqueo no se mira el código ni se alarga la espera.
  * Devuelve null si el código vale, o la respuesta de rechazo.
  */
-function revisarCodigo_(standId, codigo) {
+function revisarCodigo_(unidadId, codigo) {
   // Un campo vacío no es un intento: no se cuenta.
   if (!texto_(codigo)) return falla_('CODIGO', 'Ingresa el código que te dio el líder.');
   const bloqueo = LockService.getUserLock();
@@ -186,7 +233,7 @@ function revisarCodigo_(standId, codigo) {
     if (estado.hasta && estado.hasta <= ahora) estado = { n: 0, hasta: 0 };   // el bloqueo ya terminó
     if (estado.hasta > ahora) return bloqueadoPorCodigo_(estado.hasta - ahora);
 
-    if (codigoValido_(standId, codigo, ahora)) {
+    if (codigoValido_(unidadId, codigo, ahora)) {
       cacheMia.remove(CLAVE_FALLOS_CODIGO);
       return null;
     }
@@ -208,16 +255,16 @@ function bloqueadoPorCodigo_(milisegundos) {
 }
 
 /**
- * ¿Es válido el código de este stand? Primero mira el que se generó hace poco (la caché lo guarda al crearlo);
+ * ¿Es válido el código de esta unidad? Primero mira el que se generó hace poco (la caché lo guarda al crearlo);
  * solo lee la hoja Codigos si no lo encuentra o si no coincide.
  */
-function codigoValido_(standId, codigo, ahoraMs) {
+function codigoValido_(unidadId, codigo, ahoraMs) {
   const ingresado = texto_(codigo).toUpperCase();
   if (!ingresado) return false;
-  const vigente = cacheLeer_('codigo:' + standId);
+  const vigente = cacheLeer_('codigo:' + unidadId);
   if (vigente && vigente.codigo === ingresado && vigente.expiraEn > ahoraMs) return true;
   return leerHoja_(HOJA.CODIGOS).some(c =>
-    texto_(c.codigo).toUpperCase() === ingresado && id_(c.stand_id) === standId &&
+    texto_(c.codigo).toUpperCase() === ingresado && id_(c.unidad_id) === unidadId &&
     texto_(c.estado).toUpperCase() === 'ACTIVO' && ms_(c.expira_en) > ahoraMs);
 }
 
@@ -235,7 +282,7 @@ function filaDeIntento_(intentoId) {
  * solo después, así nunca da por guardado algo que no llegó a la hoja. Escribe siempre lo mismo, así que
  * repetirla no duplica nada.
  */
-function registrarResultado_(sesion, standId, intento) {
+function registrarResultado_(sesion, unidadId, intento) {
   const detalle = intento.q.map((pregunta, k) => ({ p: pregunta, r: intento.r[k], ok: intento.a[k] }));
   const cambios = {
     estado: 'COMPLETADO', respuestas_json: JSON.stringify(detalle),
@@ -264,8 +311,8 @@ function registrarResultado_(sesion, standId, intento) {
     }
   }
   // Fila vacía: la de inicio no llegó a la hoja. Es de su bloque y la tiene reservada, así que se escribe completa ahora.
-  const stand = vacia ? (catalogo_().stands.find(s => s.id === standId) || {}) : null;
-  const datos = Object.assign(vacia ? filaDeInicio_(sesion.email, standId, stand.pabellonId || '', intento) : {}, cambios);
+  const unidad = vacia ? (unidadPorId_(catalogo_(), unidadId) || { id: unidadId, tipo: '' }) : null;
+  const datos = Object.assign(vacia ? filaDeInicio_(sesion.email, unidad, intento) : {}, cambios);
   encabezados.forEach((e, c) => { if (e in datos) valores[c] = datos[e]; });
   hoja.getRange(fila, 1, 1, encabezados.length).setValues([valores]);
   SpreadsheetApp.flush();
@@ -276,20 +323,20 @@ function registrarResultado_(sesion, standId, intento) {
  * Un fallo aquí no debe romper el mapa: se intenta otra vez en la siguiente visita.
  */
 function sincronizarPendientes_(sesion, indice) {
-  Object.keys(indice).forEach(standId => {
-    if (indice[standId].e !== 'COMPLETADO' || indice[standId].s) return;
+  Object.keys(indice).forEach(unidadId => {
+    if (indice[unidadId].e !== 'COMPLETADO' || indice[unidadId].s) return;
     try {
       conBloqueoPropio_(() => {
         // Con el bloqueo se mira de nuevo: otra petición de la misma persona pudo escribirlo mientras tanto.
-        const intento = miIndice_(sesion)[standId];
+        const intento = miIndice_(sesion)[unidadId];
         if (!intento || intento.e !== 'COMPLETADO' || intento.s) return;
-        registrarResultado_(sesion, standId, intento);
+        registrarResultado_(sesion, unidadId, intento);
         intento.s = 1;
-        guardarEnIndice_(standId, intento);
-        indice[standId] = intento;
+        guardarEnIndice_(unidadId, intento);
+        indice[unidadId] = intento;
       });
     } catch (error) {
-      console.warn('No se pudo sincronizar el resultado de ' + standId + ': ' + error.message);
+      console.warn('No se pudo sincronizar el resultado de ' + unidadId + ': ' + error.message);
     }
   });
 }
@@ -312,27 +359,29 @@ function enviarQuiz(intentoId, respuestas) {
 
   return conBloqueoPropio_(() => {
     const indice = miIndice_(sesion);
-    const standId = Object.keys(indice).find(s => indice[s].id === buscado);
-    if (!standId) return falla_('NO_EXISTE', 'No encontramos tu intento. Vuelve al mapa e inténtalo otra vez.');
-    const intento = indice[standId];
+    const unidadId = Object.keys(indice).find(s => indice[s].id === buscado);
+    if (!unidadId) return falla_('NO_EXISTE', 'No encontramos tu intento. Vuelve al inicio e inténtalo otra vez.');
+    const intento = indice[unidadId];
 
     if (intento.e === 'COMPLETADO') {
       // Reintento: si la hoja todavía no tiene el resultado, se escribe ahora.
       if (!intento.s) {
-        registrarResultado_(sesion, standId, intento);
+        registrarResultado_(sesion, unidadId, intento);
         intento.s = 1;
-        guardarEnIndice_(standId, intento);
+        guardarEnIndice_(unidadId, intento);
       }
       return resultadoDe_(intento);
     }
     if (intento.e !== 'EN_CURSO' || llegada > intento.v + GRACIA_DE_ENVIO_MS) {
       // La hoja queda como está: el mapa calcula el vencimiento a partir de la hora de vencimiento.
       intento.e = 'VENCIDO';
-      guardarEnIndice_(standId, intento);
+      guardarEnIndice_(unidadId, intento);
       return falla_('VENCIDO', 'Se acabó el tiempo.');
     }
 
-    const banco = preguntasDeStand_(standId);
+    const unidad = unidadPorId_(catalogo_(), unidadId);
+    if (!unidad) return falla_('NO_EXISTE', 'Este quiz ya no está disponible.');
+    const banco = preguntasDeUnidad_(unidad);
     let correctas = 0, puntaje = 0;
     intento.r = [];
     intento.a = [];
@@ -346,10 +395,10 @@ function enviarQuiz(intentoId, respuestas) {
     });
     Object.assign(intento, { e: 'COMPLETADO', c: correctas, p: puntaje, t: Date.now(), s: 0 });
     // Primero el índice: la corrección no se pierde si la hoja falla; el celular reintenta.
-    guardarEnIndice_(standId, intento);
-    registrarResultado_(sesion, standId, intento);
+    guardarEnIndice_(unidadId, intento);
+    registrarResultado_(sesion, unidadId, intento);
     intento.s = 1;
-    guardarEnIndice_(standId, intento);
+    guardarEnIndice_(unidadId, intento);
     return resultadoDe_(intento);
   });
 }

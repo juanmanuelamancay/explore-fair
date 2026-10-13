@@ -8,11 +8,11 @@ function rankingCompleto_() {
   if (ranking) return ranking;
 
   const porEmail = {};
-  const vistos = {};   // persona + stand: una fila repetida no suma dos veces
-  leerHoja_(HOJA.INTENTOS, ['email', 'stand_id', 'estado', 'puntaje', 'completado_en']).forEach(i => {
+  const vistos = {};   // persona + unidad (pabellón o charla): una fila repetida no suma dos veces
+  leerHoja_(HOJA.INTENTOS, ['email', 'unidad_id', 'estado', 'puntaje', 'completado_en']).forEach(i => {
     if (texto_(i.estado).toUpperCase() !== 'COMPLETADO') return;
     const email = texto_(i.email).toLowerCase();
-    const clave = email + '|' + id_(i.stand_id);
+    const clave = email + '|' + id_(i.unidad_id);
     if (vistos[clave]) return;
     vistos[clave] = true;
     const fila = porEmail[email] || (porEmail[email] = { email: email, puntos: 0, ultimo: 0 });

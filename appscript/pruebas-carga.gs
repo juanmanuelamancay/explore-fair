@@ -77,7 +77,7 @@ function llenarIntentosDePrueba_(total) {
     for (let i = hechas; i < Math.min(total, hechas + POR_TANDA); i++) {
       const fila = {
         intento_id: 'RELLENO-' + i, email: 'relleno' + (i % 1000) + SIM_DOMINIO,
-        stand_id: 'STD-' + String(i % 20).padStart(3, '0'), preguntas_json: preguntas,
+        unidad_id: 'PAB-' + String(i % 20).padStart(3, '0'), preguntas_json: preguntas,
         iniciado_en: new Date(), vence_en: new Date(), estado: 'COMPLETADO',
         respuestas_json: respuestas, correctas: 4, puntaje: 40, completado_en: new Date(),
       };
@@ -112,7 +112,7 @@ function medirLecturas() {
   const tiemposRanking = [];
   for (let vez = 0; vez < 3; vez++) {
     const inicio = Date.now();
-    leerHoja_(HOJA.INTENTOS, ['email', 'stand_id', 'estado', 'puntaje', 'completado_en']);
+    leerHoja_(HOJA.INTENTOS, ['email', 'unidad_id', 'estado', 'puntaje', 'completado_en']);
     tiemposRanking.push(Date.now() - inicio);
   }
   console.log('Intentos, solo columnas del ranking · ms por lectura: ' + tiemposRanking.join(', '));
@@ -140,7 +140,7 @@ function medirPeticiones() {
 
 /**
  * Antes de premiar: recalcula cada intento COMPLETADO desde sus respuestas guardadas y el banco de Preguntas,
- * y lista los que no coinciden con lo guardado (puntaje editado a mano) y las filas repetidas por persona y stand.
+ * y lista los que no coinciden con lo guardado (puntaje editado a mano) y las filas repetidas por persona y unidad (pabellón o charla).
  * Si una pregunta cambió de puntos o de respuesta después de que alguien la respondió, también aparece aquí.
  */
 function auditarPuntajes() {
@@ -157,7 +157,7 @@ function auditarPuntajes() {
   leerHoja_(HOJA.INTENTOS).forEach(i => {
     if (texto_(i.estado).toUpperCase() !== 'COMPLETADO') return;
     revisados++;
-    const clave = texto_(i.email).toLowerCase() + '|' + id_(i.stand_id);
+    const clave = texto_(i.email).toLowerCase() + '|' + id_(i.unidad_id);
     if (vistos[clave]) repetidos.push(id_(i.intento_id) + ' (' + clave + ')');
     vistos[clave] = true;
 
@@ -176,5 +176,5 @@ function auditarPuntajes() {
 
   console.log('Intentos completados revisados: ' + revisados);
   console.log('No coinciden: ' + (noCoinciden.length ? noCoinciden.join(' | ') : 'ninguno'));
-  console.log('Repetidos por persona y stand: ' + (repetidos.length ? repetidos.join(' | ') : 'ninguno'));
+  console.log('Repetidos por persona y unidad: ' + (repetidos.length ? repetidos.join(' | ') : 'ninguno'));
 }

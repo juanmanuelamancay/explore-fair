@@ -8,7 +8,7 @@ const SEGUNDOS_CACHE_USUARIO = 21600;   // máximo que permite CacheService
 
 // El VALIDADOR revisa la feria sin tocarla: solo estas vistas, y en cada una el servidor lo deja leer, no escribir.
 // Aunque Permisos le agregue otra, no la recibe.
-const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS'];
+const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS'];
 
 /** Rol y vistas de quien hace la llamada. El rol sale de Staff; quien no está ahí es USUARIO. */
 function sesion_() {

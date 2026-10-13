@@ -4,7 +4,7 @@
  * todas las funciones exigen admin o terminan en "_".
  *
  * Cada ejecución imita a una persona tras otra, sin descanso: se registra y recibe su número de orden (registro.gs),
- * arma su índice, responde el quiz de entrada y después dos stands con código, escribiendo cada intento en su bloque
+ * arma su índice, responde el quiz de entrada y después dos pabellones con código, escribiendo cada intento en su bloque
  * de filas (indice.gs). En todo lo que las personas comparten usa las funciones reales de la app: las hojas Intentos
  * y Usuarios, el registro por lotes con su turno global, el buzón y la caché. Lo que es de cada persona (su índice,
  * su bloqueo, su caché) no se puede imitar con una sola cuenta: se reemplaza por operaciones del mismo costo sobre la
@@ -40,7 +40,7 @@ const CARGA_MARGEN_MS = 90000;                    // los disparadores se program
 const CARGA_DURACION_MS = 120000;                 // cuánto dura la carga
 const CARGA_COLA_MS = 60000;                      // lo que se espera después, para que terminen las operaciones en curso
 const CARGA_TOPE_MS = 300000;                     // Apps Script corta cada ejecución a los 6 minutos: a los 5 deja de empezar operaciones
-const CARGA_STANDS = 2;                           // stands con código que responde cada persona después del quiz de entrada
+const CARGA_STANDS = 2;                           // pabellones con código que responde cada persona después del quiz de entrada
 const CARGA_PENSAR_MS = [1000, 3000];             // lo que tarda en responder un quiz; en la feria son minutos, aquí se comprime
 const CARGA_PROB_ACIERTO = 0.7;
 const CARGA_PROB_CODIGO_MALO = 0.05;              // personas que escriben mal el código la primera vez
@@ -68,9 +68,9 @@ function horaDeCarga_(ms) {
 
 /** Estado de una ejecución de la prueba: a quién imita, hasta cuándo y lo que va anotando. */
 function nuevaCarga_(yo, plan, salida, fin, tope) {
-  // Los stands vienen en el plan y no del catálogo: así la ejecución no abre el Sheet antes de su primera petición.
+  // Las unidades vienen en el plan y no del catálogo: así la ejecución no abre el Sheet antes de su primera petición.
   return {
-    yo: yo, salida: salida, fin: fin, tope: tope, entrada: plan.entrada, conCodigo: plan.stands,
+    yo: yo, salida: salida, fin: fin, tope: tope, entrada: plan.entrada, conCodigo: plan.unidades,
     retraso: 0, personas: 0, cartas: 0, sinEmpezar: 0, cartero: { pasada: 0, ocupada: 0, descanso: 0 },
     quizzes: [], ops: [], opsPerdidas: 0, errores: {}, artefactos: 0, sinPausas: false, sola: false,
   };
@@ -263,9 +263,11 @@ function intentoDeInicio_(ctx, persona, stand, quiz) {
   try {
     peticionDeCarga_();
     const catalogo = catalogo_();
-    const enCache = !!cacheLeer_('preguntas:' + stand.id);
+    // La unidad es un pabellón: sus stands son los bancos de preguntas, cada uno con su caché.
+    const unidad = unidadPorId_(catalogo, stand.id);
+    const enCache = unidad.bancos.every(b => !!cacheLeer_('preguntas:' + b.id));
     const antesDelBanco = Date.now();
-    const banco = preguntasDeStand_(stand.id);
+    const bancos = bancosDeUnidad_(unidad);
     if (!enCache) anotarOp_(ctx, 'b', antesDelBanco, Date.now() - antesDelBanco);
     costoDeIndice_(ctx, persona.email);
 
@@ -280,13 +282,14 @@ function intentoDeInicio_(ctx, persona, stand, quiz) {
       codigo = (cacheLeer_('codigo:' + stand.id) || {}).codigo || '';
       if (!codigoValido_(stand.id, codigo, ahora.getTime())) throw new Error('El código de prueba de ' + stand.id + ' ya no está vigente.');
     }
-    if (banco.length < PREGUNTAS_POR_QUIZ) throw new Error('El stand ' + stand.id + ' se quedó sin preguntas.');
+    if (bancoIncompleto_(bancos)) throw new Error('El pabellón ' + stand.id + ' se quedó sin preguntas.');
 
     const venceEn = new Date(ahora.getTime() + catalogo.config.minutos_para_responder * 60000);
     const intento = {
       id: nuevoIntentoId_(), e: 'EN_CURSO', i: ahora.getTime(), v: venceEn.getTime(),
-      q: sortear_(banco, PREGUNTAS_POR_QUIZ).map(p => p.id), r: [], a: [], c: 0, p: 0, t: 0, s: 0, f: 0, k: codigo,
+      q: [], r: [], a: [], c: 0, p: 0, t: 0, s: 0, f: 0, k: codigo,
     };
+    bancos.forEach(b => sortear_(b.preguntas, b.banco.cuantas).forEach(p => intento.q.push(p.id)));
     // Con el bloqueo propio, la app vuelve a leer el índice.
     costoDeBloqueo_(ctx);
     costoDeIndice_(ctx, persona.email);
@@ -309,7 +312,7 @@ function intentoDeInicio_(ctx, persona, stand, quiz) {
     quiz[0] = intento.id;
     costoDeGuardar_(ctx, intento);
     const antesDeEscribir = Date.now();
-    escribirInicio_(persona.email, stand, intento, encabezados);
+    escribirInicio_(persona.email, unidad, intento, encabezados);
     msEscribir = Date.now() - antesDeEscribir;
     intento.s = 1;
     costoDeGuardar_(ctx, intento);
@@ -346,7 +349,7 @@ function envioDeCarga_(ctx, persona, stand, intento, quiz) {
         return;
       }
       if (intento.e !== 'COMPLETADO') {
-        const banco = preguntasDeStand_(stand.id);
+        const banco = preguntasDeUnidad_(unidadPorId_(catalogo_(), stand.id));
         let correctas = 0, puntaje = 0;
         intento.r = [];
         intento.a = [];
@@ -461,23 +464,24 @@ function iniciarPruebaCarga_(ejecuciones) {
 
   // El catálogo y las preguntas se releen ahora, para que la caché empiece la prueba recién puesta.
   const catalogo = refrescarCatalogo_();
-  const completo = s => preguntasDeStand_(s.id, true).length >= PREGUNTAS_POR_BANCO;
-  const entrada = catalogo.stands.find(s => !s.requiereCodigo);
-  if (!entrada || !completo(entrada)) throw new Error('El quiz de entrada no existe o no tiene sus ' + PREGUNTAS_POR_BANCO + ' preguntas activas. Revisa con probarTodo.');
-  const conCodigo = catalogo.stands.filter(s => s.requiereCodigo && completo(s));
-  if (conCodigo.length < CARGA_STANDS) throw new Error('Hacen falta al menos ' + CARGA_STANDS + ' stands con código y con sus ' + PREGUNTAS_POR_BANCO + ' preguntas activas.');
+  // Una unidad está completa cuando todos sus bancos (los stands de un pabellón) tienen sus preguntas activas.
+  const completo = u => !bancoIncompleto_(bancosDeUnidad_(u, true));
+  const entrada = unidadDeEntrada_(catalogo);
+  if (!entrada || !completo(entrada)) throw new Error('El quiz de entrada no existe o no tiene sus preguntas activas. Revisa con probarTodo.');
+  const conCodigo = catalogo.unidades.filter(u => u.tipo === 'PABELLON' && u.requiereCodigo && completo(u));
+  if (conCodigo.length < CARGA_STANDS) throw new Error('Hacen falta al menos ' + CARGA_STANDS + ' pabellones con código y con las preguntas de todos sus stands. Revisa con probarTodo.');
 
-  // Un código vigente por stand, en la caché, como lo deja generarCodigo. No se escribe en la hoja Codigos.
+  // Un código vigente por pabellón, en la caché, como lo deja generarCodigo. No se escribe en la hoja Codigos.
   const expiraEn = Date.now() + CARGA_MINUTOS_CODIGO * 60000;
   conCodigo.forEach(s => cachePoner_('codigo:' + s.id, { codigo: codigoAlAzar_(), expiraEn: expiraEn }, CARGA_MINUTOS_CODIGO * 60));
 
   const segundosDeCache = segundosDeCatalogo_(catalogo.config);
-  const paraElPlan = s => ({ id: s.id, pabellonId: s.pabellonId, requiereCodigo: s.requiereCodigo });
+  const paraElPlan = u => ({ id: u.id, requiereCodigo: u.requiereCodigo });
   const plan = {
-    ejecuciones: ejecuciones, entrada: paraElPlan(entrada), stands: conCodigo.map(paraElPlan),
+    ejecuciones: ejecuciones, entrada: paraElPlan(entrada), unidades: conCodigo.map(paraElPlan),
     filasAntes: filasConDato_(HOJA.INTENTOS), ordenAntes: ultimoOrden_(), segundosDeCache: segundosDeCache,
   };
-  console.log('Stands: ' + entrada.id + ' (entrada) y ' + conCodigo.length + ' con código · Intentos tiene ' + plan.filasAntes + ' filas con dato · bloques de ' +
+  console.log('Pabellones: ' + entrada.id + ' (entrada) y ' + conCodigo.length + ' con código · Intentos tiene ' + plan.filasAntes + ' filas con dato · bloques de ' +
     FILAS_POR_PERSONA + ' filas · último número de orden entregado: ' + plan.ordenAntes + ' · la caché del catálogo dura ' + segundosDeCache + ' s');
   if (segundosDeCache * 1000 < CARGA_ESPERA_MS + CARGA_DURACION_MS) {
     console.log('AVISO: con segundos_cache_catalogo en ' + segundosDeCache + ' la caché vence durante la prueba y las ejecuciones releerán las hojas, igual que pasaría en la feria.');
@@ -572,12 +576,12 @@ function datosDeCarga_(informes) {
   const todas = leerHoja_(HOJA.INTENTOS);
   const filas = todas.filter(f => esDeCarga_(f.email));
   const porId = {};
-  const porPersonaYStand = {};
+  const porPersonaYUnidad = {};
   filas.forEach(f => {
     const id = id_(f.intento_id);
     (porId[id] = porId[id] || []).push(f);
-    const clave = texto_(f.email).toLowerCase() + '|' + id_(f.stand_id);
-    porPersonaYStand[clave] = (porPersonaYStand[clave] || 0) + 1;
+    const clave = texto_(f.email).toLowerCase() + '|' + id_(f.unidad_id);
+    porPersonaYUnidad[clave] = (porPersonaYUnidad[clave] || 0) + 1;
   });
   const porDefecto = catalogo_().config.puntos_por_defecto;
   const preguntas = {};
@@ -615,7 +619,7 @@ function datosDeCarga_(informes) {
     else d.sinEnviar++;
   }));
   d.duplicados = Object.keys(porId).filter(id => porId[id].length > 1);
-  d.repetidos = Object.keys(porPersonaYStand).filter(clave => porPersonaYStand[clave] > 1);
+  d.repetidos = Object.keys(porPersonaYUnidad).filter(clave => porPersonaYUnidad[clave] > 1);
   d.sinDueno = Object.keys(porId).filter(id => !conocidos[id]);
 
   // Filas propias: nadie comparte número de orden, cada fila está en el bloque de su dueño y en cada bloque hay un solo correo.
@@ -706,7 +710,7 @@ function revisarPruebaCarga() {
   console.log('Envíos confirmados: ' + d.enviosConfirmados + ' · sin quedar COMPLETADO en la hoja (PERDIDOS): ' + listaDeCarga_(d.enviosPerdidos));
   console.log('Completados con contenido distinto al enviado: ' + listaDeCarga_(d.noCoinciden));
   console.log('Filas con el correo de otra persona: ' + listaDeCarga_(d.deOtraPersona));
-  console.log('intento_id en más de una fila (DUPLICADOS): ' + listaDeCarga_(d.duplicados) + ' · persona y stand repetidos: ' + listaDeCarga_(d.repetidos));
+  console.log('intento_id en más de una fila (DUPLICADOS): ' + listaDeCarga_(d.duplicados) + ' · persona y pabellón repetidos: ' + listaDeCarga_(d.repetidos));
   console.log('Filas de prueba que ninguna ejecución reconoce: ' + listaDeCarga_(d.sinDueno));
   console.log('Números de orden entregados a más de una persona: ' + listaDeCarga_(d.ordenRepetido));
   console.log('Personas con otro número en la hoja Usuarios que el entregado: ' + listaDeCarga_(d.ordenDistinto) + ' · con número pero sin fila confirmada: ' + listaDeCarga_(d.sinConfirmar));
@@ -795,7 +799,7 @@ function limpiarPruebaCarga_() {
     const esCarta = clave.indexOf(PREFIJO_CARTA + CARGA_PREFIJO) === 0;
     if (esCarta || clave === CARGA_PLAN || clave.indexOf(CARGA_INFORME) === 0 || clave.indexOf(CARGA_OPERACIONES) === 0) props.deleteProperty(clave);
   });
-  if (plan) (plan.stands || []).forEach(s => cacheQuitar_('codigo:' + s.id));
+  if (plan) (plan.unidades || []).forEach(s => cacheQuitar_('codigo:' + s.id));
   borrarMarcadores_(email => esDeCarga_(email));
 
   const borradas = { Intentos: 0, Usuarios: 0 };

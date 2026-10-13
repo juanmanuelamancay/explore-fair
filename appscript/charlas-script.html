@@ -1,0 +1,129 @@
+<script>
+(() => {
+  const ruta = $('charlas-ruta');
+  const REPINTAR_MS = 30000;   // el estado de cada charla depende de la hora: se repinta aunque nadie toque nada
+  let datos = null;
+  let desfase = 0;             // hora del servidor menos hora del celular
+  let intervalo = null;
+
+  const ahora = () => Date.now() + desfase;
+  const hora = ms => new Date(ms).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const dia = ms => { const d = new Date(ms).toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }); return d.charAt(0).toUpperCase() + d.slice(1); };
+  const claveDia = ms => { const d = new Date(ms); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+
+  function mostrar() {
+    const primerNombre = INICIO.nombre.split(' ')[0];
+    $('charlas-saludo').textContent = 'Hola, ' + primerNombre.charAt(0).toUpperCase() + primerNombre.slice(1);
+    $('charlas-guia-icono').innerHTML = svg(ICONO.megafono, 20);
+    if (!datos) App.cargando(ruta);
+    else aplicarResultadoReciente();
+    cargar();
+    clearInterval(intervalo);
+    intervalo = setInterval(() => { if (datos) pintar(); }, REPINTAR_MS);
+  }
+
+  function ocultar() { clearInterval(intervalo); }
+
+  function cargar() {
+    return servidorInsistente('obtenerCharlas').then(r => {
+      datos = r;
+      desfase = r.ahora - Date.now();
+      App.estado.puntos = r.puntos;
+      pintar();
+    }).catch(() => {
+      if (datos) toast('No pudimos actualizar las charlas.');
+      else App.error(ruta, cargar);
+    });
+  }
+
+  /** Al volver de un quiz el navegador ya sabe cómo terminó: se muestra de inmediato, sin esperar al servidor. */
+  function aplicarResultadoReciente() {
+    const reciente = App.estado.recien;
+    if (!reciente) return;
+    const charla = datos.charlas.find(c => c.id === reciente.unidadId);
+    if (!charla) return;
+    App.estado.recien = null;
+    if (charla.estado === 'COMPLETADO' || charla.estado === 'VENCIDO') return;
+    Object.assign(charla, { estado: reciente.estado, correctas: reciente.correctas, total: reciente.total, puntaje: reciente.puntaje });
+    datos.puntos += reciente.puntaje;
+    App.estado.puntos = datos.puntos;
+    pintar();
+    if (reciente.estado === 'COMPLETADO') toast(`+${reciente.puntaje} puntos en ${charla.nombre}`);
+  }
+
+  /** Cómo se ve cada charla ahora: hecha, vencida, próxima, abierta o en vivo. */
+  function aspecto(c) {
+    const t = ahora();
+    if (c.estado === 'COMPLETADO') return { clase: 'hecha', icono: ICONO.check, etiqueta: ['Completada', 'verde'] };
+    if (c.estado === 'VENCIDO') return { clase: 'vencida', icono: ICONO.equis, etiqueta: ['Se venció', 'gris'] };
+    if (c.estado === 'EN_CURSO') return { clase: 'abierta en-vivo', icono: ICONO.play, etiqueta: ['En curso', ''] };
+    if (c.inicio && t < c.inicio) return { clase: 'proxima', icono: ICONO.reloj, etiqueta: ['Próxima', 'gris'] };
+    const envivo = !!c.fin && t <= c.fin;
+    return { clase: 'abierta' + (envivo ? ' en-vivo' : ''), icono: ICONO.llave, etiqueta: [envivo ? 'En vivo' : 'Abierta', ''] };
+  }
+
+  function parada(c, indice, ultima) {
+    const a = aspecto(c);
+    const horario = c.inicio ? hora(c.inicio) + (c.fin ? ' – ' + hora(c.fin) : '') : 'Sin horario';
+    let accion = '';
+    if (INICIO.rol === 'VALIDADOR') {
+      // El validador no responde: recorre las preguntas de la charla sin poder elegir.
+      accion = '<button class="btn secundario" data-quiz="' + esc(c.id) + '">Ver preguntas</button>';
+    } else if (c.estado === 'COMPLETADO') {
+      accion = `<p class="ch-nota">${c.correctas} de ${c.total} correctas · ${c.puntaje} pts</p>`;
+    } else if (c.estado === 'VENCIDO') {
+      accion = '<p class="ch-nota">Se te venció el tiempo en esta charla. No se puede repetir.</p>';
+    } else if (a.clase.indexOf('proxima') >= 0) {
+      accion = `<p class="ch-nota">Comienza el ${esc(dia(c.inicio))} a las ${hora(c.inicio)}.</p>`;
+    } else if (!datos.soloLectura) {
+      accion = `<button class="btn" data-quiz="${esc(c.id)}">${c.estado === 'EN_CURSO' ? 'Continuar el quiz' : 'Ingresar código'}</button>
+        ${c.estado === 'EN_CURSO' ? '' : '<p class="ch-nota">El código lo comparte quien dicta la charla al terminar.</p>'}`;
+    }
+    return `
+      <article class="ch-parada ${a.clase} ${ultima ? 'ultima' : ''}" style="--c:${paleta(indice).color}">
+        <span class="ch-nodo">${svg(a.icono, 22, 'currentColor', a.clase === 'hecha' ? 3 : 2)}</span>
+        <div class="ch-tarjeta">
+          <div class="ch-hora"><span class="tnum">${horario}</span><span class="ch-etiqueta ${a.etiqueta[1]}">${a.etiqueta[0]}</span></div>
+          <h2>${esc(c.nombre)}</h2>
+          ${c.ponente ? `<p class="ch-ponente">${esc(c.ponente)}</p>` : ''}
+          ${c.descripcion ? `<p class="ch-desc">${esc(c.descripcion)}</p>` : ''}
+          <div class="ch-datos"><span class="chip">${c.numPreguntas} preguntas</span><span class="chip">${INICIO.minutosParaResponder} minutos</span><span class="chip">Hasta ${c.puntosMax} pts</span></div>
+          ${accion}
+        </div>
+      </article>`;
+  }
+
+  function pintar() {
+    $('charlas-puntos').textContent = datos.puntos;
+    $('charlas-kpis').style.display = datos.soloLectura ? 'none' : '';
+    if (!datos.charlas.length) {
+      ruta.innerHTML = '<p class="ch-vacio">Todavía no hay charlas programadas.</p>';
+      return;
+    }
+    let html = '';
+    let diaActual = null;
+    datos.charlas.forEach((c, i) => {
+      const grupo = c.inicio ? claveDia(c.inicio) : 'sin-fecha';
+      if (grupo !== diaActual) {
+        diaActual = grupo;
+        html += `<h2 class="ch-dia">${c.inicio ? esc(dia(c.inicio)) : 'Sin fecha'}</h2>`;
+      }
+      const siguiente = datos.charlas[i + 1];
+      const ultimaDelDia = !siguiente || (siguiente.inicio ? claveDia(siguiente.inicio) : 'sin-fecha') !== grupo;
+      html += parada(c, i, ultimaDelDia);
+    });
+    ruta.innerHTML = html;
+  }
+
+  ruta.addEventListener('click', e => {
+    const boton = e.target.closest('[data-quiz]');
+    if (!boton || !datos) return;
+    const indice = datos.charlas.findIndex(c => c.id === boton.dataset.quiz);
+    if (indice < 0) return;
+    const tono = paleta(indice);
+    App.ir('quiz', { unidad: datos.charlas[indice], etiqueta: 'Charla', titulo: datos.charlas[indice].nombre, volver: 'charlas', color: tono.color, tinte: tono.tinte });
+  });
+
+  App.registrar('charlas', { alMostrar: mostrar, alOcultar: ocultar, alRefrescar: cargar });
+})();
+</script>

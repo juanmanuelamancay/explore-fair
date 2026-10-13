@@ -1,6 +1,6 @@
 # Reglas de UX y UI
 
-Última actualización: 2026-10-09 (versión del código `2026-10-09.3`)
+Última actualización: 2026-10-13 (versión del código `2026-10-13.1`)
 
 Reglas de diseño de la aplicación. Nacieron de los tres prototipos y hoy describen la app real de `appscript/`; donde los dos difieren, vale la app.
 
@@ -106,14 +106,15 @@ Iconos de línea de 2 px, sin relleno, dibujados en SVG dentro del archivo. No s
 
 ## Pantallas del usuario
 
-El usuario tiene dos vistas, que corresponden a los valores de `vista` en la hoja `Permisos`:
+El usuario tiene tres vistas, que corresponden a los valores de `vista` en la hoja `Permisos`. En el evento usa `MAPA` y `QUIZ`; en la semana de charlas, `CHARLAS` y `QUIZ`:
 
 | `vista` | Pantallas que incluye |
 |---|---|
-| `MAPA` | Mapa (inicio), hoja de stands y hoja "Cómo participar" |
+| `MAPA` | Mapa (inicio), hoja del pabellón y hoja "Cómo participar" |
+| `CHARLAS` | Ruta de charlas (inicio en la semana previa) |
 | `QUIZ` | Ingreso de código, preguntas, resultado y tiempo agotado |
 
-No tiene barra inferior, porque su único destino es el mapa.
+No tiene barra inferior, porque tiene un solo destino: el mapa en el evento o la ruta de charlas en la semana previa (el admin decide cuál con `Permisos`).
 
 ### Mapa (inicio)
 
@@ -123,7 +124,7 @@ De arriba hacia abajo:
 2. **Mensaje guía:** franja azul suave con un ícono, un título y una línea de instrucción. Cambia según el momento:
    - Sin quiz de entrada: da la bienvenida e indica responderlo para abrir los pabellones.
    - Con quiz de entrada terminado: indica escuchar la charla y pulsar el pabellón.
-3. **Ayuda:** la franja del mensaje guía es un botón. Su ícono alterna entre una mano y un signo de pregunta, y al tocarla abre la hoja "Cómo participar", con cuatro pasos: empezar con el quiz de entrada, recorrer la feria y escuchar una charla, abrir el quiz del stand con el código, y responder para sumar puntos. El último paso aclara que los puestos se ven en la pantalla grande de la feria.
+3. **Ayuda:** la franja del mensaje guía es un botón. Su ícono alterna entre una mano y un signo de pregunta, y al tocarla abre la hoja "Cómo participar", con cuatro pasos: empezar con el quiz de entrada, recorrer la feria y escuchar una charla, abrir el quiz del pabellón con el código, y responder para sumar puntos. El último paso aclara que los puestos se ven en la pantalla grande de la feria.
 4. **Mapa radial:** bajo el título "Pabellones", el usuario en el centro y los pabellones repartidos alrededor en un círculo.
 
 Reglas del mapa:
@@ -131,39 +132,38 @@ Reglas del mapa:
 - **El círculo central es el usuario y también el botón del quiz de entrada.** Muestra sus iniciales. Mientras el quiz está pendiente, tiene un anillo que late y la etiqueta "Empieza aquí"; si lo dejó a medias, dice "Continúa aquí". Una vez respondido, muestra un check verde y los puntos obtenidos. Si se le venció, dice "Sin puntaje". El validador ve este círculo siempre en su estado pendiente (anillo que late y "Empieza aquí"), aunque sus pabellones estén abiertos: no responde, así que nunca pasa a respondido.
 - **El quiz de entrada va primero.** Mientras no esté terminado (respondido o con el tiempo vencido), los pabellones se muestran en gris con un candado y no se abren: al tocarlos sale un aviso que indica pulsar el círculo propio. El servidor aplica la misma regla, así que tampoco se puede empezar un stand por otra vía.
 - **Apertura animada.** Al volver al mapa tras terminar el quiz de entrada, los pabellones se abren uno tras otro en el sentido del reloj: cada uno recupera su color, su candado salta y desaparece, y una onda de su color se expande. Con seis pabellones dura alrededor de 1,6 segundos en total y la acompaña el mensaje "Ya puedes visitar los pabellones". Con movimiento reducido activado, aparecen abiertos sin animación.
-- **El resultado se ve al instante.** Al volver de cualquier quiz, el mapa ya muestra el puntaje y el estado del stand con lo que el navegador sabe, sin esperar al servidor. Cuando el servidor responde, sus datos reemplazan a los anteriores.
-- **Suma animada.** Al volver de un stand respondido, el arco de su pabellón crece desde donde estaba, un "+N" sube sobre el pabellón, el número de puntos de la cabecera da un pulso y un mensaje temporal dice cuántos puntos se sumaron.
-- **Alrededor van los pabellones, no los stands.** Los stands se ven al tocar el pabellón.
-- **Cada pabellón muestra** su ícono, su nombre corto (`nombre_corto`, o `nombre` si no hay), los puntos ganados ahí (solo si hay) y un arco de su color que crece con los stands respondidos.
-- **Pabellón completo:** cuando todos sus stands están respondidos a tiempo, lleva el mismo check verde que el círculo central.
+- **El resultado se ve al instante.** Al volver de cualquier quiz, el mapa ya muestra el puntaje y el estado del pabellón con lo que el navegador sabe, sin esperar al servidor. Cuando el servidor responde, sus datos reemplazan a los anteriores.
+- **Suma animada.** Al volver de un pabellón respondido, su arco se llena, un "+N" sube sobre el pabellón, el número de puntos de la cabecera da un pulso y un mensaje temporal dice cuántos puntos se sumaron.
+- **Alrededor van los pabellones, no los stands.** Los stands se ven al tocar el pabellón, solo como información: el quiz es del pabellón entero.
+- **Cada pabellón muestra** su ícono, su nombre corto (`nombre_corto`, o `nombre` si no hay), los puntos ganados ahí (solo si hay) y un arco de su color que se llena cuando respondió el quiz del pabellón.
+- **Pabellón completo:** cuando el quiz del pabellón está respondido a tiempo, lleva el mismo check verde que el círculo central.
 - **Las posiciones se calculan** según la cantidad de pabellones, empezando arriba. Agregar un pabellón no requiere rediseñar.
 
-### Hoja de stands
+### Hoja del pabellón
 
 Al tocar un pabellón sube una hoja desde abajo, sobre un velo oscuro. Se cierra tocando el velo, con su botón de cerrar o con Escape.
 
 - **Encabezado:** ícono y nombre del pabellón; dice "Pabellón completo" cuando corresponde.
-- **Cada fila** lleva un círculo con el estado del stand y su nombre. No muestra abreviatura, cantidad de preguntas ni puntos posibles, porque son iguales en todos los stands.
-- **Stand pendiente:** fila tocable con flecha. Lleva a la pantalla del código.
-- **Stand en curso:** fila tocable con "En curso · toca para continuar". Retoma el quiz sin pedir el código.
-- **Stand respondido:** fila no tocable con check verde, "N de 4 correctas" y los puntos.
-- **Stand vencido:** fila atenuada, no tocable, con "Se venció el tiempo" y 0 pts.
-- **Pie:** recordatorio de que se necesita el código del líder.
+- **Lista de stands:** solo informativa (círculo con trofeo y nombre). El texto dice que el quiz reúne preguntas de todos.
+- **Pendiente:** chips con las preguntas, los minutos y los puntos posibles, el botón "Responder el quiz del pabellón" y el recordatorio de que se necesita el código del líder.
+- **En curso:** el botón dice "Continuar el quiz" y retoma sin pedir el código.
+- **Respondido:** "Ya respondiste este pabellón: N de M correctas · P pts", sin botón.
+- **Vencido:** "Se te venció el tiempo en este pabellón. No se puede repetir.", sin botón.
 
 ### Ingreso de código
 
-- Muestra el stand, cuántas preguntas tiene, el tiempo disponible y los puntos posibles antes de pedir nada.
+- Muestra el pabellón o la charla, cuántas preguntas tiene, el tiempo disponible y los puntos posibles antes de pedir nada.
 - **Campo de código:** 4 caracteres, se convierte a mayúsculas y solo acepta letras y números. El botón "Empezar" se habilita al completar los 4.
 - **Código inválido o vencido:** el campo vuelve vacío, se marca en rojo, tiembla una vez y muestra un mensaje que dice qué hacer ("Pídele uno nuevo al líder"). "Empezar" sigue deshabilitado hasta escribir otros 4 caracteres.
-- **Tres códigos incorrectos:** la persona queda bloqueada 120 segundos, en todos los stands. El campo se vacía, se marca en rojo y **deja de aceptar texto**; debajo dice "Fallaste el código 3 veces. Espera para volver a intentarlo." y el botón pasa a "Espera 1:58", contando hacia atrás. Al llegar a cero el campo se libera solo y el botón vuelve a "Empezar" (deshabilitado hasta escribir 4 caracteres). Durante la espera el código correcto tampoco entra. Si la persona sale al mapa y vuelve, sigue bloqueada.
+- **Tres códigos incorrectos:** la persona queda bloqueada 120 segundos, en todos los pabellones y charlas. El campo se vacía, se marca en rojo y **deja de aceptar texto**; debajo dice "Fallaste el código 3 veces. Espera para volver a intentarlo." y el botón pasa a "Espera 1:58", contando hacia atrás. Al llegar a cero el campo se libera solo y el botón vuelve a "Empezar" (deshabilitado hasta escribir 4 caracteres). Durante la espera el código correcto tampoco entra. Si la persona sale y vuelve, sigue bloqueada.
 - **Aviso fijo del código:** "Si fallas el código 3 veces, tendrás que esperar 2 minutos para volver a intentarlo." Los números salen del servidor (`FALLOS_DE_CODIGO_MAX` y `SEGUNDOS_BLOQUEO_CODIGO`).
 - **El quiz de entrada** usa esta misma pantalla sin el campo de código, con el título "Listo para empezar" y el aviso "Solo tienes un intento."
 - **Mientras el servidor arma el quiz** se ve una pantalla de espera animada: "Preparando tu quiz".
 
 ### Preguntas
 
-- **Una pregunta por pantalla**, con el rótulo "Pregunta N de 4".
-- **Cabecera fija al desplazar:** pabellón, stand, reloj y una barra de pasos.
+- **Una pregunta por pantalla**, con el rótulo "Pregunta N de M" (M es el total del quiz: en un pabellón, las de todos sus stands).
+- **Cabecera fija al desplazar:** etiqueta ("Pabellón", "Charla" o "General"), título, reloj y una barra de pasos.
 - **Aviso al pie, bajo el botón:** "Solo tienes un intento."
 - **Reloj:** cuenta regresiva siempre visible, guiada por la hora del servidor. En los últimos 30 segundos pasa a rojo.
 - **Opciones:** botones de ancho completo con letra A–D. La elegida se marca con borde y fondo azul. Se puede cambiar antes de avanzar.
@@ -176,12 +176,21 @@ Al tocar un pabellón sube una hoja desde abajo, sobre un velo oscuro. Se cierra
 ### Resultado
 
 - Sello circular verde con un check; dorado y con un trofeo si acertó todas. Debajo, los puntos ganados, que suben contando desde cero, y el total acumulado ("Llevas N puntos en total.").
-- Un recuadro con "N de 4 correctas". **No se muestra qué preguntas acertó ni cuál era la respuesta correcta**, para que no se pase entre usuarios. El servidor ni siquiera envía el detalle por pregunta, así que tampoco se puede sacar desde el navegador.
-- Acción principal "Volver al mapa". El botón secundario "Ver ranking" aparece solo si el rol tiene la vista `RANKING`, así que el usuario no lo ve.
+- Un recuadro con "N de M correctas". **No se muestra qué preguntas acertó ni cuál era la respuesta correcta**, para que no se pase entre usuarios. El servidor ni siquiera envía el detalle por pregunta, así que tampoco se puede sacar desde el navegador.
+- Acción principal "Volver al mapa" (o "Volver a las charlas" si el quiz era de una charla). El botón secundario "Ver ranking" aparece solo si el rol tiene la vista `RANKING`, así que el usuario no lo ve.
 
 ### Tiempo agotado
 
-Pantalla propia, en tono neutro (gris, sin rojo): explica que ese stand no suma y recuerda que puede seguir sumando en los demás.
+Pantalla propia, en tono neutro (gris, sin rojo): explica que ese quiz no suma y recuerda que puede seguir sumando en los demás pabellones (o en las demás charlas).
+
+## Ruta de charlas
+
+Vista `CHARLAS`: lo que ve el usuario en la semana previa al evento, en lugar del mapa. Tiene la misma cabecera que el mapa (saludo y puntos), un mensaje guía y una **ruta vertical**: una parada por charla, unidas por una línea, agrupadas bajo el día ("Lunes, 19 de octubre").
+
+- **Parada:** un círculo con el estado (llave si está abierta, reloj si es próxima, check verde si está completada, equis si venció) y una tarjeta con el horario ("10:00 – 11:00"), una etiqueta de estado, el título, el ponente, la descripción y los chips de preguntas, minutos y puntos posibles.
+- **Estados:** *Próxima* (aún no es su hora de inicio: dice cuándo comienza, sin botón), *Abierta* / *En vivo* (botón "Ingresar código"), *En curso* ("Continuar el quiz"), *Completada* ("N de M correctas · P pts") y *Se venció*. La hora se calcula con el reloj del servidor y la ruta se repinta cada 30 segundos.
+- **El código lo da el ponente** al terminar; este quiz abre la misma pantalla de código, preguntas y resultado que los pabellones, y al terminar vuelve a la ruta ("Volver a las charlas"). No pide el quiz de entrada.
+- **Solo lectura:** el validador ve la ruta con "Ver preguntas" en cada charla; el admin la ve sin botones.
 
 ## Sala de espera
 
@@ -200,34 +209,34 @@ Es lo que ve un usuario antes del evento, mientras `espera_activa` está en TRUE
 
 El `ADMIN` ve esta misma pantalla como una pestaña más, "Espera", mientras la sala está activa.
 
-## Pantallas del líder
+## Pantallas del líder de pabellón, el ponente y el expositor
 
-El líder no compite: no tiene mapa ni quiz. Su inicio es la pantalla de generar código. Si `Permisos` le da también `PREGUNTAS`, tiene una barra inferior con Código y Preguntas.
+Ninguno de los tres compite: no tienen mapa ni quiz. El **líder de pabellón** y el **ponente** tienen como inicio la pantalla de generar código; el **expositor**, la de preguntas. El ponente tiene además `PREGUNTAS`, con una barra inferior de Código y Preguntas.
 
 ### Generar código
 
-De arriba hacia abajo: saludo, mensaje guía, stand y tarjeta del código. No lleva KPI, contador de personas ni historial de códigos.
+De arriba hacia abajo: saludo, mensaje guía, pabellón o charla y tarjeta del código. No lleva KPI, contador de personas ni historial de códigos.
 
 - **Mensaje guía:** sin código activo indica generarlo al terminar la charla; con código activo indica compartirlo en voz alta o mostrando la pantalla.
-- **Stand:** si el líder tiene un solo stand, se muestra fijo con su abreviatura y pabellón. Si lidera todo el pabellón, elige el stand con fichas horizontales; un punto verde marca los que tienen código activo.
-- **Tarjeta sin código:** ícono neutro, "Sin código activo", cuánto dura y para qué stand sirve, y el botón principal "Generar código".
+- **Pabellón o charla:** se muestra fijo con su abreviatura y su rótulo ("Pabellón" o "Charla"). El admin, que ve varios, elige con fichas horizontales; un punto verde marca los que tienen código activo.
+- **Tarjeta sin código:** ícono neutro, "Sin código activo", cuánto dura y para qué pabellón o charla sirve, y el botón principal "Generar código".
 - **Mientras se genera:** cuatro casillas giran con caracteres al azar y se fijan una por una cuando llega el código real.
 - **Tarjeta con código activo:** mismo encabezado y mismas cuatro casillas que al generar, ahora fijas con el código y con el título "Código listo"; debajo, una barra que se vacía, el tiempo restante para ingresarlo y el botón secundario "Generar uno nuevo". En el último minuto la barra y el tiempo pasan a rojo.
 - **Tarjeta con código vencido:** las casillas en gris y el botón principal "Generar código nuevo". Se ve así mientras la pantalla siga abierta; al volver a entrar, el stand aparece "Sin código activo".
 - **Reemplazar un código activo** pide confirmación en una hoja inferior: avisa que el código actual deja de funcionar y que quienes ya entraron pueden terminar su quiz.
 - **Caracteres del código:** 4, solo consonantes y dígitos del 2 al 9. Sin vocales y sin `0`, `1` ni `L`, para que no se confundan al dictarlos.
 - **No hay acción de anular** sin generar otro: un código se reemplaza o se deja vencer.
-- **Sin stands asignados:** la tarjeta dice "No tienes stands asignados" y pide avisar a un administrador.
+- **Sin nada asignado:** la tarjeta dice "No tienes nada asignado" y pide avisar a un administrador.
 
 ### Preguntas
 
-Vista `PREGUNTAS`. El líder revisa y edita el banco de sus stands.
+Vista `PREGUNTAS`. El expositor revisa y edita el banco de su stand; el ponente, el de su charla.
 
-- **Stand:** si lidera varios, los elige con fichas horizontales; si es uno, se muestra fijo con su pabellón.
-- **Resumen:** una fila de 16 puntitos y el texto "N de 16 activas", con el botón "Nueva".
+- **Banco:** si ve varios (el admin y el validador), los elige con fichas horizontales; si es uno, se muestra fijo con su pabellón.
+- **Resumen:** una fila de puntitos y el texto "N de M activas" (M es 12 en un stand y 15 en una charla), con el botón "Nueva".
 - **Lista:** una tarjeta por pregunta, con su número y su enunciado. Las inactivas se ven atenuadas. Tocar una abre el editor.
 - **Editor:** hoja inferior con el enunciado, las cuatro opciones y la respuesta correcta. No incluye los puntos ni el estado activo: esos los decide el administrador.
-- **Banco lleno:** si el stand ya tiene 16 activas, el editor avisa que la pregunta nueva se guardará desactivada.
+- **Banco lleno:** con las M preguntas activas desaparece el botón "Nueva" y la ayuda dice que no se pueden agregar más; el expositor y el ponente solo editan las que ya hay. El admin no tiene ese tope.
 - **Mientras guarda:** los campos se bloquean, los botones se reemplazan por "Guardando…" y la hoja no se puede cerrar. Al terminar, un mensaje temporal confirma y la tarjeta editada destella una vez.
 
 ## Pantallas del admin
@@ -240,12 +249,13 @@ De arriba hacia abajo: saludo, mensaje guía, editor del catálogo, tarjeta "Act
 
 Editor del catálogo:
 
-- **Pestañas:** `Pabellones`, `Staff`, `Permisos`, `Configuración` y `Premios`. Los stands y las preguntas no tienen pestaña: se editan dentro de su pabellón.
+- **Pestañas:** `Pabellones`, `Charlas`, `Staff`, `Permisos`, `Configuración` y `Premios`. Los stands y las preguntas no tienen pestaña: se editan dentro de su pabellón, y las preguntas de cada charla, dentro de su charla.
 - **Botón "+":** agrega un registro a la pestaña abierta.
 - **Búsqueda y estado:** un campo busca dentro de la pestaña. El interruptor "Solo activos" viene encendido; al apagarlo se ven también los inactivos, atenuados.
-- **Pestaña Pabellones:** un árbol. Cada pabellón se despliega para mostrar sus stands, y cada stand muestra sus preguntas y el contador "N/16 preguntas · quiz aleatorio de 4". Dentro del árbol están "Añadir stand", "Añadir pregunta" y "Cargar JSON" (ver [formato](../datos/formato-preguntas-json.md)). Si el stand tiene líder, su nombre aparece en una tercera línea ("Líder: …").
-- **Líder del stand:** el formulario del stand tiene el campo opcional "Correo del líder", prellenado con el líder actual. Al guardar, el servidor lo deja en `Staff` como `LIDER` de ese stand (nombre completado desde el directorio de Google o el correo) y el mensaje temporal dice quién quedó. Vacío quita al líder. Los rechazos (correo de un admin, de alguien que ya lidera otro stand, stand inactivo) salen como mensaje temporal y el formulario sigue abierto.
+- **Pestaña Pabellones:** un árbol. Cada pabellón se despliega para mostrar sus stands, y cada stand muestra sus preguntas y el contador "N/12 preguntas" (con "· faltan K" cuando no llega). Dentro del árbol están "Añadir stand", "Añadir pregunta" y "Cargar JSON" (ver [formato](../datos/formato-preguntas-json.md)). El pabellón muestra su líder ("Líder: …") o "sin líder"; cada stand, su expositor o "Sin expositor". El pabellón del quiz de entrada dice "quiz de entrada, sin código". Es lo que el admin revisa antes de abrir.
+- **Responsables:** el formulario del pabellón tiene el campo opcional "Correo del líder", el del stand "Correo del expositor" y el de la charla "Correo del ponente", prellenados con quien responde hoy. Al guardar, el servidor lo deja en `Staff` con el rol y el alcance que corresponden (nombre completado desde el directorio de Google o el correo) y el mensaje temporal dice quién quedó. Vacío quita al responsable. Los rechazos (correo de un admin o de alguien que ya responde de otra cosa, registro inactivo, pabellón sin código) salen como mensaje temporal y el formulario sigue abierto.
 - **Pestaña Permisos:** una tarjeta por rol que se despliega y muestra sus vistas como fichas, con "Añadir vista".
+- **Pestaña Charlas:** igual que los pabellones: cada charla se despliega con sus preguntas, "Añadir pregunta" y "Cargar JSON". Su formulario tiene título, nombre del ponente, descripción, inicio, fin, correo del ponente, preguntas del banco y del quiz (vacías = valores de `Config`), orden y activo. Sin la hoja `Charlas` en el Sheet no deja guardar.
 - **Demás pestañas:** una lista de registros, cada uno con editar y desactivar.
 - **Formularios:** hoja inferior con selectores para las referencias a otras hojas, limitadas a registros activos. Los identificadores se generan solos al guardar.
 - **Bajas:** siempre con hoja de confirmación. Un pabellón se elimina con todo su contenido y la hoja muestra cuántos stands y preguntas se borran; un parámetro de `Config` se quita; el resto se desactiva.
@@ -290,19 +300,21 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
 
 - **Botón de actualizar:** ícono circular al final de la cabecera de cada vista, salvo el quiz. Solo lo ven el líder y el admin: el `USUARIO` no lo tiene, porque la sala de espera y el mapa ya se actualizan solos y, si algo cambió, la app se vuelve a abrir. Vuelve a pedir los datos de esa vista sin recargar la página y, a la vez, comprueba si a la persona le cambiaron el rol o las vistas. Mientras carga, el ícono gira y el botón no responde.
 
-- **Barra inferior:** un destino por cada vista del rol, en este orden: Mapa, Código, Preguntas, Panel, Ranking, Espera. El activo se marca con una píldora de color detrás del ícono. Si el rol tiene un solo destino, la barra no se muestra.
+- **Barra inferior:** un destino por cada vista del rol, en este orden: Mapa, Charlas, Código, Preguntas, Panel, Ranking, Espera. El activo se marca con una píldora de color detrás del ícono. Si el rol tiene un solo destino, la barra no se muestra.
 
   Con las filas de referencia de `Permisos`:
 
   | Rol | Destinos |
   |---|---|
-  | `USUARIO` | Solo Mapa: sin barra |
-  | `LIDER` | Solo Código: sin barra. Con `PREGUNTAS`: Código y Preguntas |
-  | `VALIDADOR` | Mapa y Preguntas (y Espera mientras la sala está activa) |
-  | `ADMIN` | Mapa, Código, Panel y Ranking |
+  | `USUARIO` | Solo Mapa (evento) o solo Charlas (semana previa): sin barra |
+  | `LIDER` | Solo Código: sin barra |
+  | `EXPOSITOR` | Solo Preguntas: sin barra |
+  | `PONENTE` | Código y Preguntas |
+  | `VALIDADOR` | Mapa, Charlas y Preguntas (y Espera mientras la sala está activa) |
+  | `ADMIN` | Mapa, Charlas, Código, Panel y Ranking |
 
 - **La barra se oculta** en todo el quiz (código, preguntas, resultado y tiempo agotado), para no ofrecer salidas a mitad, y en la pantalla de ranking cuando se activa "Ocultar menú de navegación".
-- **Flecha de volver** arriba a la izquierda en código, resultado y tiempo agotado; siempre lleva al mapa. Durante las preguntas no hay flecha.
+- **Flecha de volver** arriba a la izquierda en código, resultado y tiempo agotado; lleva al mapa o, si el quiz era de una charla, a la ruta de charlas. Durante las preguntas no hay flecha.
 
 ## Mensajes y textos
 
@@ -310,17 +322,17 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
 - **Lenguaje neutro en género:** "Te damos la bienvenida" en lugar de "Bienvenido".
 - **Los errores dicen qué hacer**, no solo qué falló.
 - **Mensajes temporales (toast):** barra oscura sobre la navegación, unos 3 segundos. Se usan para acciones que no abren pantalla, como tocar el quiz de entrada ya respondido.
-- **Aviso con cierre (toast largo):** tarjeta oscura pegada abajo, con ícono de información, título, texto, botón de cerrar y una barra que se vacía durante 8 segundos, tiempo tras el cual se cierra sola. Un toque en cualquier parte la cierra antes. Con la barra de navegación a la vista, va encima de ella; se cierra sola al cambiar de vista o abrir una hoja. Hoy solo la ve el validador (`mostrarAviso` en `comun-script.html`): en el quiz de un stand, para decir cuántas preguntas responde un usuario en el evento, y en Preguntas, para decir que los líderes de cada stand las actualizarán según su presentación.
+- **Aviso con cierre (toast largo):** tarjeta oscura pegada abajo, con ícono de información, título, texto, botón de cerrar y una barra que se vacía durante 8 segundos, tiempo tras el cual se cierra sola. Un toque en cualquier parte la cierra antes. Con la barra de navegación a la vista, va encima de ella; se cierra sola al cambiar de vista o abrir una hoja. Hoy solo la ve el validador (`mostrarAviso` en `comun-script.html`): en el quiz de un pabellón o charla, para decir cuántas preguntas responde un usuario en el evento, y en Preguntas, para decir que los expositores y ponentes las actualizarán según su presentación.
 - **Puntos:** "pts" en espacios chicos, "puntos" cuando hay lugar.
 
-## Estados de un stand
+## Estados de un pabellón o una charla
 
 | Estado | Dónde se ve | Cómo se ve |
 |---|---|---|
-| Pendiente | Hoja de stands | Fila tocable con flecha |
-| En curso | Hoja de stands | Fila tocable con "En curso · toca para continuar" |
-| Respondido | Hoja de stands, mapa | Check verde, aciertos y puntos; suma al arco y a los puntos del pabellón |
-| Vencido | Hoja de stands | Fila atenuada con 0 pts; no suma al arco ni permite reintento |
+| Pendiente | Hoja del pabellón; ruta de charlas | Botón "Responder el quiz del pabellón" / "Ingresar código" |
+| En curso | Hoja del pabellón; ruta de charlas | Botón "Continuar el quiz" |
+| Respondido | Hoja del pabellón, mapa, ruta de charlas | Check verde, aciertos y puntos; llena el arco del pabellón y suma a los puntos |
+| Vencido | Hoja del pabellón; ruta de charlas | Mensaje "Se te venció el tiempo", 0 pts; no permite reintento |
 
 ## Elementos solo del prototipo
 

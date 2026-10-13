@@ -4,23 +4,25 @@
   const SEGUNDOS_EN_ROJO = 30;
   const pantalla = $('quiz-pantalla');
 
-  // Lo que llega desde el mapa (stand, pabellon, color, tinte) más el quiz en curso.
+  // Lo que llega desde el mapa o desde la ruta de charlas (unidad, etiqueta, titulo, volver, color, tinte) más el quiz en curso.
+  // La unidad es un pabellón o una charla; "volver" es la vista a la que se regresa.
   let q = null;
 
   // Bloqueo por códigos incorrectos: vale para toda la persona, no para un stand. Hora (ms) hasta la que no puede escribir.
   let bloqueoHasta = 0;
   let cuentaAtras = null;
+  const textoVolver = () => (q.volver === 'charlas' ? 'Volver a las charlas' : 'Volver al mapa');
   const duracion = s => (s % 60 === 0 ? (s / 60) + (s === 60 ? ' minuto' : ' minutos') : s + ' segundos');
 
   // El validador recorre las preguntas sin responderlas: sin reloj, sin intento y sin puntos.
   const validador = INICIO.rol === 'VALIDADOR';
 
   function mostrar(datos) {
-    q = { stand: datos.stand, pabellon: datos.pabellon, color: datos.color, tinte: datos.tinte, intervalo: null };
+    q = { unidad: datos.unidad, etiqueta: datos.etiqueta, titulo: datos.titulo, volver: datos.volver || 'mapa', color: datos.color, tinte: datos.tinte, intervalo: null };
     if (validador) {
       // El validador no pide código ni responde: entra directo a ver las preguntas.
       verPreguntas();
-    } else if (q.stand.estado === 'EN_CURSO') {
+    } else if (q.unidad.estado === 'EN_CURSO') {
       // Cerró la app a mitad del quiz: se retoma sin pedir el código otra vez.
       App.cargando(pantalla);
       iniciar('');
@@ -36,13 +38,13 @@
 
   const cabecera = () => `
     <div class="barra-sup" style="--c:${q.color}">
-      <button class="volver" data-ir="mapa" aria-label="Volver al mapa">${svg(ICONO.atras)}</button>
-      <div class="donde"><span class="etiqueta-pab">${esc(q.pabellon)}</span><b>${esc(q.stand.nombre)}</b></div>
+      <button class="volver" data-ir="${q.volver}" aria-label="${textoVolver()}">${svg(ICONO.atras)}</button>
+      <div class="donde"><span class="etiqueta-pab">${esc(q.etiqueta)}</span><b>${esc(q.titulo)}</b></div>
     </div>`;
 
   /* ---------- Código ---------- */
   function pantallaCodigo() {
-    const s = q.stand;
+    const s = q.unidad;
     clearInterval(cuentaAtras);
     pantalla.innerHTML = `
       ${cabecera()}
@@ -108,10 +110,10 @@
   /* ---------- Validador: ver las preguntas sin responderlas ---------- */
   function verPreguntas() {
     pantalla.innerHTML = `${cabecera()}<div class="estado"><i class="giro oscuro"></i><p>Cargando preguntas…</p></div>`;
-    servidorInsistente('verQuiz', q.stand.id).then(r => {
+    servidorInsistente('verQuiz', q.unidad.id).then(r => {
       if (!r.ok) {
         toast(r.mensaje);
-        return App.ir('mapa');
+        return App.ir(q.volver);
       }
       q.preguntas = r.preguntas;
       q.porQuiz = r.porQuiz;
@@ -121,7 +123,7 @@
       if (!$('vista-quiz').hidden) mostrarAviso('Cómo funciona en el evento', `Cada usuario responde solo ${q.porQuiz} de estas ${q.preguntas.length} preguntas, elegidas al azar.`);
     }).catch(() => {
       toast('No pudimos cargar las preguntas. Inténtalo de nuevo.');
-      App.ir('mapa');
+      App.ir(q.volver);
     });
   }
 
@@ -136,7 +138,7 @@
       <div class="quiz-cab" style="--c:${q.color}">
         <div class="pasos" aria-hidden="true">${q.preguntas.map((_, i) => `<i class="${i < q.actual ? 'pasado' : i === q.actual ? 'actual' : ''}"></i>`).join('')}</div>
       </div>
-      <p class="sec chico">Pregunta ${q.actual + 1} de ${q.preguntas.length} · solo lectura</p>
+      <p class="sec chico">Pregunta ${q.actual + 1} de ${q.preguntas.length} · solo lectura${p.origen ? ' · ' + esc(p.origen) : ''}</p>
       <h2 class="enunciado">${esc(p.texto)}</h2>
       <div role="list" aria-label="Opciones">
         ${p.opciones.map((texto, i) => `
@@ -144,7 +146,7 @@
       </div>
       ${primera ? '' : '<button class="btn secundario" data-anterior>Anterior</button>'}
       ${ultima ? '' : '<button class="btn" data-siguiente>Siguiente</button>'}
-      <button class="btn ${ultima ? '' : 'texto'}" data-ir="mapa">Volver al mapa</button>
+      <button class="btn ${ultima ? '' : 'texto'}" data-ir="${q.volver}">${textoVolver()}</button>
       </div>`;
     window.scrollTo(0, 0);
     const mover = paso => () => { q.actual += paso; pantallaRevision(true); };
@@ -155,9 +157,9 @@
   }
 
   function iniciar(codigo) {
-    pantallaEspera('Preparando tu quiz', 'Estamos armando tus preguntas.', q.stand.numPreguntas);
+    pantallaEspera('Preparando tu quiz', 'Estamos armando tus preguntas.', q.unidad.numPreguntas);
 
-    servidorInsistente('iniciarQuiz', q.stand.id, codigo).then(r => {
+    servidorInsistente('iniciarQuiz', q.unidad.id, codigo).then(r => {
       if (!r.ok) {
         // La pantalla del código ya no está: si hace falta, se vuelve a mostrar para corregirlo.
         if (r.motivo === 'BLOQUEADO') bloqueoHasta = Date.now() + (Number(r.esperaSegundos) || INICIO.segundosBloqueoCodigo) * 1000;
@@ -174,7 +176,7 @@
       q.intervalo = setInterval(tic, 250);
     }).catch(() => {
       toast('No pudimos empezar el quiz. Inténtalo de nuevo.');
-      if (q.stand.estado === 'EN_CURSO') App.ir('mapa'); else pantallaCodigo();
+      if (q.unidad.estado === 'EN_CURSO') App.ir(q.volver); else pantallaCodigo();
     });
   }
 
@@ -190,7 +192,7 @@
     }
     if (r.motivo === 'VENCIDO') return pantallaVencido();
     toast(r.mensaje);
-    App.ir('mapa');
+    App.ir(q.volver);
   }
 
   /* ---------- Preguntas ---------- */
@@ -217,7 +219,7 @@
       <div class="pregunta-vista ${entrar ? 'entra' : ''}">
       <div class="quiz-cab" style="--c:${q.color}">
         <div class="quiz-fila">
-          <div class="donde"><span class="etiqueta-pab">${esc(q.pabellon)}</span><b>${esc(q.stand.nombre)}</b></div>
+          <div class="donde"><span class="etiqueta-pab">${esc(q.etiqueta)}</span><b>${esc(q.titulo)}</b></div>
           <div class="reloj tnum ${r <= SEGUNDOS_EN_ROJO ? 'poco' : ''}" id="quiz-reloj" aria-label="Tiempo restante">${svg(ICONO.reloj, 18)}<span>${formatoReloj(r)}</span></div>
         </div>
         <div class="pasos" aria-hidden="true">${q.preguntas.map((_, i) => `<i class="${i < q.actual ? 'pasado' : i === q.actual ? 'actual' : ''}"></i>`).join('')}</div>
@@ -252,7 +254,7 @@
       if (r.ok) return pantallaResultado(r);
       if (r.motivo === 'VENCIDO') return pantallaVencido();
       toast(r.mensaje);
-      App.ir('mapa');
+      App.ir(q.volver);
     }).catch(() => {
       // Las respuestas siguen en memoria: no se reanuda el reloj ni se vuelve a las preguntas.
       q.enviando = false;
@@ -296,7 +298,7 @@
   /* ---------- Resultado ---------- */
   function pantallaResultado(r) {
     // El mapa lo usa para mostrar el resultado al instante, sin esperar al servidor.
-    App.estado.recien = { standId: q.stand.id, estado: 'COMPLETADO', correctas: r.correctas, total: r.total, puntaje: r.puntaje };
+    App.estado.recien = { unidadId: q.unidad.id, estado: 'COMPLETADO', correctas: r.correctas, total: r.total, puntaje: r.puntaje };
     // App.estado.puntos es el total antes de este quiz; el mapa lo suma al volver.
     const total = (App.estado.puntos || 0) + r.puntaje;
     pantalla.innerHTML = `
@@ -307,7 +309,7 @@
         <p class="sec" style="margin-top:6px">Llevas ${total} puntos en total.</p>
         <div class="datos"><span class="chip">${r.correctas} de ${r.total} correctas</span></div>
       </div>
-      <button class="btn" data-ir="mapa">Volver al mapa</button>
+      <button class="btn" data-ir="${q.volver}">${textoVolver()}</button>
       ${INICIO.vistas.indexOf('RANKING') >= 0 ? '<button class="btn secundario" data-ir="ranking">Ver ranking</button>' : ''}`;
     window.scrollTo(0, 0);
     contarPuntos(r.puntaje);
@@ -328,16 +330,16 @@
 
   function pantallaVencido() {
     clearInterval(q.intervalo);
-    App.estado.recien = { standId: q.stand.id, estado: 'VENCIDO', correctas: 0, total: q.stand.numPreguntas, puntaje: 0 };
+    App.estado.recien = { unidadId: q.unidad.id, estado: 'VENCIDO', correctas: 0, total: q.unidad.numPreguntas, puntaje: 0 };
     pantalla.innerHTML = `
       ${cabecera()}
       <div class="tarjeta centro">
         <div class="disco-grande">${svg(ICONO.reloj, 36)}</div>
         <h2>Se acabó el tiempo</h2>
-        <p class="sec" style="margin-top:8px">No alcanzaste a enviar tus respuestas de ${esc(q.stand.nombre)}, así que este stand no suma puntos.</p>
-        <p class="sec" style="margin-top:8px">Todavía puedes sumar en los demás stands.</p>
+        <p class="sec" style="margin-top:8px">No alcanzaste a enviar tus respuestas de ${esc(q.titulo)}, así que este quiz no suma puntos.</p>
+        <p class="sec" style="margin-top:8px">Todavía puedes sumar ${q.volver === 'charlas' ? 'en las demás charlas' : 'en los demás pabellones'}.</p>
       </div>
-      <button class="btn" data-ir="mapa">Volver al mapa</button>`;
+      <button class="btn" data-ir="${q.volver}">${textoVolver()}</button>`;
     window.scrollTo(0, 0);
   }
 

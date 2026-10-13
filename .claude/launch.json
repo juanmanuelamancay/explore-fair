@@ -10,6 +10,19 @@
       "port": 8123
     },
     {
+      "name": "simulador-charlas",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "simulador/servidor.js"
+      ],
+      "port": 8134,
+      "env": {
+        "CHARLAS": "1",
+        "PORT": "8134",
+        "RANKING": "0"
+      }
+    },
+    {
       "name": "simulador-ranking",
       "runtimeExecutable": "node",
       "runtimeArgs": [
@@ -56,6 +69,18 @@
       "env": {
         "ESPERA": "0",
         "PORT": "8131"
+      }
+    },
+    {
+      "name": "simulador-juego",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "simulador/servidor.js"
+      ],
+      "port": 8135,
+      "env": {
+        "RANKING": "0",
+        "PORT": "8135"
       }
     }
   ]

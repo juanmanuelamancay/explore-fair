@@ -5,7 +5,7 @@
  *
  * Depende de executeAs USER_ACCESSING: cada persona ejecuta con su cuenta, así que tiene su propio almacén.
  *
- * Forma de cada intento en el índice (clave "i:" + stand_id):
+ * Forma de cada intento en el índice (clave "i:" + unidad_id, donde la unidad es un pabellón o una charla):
  *   id: intento_id · e: EN_CURSO | COMPLETADO | VENCIDO · i, v: inicio y vencimiento (ms)
  *   q: ids de las preguntas sorteadas · r, a: letras elegidas y aciertos
  *   c, p, t: correctas, puntaje y hora de corrección · s: 1 cuando el resultado ya está en la hoja
@@ -49,7 +49,7 @@ function conBloqueoPropio_(accion) {
   }
 }
 
-/** standId -> intento. Si la época cambió, o el admin pidió releer, se arma de nuevo desde la hoja. */
+/** unidadId -> intento. Si la época cambió, o el admin pidió releer, se arma de nuevo desde la hoja. */
 function miIndice_(sesion) {
   // Si la app corriera con la cuenta de quien despliega, todas las personas compartirían un solo índice.
   if (texto_(Session.getEffectiveUser().getEmail()).toLowerCase() !== sesion.email) {
@@ -66,10 +66,10 @@ function miIndice_(sesion) {
   return indice;
 }
 
-function guardarEnIndice_(standId, intento) {
+function guardarEnIndice_(unidadId, intento) {
   const texto = JSON.stringify(intento);
-  PropertiesService.getUserProperties().setProperty('i:' + standId, texto);
-  misPropiedades_()['i:' + standId] = texto;
+  PropertiesService.getUserProperties().setProperty('i:' + unidadId, texto);
+  misPropiedades_()['i:' + unidadId] = texto;
 }
 
 /**
@@ -81,7 +81,7 @@ function reconstruirIndice_(sesion) {
   const viejas = misPropiedades_();
   const nuevas = { epoca: epoca_() };
   filasDeEmail_(sesion.email).forEach(fila => {
-    const clave = 'i:' + id_(fila.stand_id);
+    const clave = 'i:' + id_(fila.unidad_id);
     if (!nuevas[clave]) nuevas[clave] = JSON.stringify(intentoDesdeFila_(fila));
   });
   if (viejas.epoca === nuevas.epoca) {

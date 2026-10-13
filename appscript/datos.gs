@@ -11,6 +11,7 @@ const HOJA = {
   PERMISOS: 'Permisos',
   CONFIG: 'Config',
   PREMIOS: 'Premios',
+  CHARLAS: 'Charlas',
   USUARIOS: 'Usuarios',
   CODIGOS: 'Codigos',
   INTENTOS: 'Intentos',
@@ -23,6 +24,12 @@ const CONFIG_DEFECTO = {
   segundos_refresco_board: 15,
   segundos_cache_catalogo: 60,
   segundos_cache_ranking: 60,
+  // Quiz por pabellón: cada stand aporta preguntas_por_stand preguntas de su banco, que debe tener al menos preguntas_banco_stand activas.
+  // Cada charla trae su propio banco y su sorteo (columnas de Charlas); estas dos claves valen si la columna está vacía.
+  preguntas_por_stand: 2,
+  preguntas_banco_stand: 12,
+  preguntas_quiz_charla: 5,
+  preguntas_banco_charla: 15,
   feria_abierta: true,
   // Sala de espera previa al evento. fecha_feria queda en milisegundos (0 = sin fecha).
   espera_activa: false,
@@ -43,12 +50,10 @@ const CONFIG_DEFECTO = {
   rp_modo_oscuro: false,  // TRUE pinta la vista de ranking en oscuro
 };
 
-const PREGUNTAS_POR_BANCO = 16;
-const PREGUNTAS_POR_QUIZ = 4;
-
-// Filas de Intentos que se reservan a cada persona: una por stand, con margen para stands que se agreguen.
-// No se cambia con la feria en curso: la fila de cada intento se calcula con este número (ver indice.gs).
-const FILAS_POR_PERSONA = 25;
+// Filas de Intentos que se reservan a cada persona: un intento por unidad (el quiz de entrada, 6 pabellones y 5 charlas son 12),
+// con margen para unidades que se agreguen. No se cambia con la feria en curso: la fila de cada intento
+// se calcula con este número (ver indice.gs).
+const FILAS_POR_PERSONA = 16;
 
 /** Cuánto tarda la app en notar un cambio hecho a mano en las hojas de catálogo. Se ajusta en Config. */
 function segundosDeCatalogo_(config) {
@@ -290,7 +295,7 @@ function limpiarCache() {
 function leerStaff_() {
   return leerHoja_(HOJA.STAFF).filter(s => esVerdadero_(s.activo)).map(s => ({
     email: texto_(s.email).toLowerCase(), nombre: texto_(s.nombre), rol: texto_(s.rol).toUpperCase(),
-    pabellonId: id_(s.pabellon_id), standId: id_(s.stand_id),
+    pabellonId: id_(s.pabellon_id), standId: id_(s.stand_id), charlaId: id_(s.charla_id),
   }));
 }
 
@@ -333,19 +338,59 @@ function sincronizarRoles_() {
 
 let CATALOGO_ = null;
 
-/** Lee pabellones, stands, staff, permisos y configuración de las hojas. No toca la caché. */
+/**
+ * Lee pabellones, stands, charlas, staff, permisos y configuración de las hojas. No toca la caché.
+ *
+ * "unidades" es lo que se responde: cada pabellón (con sus stands como bancos de preguntas) y cada charla (con su propio
+ * banco). Todo el quiz, el código, el intento y el puntaje trabajan con la unidad, sin saber si es un pabellón o una charla.
+ */
 function leerCatalogo_() {
   const porOrden = (a, b) => a.orden - b.orden;
+  const config = leerConfig_();
+  const filasPabellones = leerHoja_(HOJA.PABELLONES).filter(p => esVerdadero_(p.activo));
+  const filasStands = leerHoja_(HOJA.STANDS).filter(s => esVerdadero_(s.activo));
+  const filasCharlas = hojaSiExiste_(HOJA.CHARLAS) ? leerHoja_(HOJA.CHARLAS).filter(c => esVerdadero_(c.activo)) : [];
+
+  const pabellones = filasPabellones.map(p => ({
+    id: id_(p.pabellon_id), nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), descripcion: texto_(p.descripcion), orden: Number(p.orden) || 0,
+  })).sort(porOrden);
+  const stands = filasStands.map(s => ({
+    id: id_(s.stand_id), pabellonId: id_(s.pabellon_id), nombre: texto_(s.nombre), orden: Number(s.orden) || 0,
+  })).sort(porOrden);
+
+  const unidadesDePabellon = filasPabellones.map(p => {
+    const id = id_(p.pabellon_id);
+    const propios = filasStands.filter(s => id_(s.pabellon_id) === id);
+    // El código se pide por pabellón. Mientras la columna requiere_codigo de Pabellones esté vacía o no exista,
+    // se deduce de los stands, como antes de que el quiz fuera por pabellón.
+    const requiere = texto_(p.requiere_codigo) !== '' ? esVerdadero_(p.requiere_codigo)
+      : (propios.length ? propios.some(s => texto_(s.requiere_codigo) === '' || esVerdadero_(s.requiere_codigo)) : true);
+    const porStand = Math.floor(Number(p.preguntas_por_stand)) > 0 ? Math.floor(Number(p.preguntas_por_stand)) : config.preguntas_por_stand;
+    const bancos = propios.map(s => ({ id: id_(s.stand_id), nombre: texto_(s.nombre), cuantas: porStand, minimo: config.preguntas_banco_stand, orden: Number(s.orden) || 0 }))
+      .sort(porOrden).map(b => ({ id: b.id, nombre: b.nombre, cuantas: b.cuantas, minimo: b.minimo }));
+    return {
+      id: id, tipo: 'PABELLON', nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), descripcion: texto_(p.descripcion),
+      orden: Number(p.orden) || 0, requiereCodigo: requiere, bancos: bancos,
+      porQuiz: bancos.reduce((suma, b) => suma + b.cuantas, 0), ponente: '', inicio: 0, fin: 0,
+    };
+  }).sort(porOrden);
+
+  const unidadesDeCharla = filasCharlas.map(c => {
+    const id = id_(c.charla_id);
+    const cuantas = Math.floor(Number(c.preguntas_quiz)) > 0 ? Math.floor(Number(c.preguntas_quiz)) : config.preguntas_quiz_charla;
+    const minimo = Math.floor(Number(c.preguntas_banco)) > 0 ? Math.floor(Number(c.preguntas_banco)) : config.preguntas_banco_charla;
+    return {
+      id: id, tipo: 'CHARLA', nombre: texto_(c.titulo), nombreCorto: texto_(c.titulo), descripcion: texto_(c.descripcion),
+      orden: Number(c.orden) || 0, requiereCodigo: true, bancos: [{ id: id, nombre: texto_(c.titulo), cuantas: cuantas, minimo: minimo }],
+      porQuiz: cuantas, ponente: texto_(c.ponente), inicio: fechaEnMs_(c.inicio), fin: fechaEnMs_(c.fin),
+    };
+  }).sort((a, b) => a.inicio - b.inicio || a.orden - b.orden);
+
   return {
-    config: leerConfig_(),
-    pabellones: leerHoja_(HOJA.PABELLONES).filter(p => esVerdadero_(p.activo)).map(p => ({
-      id: id_(p.pabellon_id), nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), descripcion: texto_(p.descripcion), orden: Number(p.orden) || 0,
-    })).sort(porOrden),
-    stands: leerHoja_(HOJA.STANDS).filter(s => esVerdadero_(s.activo)).map(s => ({
-      id: id_(s.stand_id), pabellonId: id_(s.pabellon_id), nombre: texto_(s.nombre),
-      requiereCodigo: esVerdadero_(s.requiere_codigo), numPreguntas: PREGUNTAS_POR_QUIZ,
-      orden: Number(s.orden) || 0,
-    })).sort(porOrden),
+    config: config,
+    pabellones: pabellones,
+    stands: stands,
+    unidades: unidadesDePabellon.concat(unidadesDeCharla),
     staff: leerStaff_(),
     permisos: leerPermisos_(),
   };
@@ -355,6 +400,8 @@ function leerCatalogo_() {
 function catalogo_() {
   if (CATALOGO_) return CATALOGO_;
   let catalogo = cacheLeer_('catalogo');
+  // Una copia guardada por una versión anterior del código no trae las unidades: se descarta.
+  if (catalogo && !catalogo.unidades) catalogo = null;
   if (!catalogo) {
     catalogo = leerCatalogo_();
     cachePoner_('catalogo', catalogo, segundosDeCatalogo_(catalogo.config));
@@ -373,18 +420,39 @@ function refrescarCatalogo_() {
   return CATALOGO_;
 }
 
-/**
- * Pabellones que aparecen en el mapa: los que tienen al menos un stand con código.
- * El pabellón del quiz de entrada queda fuera. "indice" elige el color en el navegador.
- */
-function pabellonesDelMapa_(catalogo) {
-  return catalogo.pabellones
-    .map(p => ({ id: p.id, nombre: p.nombre, nombreCorto: p.nombreCorto, descripcion: p.descripcion, stands: catalogo.stands.filter(s => s.pabellonId === p.id && s.requiereCodigo) }))
-    .filter(p => p.stands.length)
-    .map((p, i) => Object.assign(p, { indice: i }));
+/** La unidad (pabellón o charla) con ese ID, o undefined. */
+function unidadPorId_(catalogo, id) {
+  return catalogo.unidades.find(u => u.id === id_(id));
 }
 
-/** Preguntas activas de un stand, con su respuesta correcta. Nunca se devuelve tal cual al navegador. Con sinCache se relee la hoja. */
+/** El quiz de entrada: el pabellón sin código. Es el primero que se responde y no aparece entre los pabellones del mapa. */
+function unidadDeEntrada_(catalogo) {
+  return catalogo.unidades.find(u => u.tipo === 'PABELLON' && !u.requiereCodigo);
+}
+
+/** Charlas activas, en el orden de su fecha de inicio. */
+function charlasDe_(catalogo) {
+  return catalogo.unidades.filter(u => u.tipo === 'CHARLA');
+}
+
+/**
+ * Pabellones que aparecen en el mapa: los que piden código y tienen al menos un stand.
+ * El pabellón del quiz de entrada queda fuera. "indice" elige el color en el navegador.
+ * Cada stand se muestra como información: se responde el pabellón entero, no el stand.
+ */
+function pabellonesDelMapa_(catalogo) {
+  return catalogo.unidades
+    .filter(u => u.tipo === 'PABELLON' && u.requiereCodigo && u.bancos.length)
+    .map((u, i) => ({
+      id: u.id, nombre: u.nombre, nombreCorto: u.nombreCorto, descripcion: u.descripcion, indice: i, porQuiz: u.porQuiz,
+      stands: u.bancos.map(b => ({ id: b.id, nombre: b.nombre })),
+    }));
+}
+
+/**
+ * Preguntas activas de un banco (un stand o una charla), con su respuesta correcta. Nunca se devuelve tal cual al navegador.
+ * Con sinCache se relee la hoja. La columna stand_id de Preguntas lleva el ID del stand o de la charla.
+ */
 function preguntasDeStand_(standId, sinCache) {
   const clave = 'preguntas:' + standId;
   let preguntas = sinCache ? null : cacheLeer_(clave);
@@ -406,17 +474,17 @@ function preguntaDeFila_(p, porDefecto) {
   };
 }
 
-/** Guarda en caché las preguntas de todos los stands con una sola lectura de la hoja, y los premios. Devuelve cuántos stands quedaron listos. */
+/** Guarda en caché las preguntas de todos los bancos (stands y charlas) con una sola lectura de la hoja, y los premios. Devuelve cuántos bancos quedaron listos. */
 function precargarPreguntasYPremios_() {
   const catalogo = catalogo_();
   const segundos = segundosDeCatalogo_(catalogo.config);
-  const porStand = {};
-  catalogo.stands.forEach(s => { porStand[s.id] = []; });
+  const porBanco = {};
+  catalogo.unidades.forEach(u => u.bancos.forEach(b => { porBanco[b.id] = []; }));
   leerHoja_(HOJA.PREGUNTAS).forEach(p => {
-    const standId = id_(p.stand_id);
-    if (porStand[standId] && esVerdadero_(p.activo)) porStand[standId].push(preguntaDeFila_(p, catalogo.config.puntos_por_defecto));
+    const bancoId = id_(p.stand_id);
+    if (porBanco[bancoId] && esVerdadero_(p.activo)) porBanco[bancoId].push(preguntaDeFila_(p, catalogo.config.puntos_por_defecto));
   });
-  Object.keys(porStand).forEach(standId => cachePoner_('preguntas:' + standId, porStand[standId], segundos));
+  Object.keys(porBanco).forEach(bancoId => cachePoner_('preguntas:' + bancoId, porBanco[bancoId], segundos));
   cachePoner_('premios', leerPremios_(), segundos);
-  return Object.keys(porStand).length;
+  return Object.keys(porBanco).length;
 }

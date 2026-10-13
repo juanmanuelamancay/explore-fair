@@ -4,10 +4,12 @@
  *
  *   node simulador/servidor.js
  *
- * Para entrar como otra persona: http://localhost:8123/?como=lider.apx@demo.com
- * Cuentas de ejemplo: ana.torres@demo.com (usuario), lider.apx@demo.com (líder de un stand),
- * lider.backend@demo.com (líder de pabellón), validador@demo.com (validador) y admin@demo.com (admin),
+ * Para entrar como otra persona: http://localhost:8123/?como=expositor.apx@demo.com
+ * Cuentas de ejemplo: ana.torres@demo.com (usuario), expositor.apx@demo.com (expositor de un stand),
+ * lider.backend@demo.com (líder de pabellón), ponente.uno@demo.com (ponente de una charla),
+ * validador@demo.com (validador) y admin@demo.com (admin),
  * y sin.vistas@demo.com (rol sin permisos, para ver la página de error).
+ * CHARLAS=1 deja al usuario solo con la ruta de charlas (semana previa al evento); sin esa variable ve el mapa del evento.
  * Variables de entorno: PORT, ESPERA=1 o ESPERA=0 (sala de espera), DESORDEN=1 (datos escritos a mano),
  * RANKING=N (cuánta gente con puntajes hay de entrada, 40 por defecto; 0 deja el ranking vacío) y
  * VIVO=1 (cada pocos segundos alguien completa un quiz y sube de puesto, para ver las animaciones del ranking).
@@ -111,30 +113,47 @@ function datosDeEjemplo() {
     ['STD-017', 'PAB-006', 'Synapse'], ['STD-018', 'PAB-006', 'Katalyst'], ['STD-019', 'PAB-006', 'Control-M'],
   ];
   const preguntas = [];
-  stands.forEach(([id, , nombre]) => {
-    for (let n = 1; n <= 16; n++) {
+  const charlas = [
+    ['CHA-001', 'Introducción a los custom agents', 'Rosa Quiroz', -2 * 3600000],
+    ['CHA-002', 'Taller de prompts efectivos', 'Carlos Mendoza', -600000],
+    ['CHA-003', 'Agentes con herramientas', 'Valeria Ortiz', 3 * 3600000],
+    ['CHA-004', 'Evaluar la calidad de un agente', 'Marta Salinas', 26 * 3600000],
+    ['CHA-005', 'Cierre: lo que viene', 'Rosa Quiroz', 50 * 3600000],
+  ];
+  const bancos = stands.map(([id, , nombre]) => [id, nombre, 12]).concat(charlas.map(([id, titulo]) => [id, titulo, 15]));
+  bancos.forEach(([id, nombre, cuantas]) => {
+    for (let n = 1; n <= cuantas; n++) {
       const correcta = 'ABCD'[(n - 1) % 4];
       preguntas.push(['PRG-' + String(preguntas.length + 1).padStart(3, '0'), id, `Pregunta ${n} de ejemplo sobre ${nombre}: ¿cuál es la opción correcta?`,
         ...'ABCD'.split('').map(l => (l === correcta ? 'Esta es la opción correcta' : `Opción ${l} de ejemplo, incorrecta`)), correcta, 10, true, hoy]);
     }
   });
   return {
-    Pabellones: [['pabellon_id', 'nombre', 'descripcion', 'orden', 'activo', 'creado_en'], ...pabellones.map(([id, nombre], i) => [id, nombre, 'Descubre agentes de IA para aumentar tu productividad', i, true, hoy])],
-    Stands: [['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'requiere_codigo', 'num_preguntas', 'orden', 'activo', 'creado_en'],
-      ...stands.map(([id, pab, nombre, codigo = true], i) => [id, pab, nombre, '', codigo, 4, i, true, hoy])],
+    // El quiz de entrada (PAB-000) va sin código y con 4 preguntas por stand; los demás pabellones piden código y sortean 2 por stand.
+    Pabellones: [['pabellon_id', 'nombre', 'nombre_corto', 'descripcion', 'requiere_codigo', 'preguntas_por_stand', 'orden', 'activo', 'creado_en'],
+      ...pabellones.map(([id, nombre], i) => [id, nombre, '', 'Descubre agentes de IA para aumentar tu productividad', id !== 'PAB-000', id === 'PAB-000' ? 4 : '', i, true, hoy])],
+    Stands: [['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'orden', 'activo', 'creado_en'],
+      ...stands.map(([id, pab, nombre], i) => [id, pab, nombre, '', i, true, hoy])],
+    Charlas: [['charla_id', 'titulo', 'ponente', 'descripcion', 'inicio', 'fin', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo', 'creado_en'],
+      ...charlas.map(([id, titulo, ponente, desfase], i) => [id, titulo, ponente, 'Charla de ejemplo para la semana previa al evento.',
+        new Date(Date.now() + desfase), new Date(Date.now() + desfase + 3600000), 15, 5, i, true, hoy])],
     Preguntas: [['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo', 'creado_en'], ...preguntas],
-    Staff: [['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'activo'],
-      ['admin@demo.com', 'Marta Salinas', 'ADMIN', '', '', true],
-      ['lider.apx@demo.com', 'Carlos Mendoza', 'LIDER', 'PAB-001', 'STD-001', true],
-      ['lider.backend@demo.com', 'Rosa Quiroz', 'LIDER', 'PAB-001', '', true],
-      ['validador@demo.com', 'Valeria Ortiz', 'VALIDADOR', '', '', true],
+    Staff: [['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'charla_id', 'activo'],
+      ['admin@demo.com', 'Marta Salinas', 'ADMIN', '', '', '', true],
+      ['lider.backend@demo.com', 'Rosa Quiroz', 'LIDER', 'PAB-001', '', '', true],
+      ['expositor.apx@demo.com', 'Carlos Mendoza', 'EXPOSITOR', 'PAB-001', 'STD-001', '', true],
+      ['ponente.uno@demo.com', 'Rosa Quiroz', 'PONENTE', '', '', 'CHA-001', true],
+      ['validador@demo.com', 'Valeria Ortiz', 'VALIDADOR', '', '', '', true],
       // Rol que no existe en Permisos, para ver la página de error.
-      ['sin.vistas@demo.com', 'Invitado De Prueba', 'INVITADO', '', '', true]],
+      ['sin.vistas@demo.com', 'Invitado De Prueba', 'INVITADO', '', '', '', true]],
+    // CHARLAS=1: semana de charlas (el usuario solo ve la ruta); sin esa variable, el evento (el usuario ve el mapa).
     Permisos: [['rol', 'vista', 'activo'],
-      ...['MAPA', 'QUIZ'].map(v => ['USUARIO', v, true]),
-      ...['GENERAR_CODIGO', 'PREGUNTAS'].map(v => ['LIDER', v, true]),
-      ...['MAPA', 'QUIZ', 'PREGUNTAS'].map(v => ['VALIDADOR', v, true]),
-      ...['MAPA', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'].map(v => ['ADMIN', v, true])],
+      ...(process.env.CHARLAS ? ['CHARLAS', 'QUIZ'] : ['MAPA', 'QUIZ']).map(v => ['USUARIO', v, true]),
+      ['LIDER', 'GENERAR_CODIGO', true],
+      ['EXPOSITOR', 'PREGUNTAS', true],
+      ...['GENERAR_CODIGO', 'PREGUNTAS'].map(v => ['PONENTE', v, true]),
+      ...['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS'].map(v => ['VALIDADOR', v, true]),
+      ...['MAPA', 'CHARLAS', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'].map(v => ['ADMIN', v, true])],
     Config: [['clave', 'valor', 'descripcion'], ['minutos_vigencia_codigo', 5, ''], ['minutos_para_responder', 5, ''],
       ['puntos_por_defecto', 10, ''], ['segundos_refresco_board', process.env.VIVO ? 10 : 15, ''], ['feria_abierta', true, ''],
       ['segundos_cache_ranking', process.env.VIVO ? 5 : 60, ''],
@@ -146,8 +165,8 @@ function datosDeEjemplo() {
       [1, 'Primer puesto', 'Nintendo Switch', true], [2, 'Segundo puesto', 'Silla Gamer', true],
       [3, 'Tercer puesto', 'Monitor', true], [4, 'Cuarto puesto', 'Audífonos', true], [5, 'Premio retirado', 'No debe verse', false]],
     Usuarios: [['email', 'nombre', 'registrado_en', 'orden']],
-    Codigos: [['codigo', 'stand_id', 'generado_por', 'creado_en', 'expira_en', 'estado']],
-    Intentos: [['intento_id', 'email', 'stand_id', 'estado', 'puntaje', 'completado_en', 'correctas', 'pabellon_id', 'codigo', 'iniciado_en', 'vence_en', 'preguntas_json', 'respuestas_json']],
+    Codigos: [['codigo', 'unidad_id', 'generado_por', 'creado_en', 'expira_en', 'estado']],
+    Intentos: [['intento_id', 'email', 'unidad_id', 'estado', 'puntaje', 'completado_en', 'correctas', 'pabellon_id', 'codigo', 'iniciado_en', 'vence_en', 'preguntas_json', 'respuestas_json']],
   };
 }
 
@@ -165,16 +184,16 @@ function azar(semilla) {
 }
 const sorteo = azar(2024);
 
-/** Una persona que completó un quiz de un stand, con 0 a 4 respuestas correctas de 10 puntos. */
-function intentoCompletado(tablas, email, stand, correctas, cuando) {
-  const pab = tablas.Stands.find(f => f[0] === stand)[1];
+/** Una persona que completó el quiz de una unidad (un pabellón), con unas respuestas correctas de 10 puntos. */
+function intentoCompletado(tablas, email, unidad, correctas, cuando) {
   const id = 'INT-' + String(tablas.Intentos.length).padStart(5, '0');
-  return [id, email, stand, 'COMPLETADO', correctas * 10, cuando, correctas, pab, '', new Date(cuando - 120000), new Date(cuando + 180000), '[]', '[]'];
+  return [id, email, unidad, 'COMPLETADO', correctas * 10, cuando, correctas, unidad, '', new Date(cuando - 120000), new Date(cuando + 180000), '[]', '[]'];
 }
 
 /** Arma N personas con puntajes variados, algunos empates arriba, para que el podio y la cuadrícula tengan qué mostrar. */
 function sembrarRanking(tablas, cuantas) {
-  const stands = tablas.Stands.slice(1).map(f => f[0]).filter(id => id !== 'STD-000');
+  // Pabellones con código (sin el de entrada): cada persona completa algunos.
+  const stands = tablas.Pabellones.slice(1).filter(f => f[4] !== false).map(f => f[0]);
   const ahora = Date.now();
   for (let i = 0; i < cuantas; i++) {
     const nombre = NOMBRES[i % NOMBRES.length] + ' ' + APELLIDOS[(i * 7 + Math.floor(i / NOMBRES.length)) % APELLIDOS.length] + (i >= NOMBRES.length * APELLIDOS.length ? ' ' + (i + 1) : '');
@@ -184,7 +203,7 @@ function sembrarRanking(tablas, cuantas) {
     const ritmo = 1 - i / Math.max(1, cuantas);
     const hechos = Math.max(1, Math.round(stands.length * (0.15 + 0.7 * ritmo * sorteo() + 0.15 * ritmo)));
     stands.slice().sort(() => sorteo() - 0.5).slice(0, hechos).forEach(stand => {
-      const correctas = Math.min(4, Math.round(1.5 + 2.5 * ritmo + (sorteo() - 0.5) * 2.5));
+      const correctas = Math.min(8, Math.round(3 + 5 * ritmo + (sorteo() - 0.5) * 3));
       tablas.Intentos.push(intentoCompletado(tablas, email, stand, Math.max(0, correctas), ahora - Math.floor(sorteo() * 3000000)));
     });
   }
@@ -303,7 +322,13 @@ const contexto = vm.createContext({
     getScriptTimeZone: () => 'America/Lima',
   },
   Utilities: { getUuid: () => require('crypto').randomUUID(), sleep: () => {}, formatDate: fecha => { const p = n => String(n).padStart(2, '0'); return `${fecha.getFullYear()}-${p(fecha.getMonth() + 1)}-${p(fecha.getDate())}_${p(fecha.getHours())}${p(fecha.getMinutes())}`; } },
-  ScriptApp: { getService: () => ({ getUrl: () => 'http://localhost:' + PUERTO + '/?como=' + emailActual }) },
+  // Los disparadores no existen aquí: se aceptan y no hacen nada, para poder correr la parte inicial de las pruebas de carga.
+  ScriptApp: {
+    getService: () => ({ getUrl: () => 'http://localhost:' + PUERTO + '/?como=' + emailActual }),
+    getProjectTriggers: () => [],
+    deleteTrigger: () => {},
+    newTrigger: () => { const t = { timeBased: () => t, at: () => t, after: () => t, everyMinutes: () => t, create: () => {} }; return t; },
+  },
   HtmlService: {
     createTemplateFromFile: plantilla,
     createHtmlOutputFromFile: nombre => salida(fs.readFileSync(path.join(RAIZ, nombre + '.html'), 'utf8')),
@@ -407,11 +432,14 @@ if (process.env.VIVO && !process.env.DESORDEN) {
     if (!personas.length) return;
     const email = personas[Math.floor(Math.random() * personas.length)][0];
     const hechos = new Set(intentos.datos.filter(f => f && f[1] === email).map(f => f[2]));
-    const faltan = libro.getSheetByName('Stands').datos.slice(2).map(f => f[0]).filter(id => !hechos.has(id));
+    const faltan = libro.getSheetByName('Pabellones').datos.slice(2).map(f => f[0]).filter(id => !hechos.has(id));
     if (!faltan.length) return;
-    const stand = faltan[Math.floor(Math.random() * faltan.length)];
-    const correctas = 2 + Math.floor(Math.random() * 3);
-    intentos.appendRow(intentoCompletado({ Stands: libro.getSheetByName('Stands').datos, Intentos: intentos.datos }, email, stand, correctas, Date.now()));
-    console.log(`+${correctas * 10} pts para ${email} (${stand})`);
+    const unidad = faltan[Math.floor(Math.random() * faltan.length)];
+    const correctas = 4 + Math.floor(Math.random() * 5);
+    intentos.appendRow(intentoCompletado({ Intentos: intentos.datos }, email, unidad, correctas, Date.now()));
+    console.log(`+${correctas * 10} pts para ${email} (${unidad})`);
   }, 4000);
 }
+
+// Para pruebas automáticas que cargan este archivo con require (ver docs/arquitectura/apps-script.md, simulador local).
+module.exports = { ejecutar, contexto, propiedades, libro };

@@ -6,16 +6,17 @@
 
 // Encabezados que el código espera encontrar en la fila 1 de cada hoja.
 const ENCABEZADOS_ESPERADOS = {
-  Pabellones: ['pabellon_id', 'nombre', 'orden', 'activo'],
-  Stands: ['stand_id', 'pabellon_id', 'nombre', 'requiere_codigo', 'num_preguntas', 'orden', 'activo'],
+  Pabellones: ['pabellon_id', 'nombre', 'requiere_codigo', 'preguntas_por_stand', 'orden', 'activo'],
+  Stands: ['stand_id', 'pabellon_id', 'nombre', 'orden', 'activo'],
+  Charlas: ['charla_id', 'titulo', 'ponente', 'inicio', 'fin', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo'],
   Preguntas: ['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo'],
-  Staff: ['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'activo'],
+  Staff: ['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'charla_id', 'activo'],
   Permisos: ['rol', 'vista', 'activo'],
   Config: ['clave', 'valor'],
   Usuarios: ['email', 'nombre', 'registrado_en', 'orden'],
-  Codigos: ['codigo', 'stand_id', 'generado_por', 'creado_en', 'expira_en', 'estado'],
+  Codigos: ['codigo', 'unidad_id', 'generado_por', 'creado_en', 'expira_en', 'estado'],
   Premios: ['orden', 'titulo', 'descripcion', 'activo'],
-  Intentos: ['intento_id', 'email', 'stand_id', 'pabellon_id', 'codigo', 'preguntas_json', 'iniciado_en', 'vence_en', 'estado', 'respuestas_json', 'correctas', 'puntaje', 'completado_en'],
+  Intentos: ['intento_id', 'email', 'unidad_id', 'pabellon_id', 'codigo', 'preguntas_json', 'iniciado_en', 'vence_en', 'estado', 'respuestas_json', 'correctas', 'puntaje', 'completado_en'],
 };
 
 /** Ejecuta un paso y registra si pasó o por qué falló, sin detener los siguientes. */
@@ -64,7 +65,7 @@ function probarSheet() {
   });
 }
 
-/** ¿Están las diez hojas, con sus encabezados? */
+/** ¿Están las once hojas, con sus encabezados? */
 function probarHojas() {
   exigirAdmin_();
   console.log('--- Hojas ---');
@@ -105,15 +106,20 @@ function probarCatalogo() {
   paso_('Config', () => JSON.stringify(catalogo_().config));
   paso_('Pabellones activos', () => catalogo_().pabellones.map(p => p.id + ' ' + p.nombre).join(' | ') || 'NINGUNO');
   paso_('Stands activos', () => catalogo_().stands.length + ' en total');
-  paso_('Quiz de entrada (stand con requiere_codigo = FALSE)', () => {
-    const entrada = catalogo_().stands.find(s => !s.requiereCodigo);
-    if (!entrada) throw new Error('ningún stand activo tiene requiere_codigo en FALSE');
-    return entrada.id + ' ' + entrada.nombre;
+  paso_('Quiz de entrada (pabellón con requiere_codigo = FALSE)', () => {
+    const entrada = unidadDeEntrada_(catalogo_());
+    if (!entrada) throw new Error('ningún pabellón activo tiene requiere_codigo en FALSE');
+    return entrada.id + ' ' + entrada.nombre + ' · ' + entrada.porQuiz + ' preguntas (' + entrada.bancos.length + ' stand' + (entrada.bancos.length === 1 ? '' : 's') + ')';
   });
   paso_('Pabellones que salen en el mapa', () => {
     const delMapa = pabellonesDelMapa_(catalogo_());
-    if (!delMapa.length) throw new Error('ninguno: revisa pabellon_id y activo en Stands');
-    return delMapa.map(p => p.nombre + ' (' + p.stands.length + ' stands)').join(' | ');
+    if (!delMapa.length) throw new Error('ninguno: revisa requiere_codigo en Pabellones y pabellon_id y activo en Stands');
+    return delMapa.map(p => p.nombre + ' (' + p.stands.length + ' stands, quiz de ' + p.porQuiz + ')').join(' | ');
+  });
+  paso_('Charlas activas', () => {
+    const charlas = charlasDe_(catalogo_());
+    if (!hojaSiExiste_(HOJA.CHARLAS)) return 'no existe la hoja Charlas (solo hace falta para la semana de charlas)';
+    return charlas.map(c => c.id + ' ' + c.nombre + ' (' + (c.inicio ? new Date(c.inicio).toISOString() : 'SIN FECHA de inicio') + ')').join(' | ') || 'NINGUNA';
   });
   paso_('Staff activo', () => catalogo_().staff.map(s => s.email + ' ' + s.rol).join(' | ') || 'NINGUNO: falta escribir el primer ADMIN');
   paso_('Permisos por rol', () => {
@@ -124,17 +130,20 @@ function probarCatalogo() {
   });
 }
 
-/** ¿Cada stand tiene suficientes preguntas activas y bien marcadas? */
+/** ¿Cada banco (un stand o una charla) tiene suficientes preguntas activas y bien marcadas? */
 function probarPreguntas() {
   exigirAdmin_();
   console.log('--- Preguntas ---');
-  catalogo_().stands.forEach(stand => {
-    paso_(stand.id + ' ' + stand.nombre, () => {
-      const banco = preguntasDeStand_(stand.id);
-      const malas = banco.filter(p => 'ABCD'.indexOf(p.correcta) < 0 || p.correcta.length !== 1).map(p => p.id);
-      if (malas.length) throw new Error('columna "correcta" inválida en: ' + malas.join(', '));
-      if (banco.length < PREGUNTAS_POR_BANCO) throw new Error('tiene ' + banco.length + ' preguntas activas y necesita ' + PREGUNTAS_POR_BANCO);
-      return banco.length + ' preguntas, usa ' + stand.numPreguntas;
+  catalogo_().unidades.forEach(unidad => {
+    unidad.bancos.forEach(banco => {
+      paso_(unidad.id + ' ' + unidad.nombre + (unidad.tipo === 'PABELLON' ? ' · ' + banco.nombre : ''), () => {
+        const preguntas = preguntasDeStand_(banco.id, true);
+        const malas = preguntas.filter(p => 'ABCD'.indexOf(p.correcta) < 0 || p.correcta.length !== 1).map(p => p.id);
+        if (malas.length) throw new Error('columna "correcta" inválida en: ' + malas.join(', '));
+        const necesita = Math.max(banco.minimo, banco.cuantas);
+        if (preguntas.length < necesita) throw new Error('tiene ' + preguntas.length + ' preguntas activas y necesita ' + necesita);
+        return preguntas.length + ' preguntas, sortea ' + banco.cuantas;
+      });
     });
   });
 }
@@ -183,8 +192,8 @@ function probarCache() {
 function probarLimiteDeCodigos() {
   exigirAdmin_();
   console.log('--- Límite de intentos de código (' + FALLOS_DE_CODIGO_MAX + ' fallos = ' + SEGUNDOS_BLOQUEO_CODIGO + ' s) ---');
-  const stand = catalogo_().stands.find(s => s.requiereCodigo);
-  if (!stand) { console.error('FALLA  No hay ningún stand activo con código'); return; }
+  const stand = catalogo_().unidades.find(u => u.requiereCodigo);
+  if (!stand) { console.error('FALLA  No hay ningún pabellón ni charla activos con código'); return; }
   const cacheMia = CacheService.getUserCache();
   cacheMia.remove(CLAVE_FALLOS_CODIGO);
   try {

@@ -2,8 +2,8 @@
  * SIMULACIÓN DEL DÍA DE LA FERIA. Escribe en las hojas reales Usuarios, Intentos y Codigos.
  *
  * 200 personas (correos @simulacion.ejemplo, sin registro en Staff, así que son usuarios de la feria)
- * responden el quiz de entrada y después stands con código, a distintas horas, durante 30 minutos.
- * Sigue las reglas de la app: el quiz de entrada primero, 4 preguntas, 10 puntos (o lo que diga el banco)
+ * responden el quiz de entrada y después pabellones con código, a distintas horas, durante 30 minutos.
+ * Sigue las reglas de la app: el quiz de entrada primero, las preguntas de cada pabellón (unas pocas de cada stand), 10 puntos (o lo que diga el banco)
  * por respuesta correcta, códigos vigentes y tiempo de respuesta de Config. Cada persona simulada lleva
  * un solo quiz en curso a la vez; eso es de la simulación, la app no lo exige.
  *
@@ -82,8 +82,8 @@ function pasoSimulacion_() {
     const ahora = Date.now();
     const catalogo = catalogo_();
     const config = catalogo.config;
-    const entrada = catalogo.stands.find(s => !s.requiereCodigo);
-    const conCodigo = catalogo.stands.filter(s => s.requiereCodigo);
+    const entrada = unidadDeEntrada_(catalogo);
+    const conCodigo = catalogo.unidades.filter(u => u.tipo === 'PABELLON' && u.requiereCodigo && u.bancos.length);
 
     // 1. Los quizzes en curso que ya debieron terminar, se completan con respuestas al azar.
     const intentos = leerHoja_(HOJA.INTENTOS).filter(esSimulado_);
@@ -100,12 +100,12 @@ function pasoSimulacion_() {
     const enUsuarios = usuariosEnHoja_();
     const personas = yaLlegaron + llegan;
 
-    // 3. Códigos vigentes por stand. El líder los genera en la app real; aquí se crean igual.
+    // 3. Códigos vigentes por pabellón. El líder los genera en la app real; aquí se crean igual.
     const codigos = codigosVigentesSim_(conCodigo, config, ahora);
 
     // 4. Cada persona decide si empieza otro quiz en este minuto. Los bancos se leen una sola vez por corrida.
     const bancos = {};
-    [entrada, ...conCodigo].forEach(s => { bancos[s.id] = preguntasDeStand_(s.id); });
+    [entrada, ...conCodigo].forEach(u => { bancos[u.id] = bancosDeUnidad_(u); });
     const encabezados = encabezados_(HOJA.INTENTOS);
     let iniciados = 0;
     for (let i = 1; i <= personas; i++) {
@@ -114,16 +114,16 @@ function pasoSimulacion_() {
       const suyos = intentos.filter(x => texto_(x.email).toLowerCase() === email);
       if (suyos.some(x => texto_(x.estado).toUpperCase() === 'EN_CURSO')) continue;
 
-      const hechos = new Set(suyos.map(x => id_(x.stand_id)));
+      const hechos = new Set(suyos.map(x => id_(x.unidad_id)));
       const objetivo = 2 + (i % 5);      // cada persona recorre entre 2 y 6 quizzes
       if (hechos.size >= objetivo) continue;
       if (Math.random() > SIM_PROB_INICIO) continue;
 
-      // El quiz de entrada va primero; después un stand al azar que no haya hecho.
+      // El quiz de entrada va primero; después un pabellón al azar que no haya hecho.
       let siguiente = null;
       if (!hechos.has(entrada.id)) siguiente = entrada;
       else {
-        const pendientes = conCodigo.filter(s => !hechos.has(s.id) && bancos[s.id].length >= PREGUNTAS_POR_QUIZ);
+        const pendientes = conCodigo.filter(u => !hechos.has(u.id) && !bancoIncompleto_(bancos[u.id]));
         if (pendientes.length) siguiente = pendientes[Math.floor(Math.random() * pendientes.length)];
       }
       if (!siguiente) continue;
@@ -179,32 +179,33 @@ function llegadasSim_(yaLlegaron, transcurridos) {
   return Math.min(restantes, Math.round(ritmo * (0.6 + Math.random() * 0.8)));
 }
 
-/** Código vigente de cada stand; si no hay uno, se crea como lo haría el líder. */
+/** Código vigente de cada unidad; si no hay uno, se crea como lo haría el líder. */
 function codigosVigentesSim_(stands, config, ahora) {
   const activos = leerHoja_(HOJA.CODIGOS).filter(c => texto_(c.estado).toUpperCase() === 'ACTIVO' && ms_(c.expira_en) > ahora);
   const usados = new Set(activos.map(c => texto_(c.codigo).toUpperCase()));
   const mapa = {};
   stands.forEach(s => {
-    const vigente = activos.find(c => id_(c.stand_id) === s.id);
+    const vigente = activos.find(c => id_(c.unidad_id) === s.id);
     if (vigente) { mapa[s.id] = texto_(vigente.codigo).toUpperCase(); return; }
     let codigo;
     do { codigo = codigoAlAzar_(); } while (usados.has(codigo));
     usados.add(codigo);
     mapa[s.id] = codigo;
     agregarFila_(HOJA.CODIGOS, {
-      codigo: codigo, stand_id: s.id, generado_por: SIM_GENERADOR, creado_en: new Date(ahora),
+      codigo: codigo, unidad_id: s.id, generado_por: SIM_GENERADOR, creado_en: new Date(ahora),
       expira_en: new Date(ahora + config.minutos_vigencia_codigo * 60000), estado: 'ACTIVO',
     });
   });
   return mapa;
 }
 
-function iniciarQuizSim_(fila, encabezados, email, stand, codigo, banco, config, ahora) {
-  const sorteadas = sortear_(banco, PREGUNTAS_POR_QUIZ);
+function iniciarQuizSim_(fila, encabezados, email, unidad, codigo, bancos, config, ahora) {
+  const sorteadas = [];
+  bancos.forEach(b => sortear_(b.preguntas, b.banco.cuantas).forEach(p => sorteadas.push(p)));
   escribirFila_(HOJA.INTENTOS, fila, {
     intento_id: nuevoIntentoId_(),
-    email: email, stand_id: stand.id, pabellon_id: stand.pabellonId,
-    codigo: stand.requiereCodigo ? codigo : '',
+    email: email, unidad_id: unidad.id, pabellon_id: unidad.tipo === 'PABELLON' ? unidad.id : '',
+    codigo: unidad.requiereCodigo ? codigo : '',
     preguntas_json: JSON.stringify(sorteadas.map(p => p.id)),
     iniciado_en: new Date(ahora), vence_en: new Date(ahora + config.minutos_para_responder * 60000),
     estado: 'EN_CURSO',
@@ -228,7 +229,8 @@ function completarQuizzes_(intentos, ahora) {
     const duracion = (60 + (hashSim_(x.intento_id) % 180)) * 1000;
     if (ms_(x.iniciado_en) + duracion > ahora) return;
 
-    const banco = preguntasDeStand_(id_(x.stand_id));
+    const unidad = unidadPorId_(catalogo_(), id_(x.unidad_id));
+    const banco = unidad ? preguntasDeUnidad_(unidad) : [];
     let correctas = 0, puntaje = 0;
     const detalle = JSON.parse(x.preguntas_json).map(id => {
       const pregunta = banco.find(p => p.id === id);

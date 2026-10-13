@@ -200,6 +200,7 @@ const App = (() => {
   // vista de Permisos -> nombre de la vista en el navegador, en el orden de la barra inferior
   const NAVEGACION = [
     { vista: 'MAPA', nombre: 'mapa', texto: 'Mapa', icono: ICONO.mapa },
+    { vista: 'CHARLAS', nombre: 'charlas', texto: 'Charlas', icono: ICONO.megafono },
     { vista: 'GENERAR_CODIGO', nombre: 'generar-codigo', texto: 'Código', icono: ICONO.llave },
     { vista: 'PREGUNTAS', nombre: 'preguntas', texto: 'Preguntas', icono: 'M5 4h14v16H5zM9 9h6M9 13h6M9 17h3' },
     { vista: 'PANEL_ADMIN', nombre: 'panel-admin', texto: 'Panel', icono: ICONO.escudo },
@@ -295,7 +296,7 @@ const App = (() => {
       `<button data-ir="${d.nombre}"><span class="pastilla">${svg(d.icono)}</span>${d.texto}</button>`).join('');
     // "Explore Fair · Rol" en la cabecera de cada vista del staff, para saber con qué rol se entró.
     // El usuario ve solo "Explore Fair": no necesita saber su rol.
-    const ROLES = { LIDER: 'Líder', ADMIN: 'Admin', VALIDADOR: 'Validador' };
+    const ROLES = { LIDER: 'Líder', EXPOSITOR: 'Expositor', PONENTE: 'Ponente', ADMIN: 'Admin', VALIDADOR: 'Validador' };
     const rol = INICIO.rol === 'USUARIO' ? '' : ROLES[INICIO.rol] || INICIO.rol.charAt(0) + INICIO.rol.slice(1).toLowerCase();
     document.querySelectorAll('[data-marca]').forEach(p => { p.textContent = rol ? 'Explore Fair · ' + rol : 'Explore Fair'; });
     // El usuario no tiene botón de actualizar: la app se pone al día sola (ver ux-ui.md). Solo lo ven líder y admin.

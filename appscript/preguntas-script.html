@@ -4,7 +4,7 @@
   const contenido = $('pg-contenido');
   // El validador ve las preguntas y la respuesta correcta, pero no puede crear ni editar.
   const soloLectura = INICIO.rol === 'VALIDADOR';
-  let datos = null;    // { maximo, stands, preguntas } tal como lo devuelve el servidor
+  let datos = null;    // { stands, preguntas } tal como lo devuelve el servidor; cada banco (stand o charla) trae su "maximo"
   let standId = null;   // stand que se está viendo
   let recien = null;    // pregunta que se acaba de guardar: su tarjeta destella una vez
   let guardando = false; // mientras el servidor guarda, la hoja no se puede cerrar
@@ -26,7 +26,7 @@
     if (!datos) App.cargando(contenido);
     cargar();
     // El validador no edita: se le avisa quién mantiene las preguntas.
-    if (soloLectura) mostrarAviso('Sobre estas preguntas', 'Estas preguntas serán actualizadas por los líderes de cada stand según su presentación.');
+    if (soloLectura) mostrarAviso('Sobre estas preguntas', 'Estas preguntas serán actualizadas por los expositores de cada stand y los ponentes de cada charla según su presentación.');
   }
 
   function cargar() {
@@ -39,13 +39,15 @@
 
   function pintar() {
     if (!datos.stands.length) {
-      contenido.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.llave, 32)}</div><h2>No tienes stands asignados</h2>
-        <p>Pide a un administrador que te asigne tu stand.</p></div>`;
+      contenido.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.llave, 32)}</div><h2>No tienes nada asignado</h2>
+        <p>Pide a un administrador que te asigne tu stand o tu charla.</p></div>`;
       return;
     }
     const stand = datos.stands.find(s => s.id === standId);
     const tono = paleta(stand.indice);
     const n = activas();
+    // El admin puede pasar del tope; el expositor y el ponente no: con el banco lleno solo editan lo que ya hay.
+    const lleno = n >= stand.maximo && INICIO.rol !== 'ADMIN';
     const animar = recien;
     recien = null;
     const chips = datos.stands.length > 1
@@ -60,13 +62,13 @@
       <div class="pg-cab" style="--c:${tono.color};--t:${tono.tinte}">
         ${chips}
         <div class="pg-resumen">
-          <div class="pg-puntitos" aria-hidden="true">${Array.from({ length: datos.maximo }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>
-          <span class="tnum"><b>${n}</b> de ${datos.maximo} activas</span>
-          ${soloLectura ? '' : `<button class="pg-nueva" data-nueva>${svg(ICONO.mas, 16)} Nueva</button>`}
+          <div class="pg-puntitos" aria-hidden="true">${Array.from({ length: Math.max(stand.maximo, n) }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>
+          <span class="tnum"><b>${n}</b> de ${stand.maximo} activas</span>
+          ${soloLectura || lleno ? '' : `<button class="pg-nueva" data-nueva>${svg(ICONO.mas, 16)} Nueva</button>`}
         </div>
       </div>
-      <p class="pg-ayuda">${soloLectura ? 'Toca una pregunta para verla completa.' : 'Toca una pregunta para editarla.'}</p>
-      <ol class="pg-lista">${delStand().map((p, i) => tarjeta(p, i, animar)).join('') || '<li class="pg-vacio">Este stand todavía no tiene preguntas.</li>'}</ol>`;
+      <p class="pg-ayuda">${soloLectura ? 'Toca una pregunta para verla completa.' : lleno ? 'Ya están las ' + stand.maximo + ' preguntas: toca una para editarla. No se pueden agregar más.' : 'Toca una pregunta para editarla.'}</p>
+      <ol class="pg-lista">${delStand().map((p, i) => tarjeta(p, i, animar)).join('') || '<li class="pg-vacio">Todavía no hay preguntas aquí.</li>'}</ol>`;
     restaurarCarril();
   }
 
@@ -99,7 +101,6 @@
   function abrirEditor(p) {
     const nueva = !p;
     const base = p || { id: '', standId: standId, texto: '', opciones: ['', '', '', ''], correcta: 'A' };
-    const sinLugar = nueva && activas() >= datos.maximo;
     const hoja = App.abrirHoja(`
       <form class="pg-form" id="pg-form">
         <h2>${nueva ? 'Nueva pregunta' : 'Editar pregunta'}</h2>
@@ -109,7 +110,6 @@
           <legend>Respuesta correcta</legend>
           <div class="pg-letras grande">${LETRAS.map(L => `<label><input type="radio" name="correcta" value="${L}" ${L === base.correcta ? 'checked' : ''}><span>${L}</span></label>`).join('')}</div>
         </fieldset>
-        ${sinLugar ? `<p class="pg-aviso-form">Ya hay ${datos.maximo} preguntas activas en este stand: la nueva se guardará desactivada.</p>` : ''}
         <p class="pg-aviso-form" id="pg-error" role="alert"></p>
         <div class="pg-acciones">
           <button class="btn" type="submit">Guardar</button>

@@ -27,7 +27,7 @@
 
   function cargar() {
     return servidor('obtenerCodigos').then(r => {
-      stands = r.stands;
+      stands = r.unidades;
       desfase = r.ahora - Date.now();
       if (!stands.some(s => s.id === elegido)) elegido = stands.length ? stands[0].id : null;
       pintar();
@@ -37,8 +37,8 @@
   function pintar() {
     if (!stands.length) {
       $('codigo-stand').innerHTML = '';
-      tarjeta.innerHTML = `<div class="disco-grande">${svg(ICONO.llave, 32)}</div><h2>No tienes stands asignados</h2>
-        <p class="aviso">Pide a un administrador que te asigne tu stand.</p>`;
+      tarjeta.innerHTML = `<div class="disco-grande">${svg(ICONO.llave, 32)}</div><h2>No tienes nada asignado</h2>
+        <p class="aviso">Pide a un administrador que te asigne tu pabellón o tu charla.</p>`;
       return;
     }
     const s = stand();
@@ -53,9 +53,9 @@
     $('codigo-stand').innerHTML = stands.length === 1
       ? `<div class="tu-stand" style="--c:${tono.color};--t:${tono.tinte}">
            <span class="abr">${esc(abreviatura(s.nombre))}</span>
-           <div><span class="etiqueta-pab">${esc(s.pabellon)}</span><b>${esc(s.nombre)}</b></div>
+           <div><span class="etiqueta-pab">${esc(s.grupo)}</span><b>${esc(s.nombre)}</b></div>
          </div>`
-      : `<div class="carril chips" role="tablist" aria-label="Stands">
+      : `<div class="carril chips" role="tablist" aria-label="Pabellones y charlas">
            ${stands.map(x => {
              const t = paleta(x.indice);
              return `<button class="chip-stand ${x.id === s.id ? 'activo' : ''}" role="tab" aria-selected="${x.id === s.id}"

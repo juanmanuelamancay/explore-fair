@@ -18,10 +18,11 @@ Cada vista tiene cuatro archivos con el mismo prefijo:
 | Vista en `Permisos` | Prefijo | Funciones que el navegador puede llamar |
 |---|---|---|
 | `MAPA` | `mapa` | `obtenerMapa` |
-| `QUIZ` | `quiz` | `iniciarQuiz`, `enviarQuiz` |
+| `CHARLAS` | `charlas` | `obtenerCharlas` |
+| `QUIZ` | `quiz` | `iniciarQuiz`, `enviarQuiz`, `verQuiz` (el validador) |
 | `RANKING` | `ranking` | `obtenerRanking`, `guardarAjustesPantalla` |
-| `GENERAR_CODIGO` | `generar-codigo` | `obtenerCodigos`, `generarCodigo` |
-| `PREGUNTAS` | `preguntas` | `obtenerBancoPreguntas`, `guardarPreguntaLider` |
+| `GENERAR_CODIGO` | `generar-codigo` | `obtenerCodigos`, `generarCodigo` (líder de pabellón y ponente) |
+| `PREGUNTAS` | `preguntas` | `obtenerBancoPreguntas`, `guardarPreguntaLider` (expositor y ponente, con tope de preguntas activas) |
 | `PANEL_ADMIN` | `panel-admin` | `obtenerPanel`, `obtenerAdminCatalogo`, `guardarAdminRegistro`, `importarPreguntasAdmin`, `borrarAdminRegistro`, `eliminarAdminPabellon`, `actualizarCatalogo`, `registrarPendientes`, `reiniciarDatos` |
 | `ESPERA` (no va en `Permisos`) | `espera` | `obtenerEspera` |
 
@@ -37,11 +38,12 @@ Archivos compartidos:
 |---|---|
 | `appsscript.json` | Manifiesto: zona horaria, permisos de Google, servicio avanzado Admin SDK y configuración de la web app |
 | `main.gs` | `doGet`, que arma la página; `ARCHIVO_DE_VISTA`; `VERSION_DEL_CODIGO`, y la página de error |
-| `datos.gs` | Nombres de las hojas, valores por defecto de `Config`, lectura y escritura de hojas, caché y catálogo |
+| `datos.gs` | Nombres de las hojas, valores por defecto de `Config`, lectura y escritura de hojas, caché y catálogo, con las **unidades** (`catalogo_().unidades`: cada pabellón y cada charla, con sus bancos de preguntas) |
 | `sesion.gs` | Quién llama, qué rol tiene, qué vistas puede abrir, `exigirVista_`, `exigirAdmin_` y `obtenerAcceso` |
 | `registro.gs` | Registro en `Usuarios` por lotes: el buzón de cartas, `registrarme`, el cartero (`repartir_`), el número de orden de cada persona, `completarUsuarios` y `prepararFeria` |
 | `indice.gs` | Índice de intentos de cada persona en `UserProperties`, el bloqueo por persona y el bloque de filas de cada persona en `Intentos` |
-| `datos-test.gs` | Diagnóstico: `probarTodo` se ejecuta desde el editor y registra si el Sheet, las hojas, el catálogo, las preguntas, la sesión y la caché están bien. `probarLimiteDeCodigos` comprueba, con la caché y el bloqueo reales, que 3 códigos incorrectos bloqueen la cuenta que la ejecuta |
+| `datos-test.gs` | Diagnóstico: `probarTodo` se ejecuta desde el editor y registra si el Sheet, las hojas, el catálogo (pabellones, quiz de entrada, charlas), los bancos de preguntas, la sesión y la caché están bien. `probarLimiteDeCodigos` comprueba, con la caché y el bloqueo reales, que 3 códigos incorrectos bloqueen la cuenta que la ejecuta |
+| `charlas.gs` | Vista `CHARLAS`: la ruta de charlas con el estado de cada una para quien la mira (`obtenerCharlas`) |
 | `pruebas-carga.gs` | Pruebas de carga y auditoría de puntajes, para ejecutar desde el editor |
 | `prueba-registro.gs` | Prueba del registro por lotes, con bitácora de lo que hace el cartero, para ejecutar desde el editor |
 | `prueba-feria.gs` | Prueba de carga de la feria completa: hasta 20 ejecuciones a la vez por cuenta registran personas y responden quizzes; revisa que no se pierda ni se repita nada y mide tiempos |
@@ -65,7 +67,7 @@ El orden de la barra inferior es Mapa, Código, Preguntas, Panel, Ranking, Esper
 
 Con la sala de espera activa (`espera_activa` en `Config`), quien tiene rol `USUARIO` recibe solo la vista `ESPERA`, y el `ADMIN` y el `VALIDADOR` la reciben como una pestaña más.
 
-El `VALIDADOR` es un rol de solo lectura: `VISTAS_DEL_VALIDADOR` (`sesion.gs`) limita sus vistas a `MAPA`, `QUIZ` y `PREGUNTAS` aunque `Permisos` diga otra cosa. Para ver las preguntas de un quiz usa `verQuiz` (`quiz.gs`), que no pide código y no escribe nada; `iniciarQuiz` y `enviarQuiz` le responden "Tu rol no responde quizzes" y `guardarPreguntaLider` lo rechaza.
+El `VALIDADOR` es un rol de solo lectura: `VISTAS_DEL_VALIDADOR` (`sesion.gs`) limita sus vistas a `MAPA`, `QUIZ`, `PREGUNTAS` y `CHARLAS` aunque `Permisos` diga otra cosa. Para ver las preguntas de un quiz usa `verQuiz` (`quiz.gs`), que no pide código y no escribe nada; `iniciarQuiz` y `enviarQuiz` le responden "Tu rol no responde quizzes" y `guardarPreguntaLider` lo rechaza.
 
 ## Reglas del servidor
 
@@ -73,7 +75,7 @@ El `VALIDADOR` es un rol de solo lectura: `VISTAS_DEL_VALIDADOR` (`sesion.gs`) l
 - **Funciones del editor:** las que se ejecutan a mano (diagnóstico, pruebas de carga, prueba del registro, prueba de carga de la feria, simulaciones, `limpiarCache`, `releerIndiceDe`, `completarUsuarios`, `auditarRegistro`, `reconstruirRegistro`, `prepararFeria`) empiezan con `exigirAdmin_()`. Quien las ejecute tiene que estar en `Staff` como `ADMIN`. Las únicas funciones públicas sin comprobación de rol son `obtenerAcceso` y `probarNombre`, que solo informan sobre la propia cuenta, `registrarme`, que solo registra a la propia cuenta, y `diagnosticarAccesoPrueba`, que no puede pedir admin porque sirve justo cuando esa comprobación falla: solo corre si el script tiene la propiedad `DIAGNOSTICO = 1` (ver "Diagnóstico").
 - **Funciones privadas:** las que terminan en `_` no se pueden llamar desde el navegador. Por eso los pasos que ejecutan los disparadores se llaman `pasoSimulacion_`, `pasoPuntajes_`, `pasoPruebaFilas_`, `pasoPruebaRegistro_` y `pasoPruebaCarga_`.
 - **La respuesta correcta no llega al participante:** `iniciarQuiz` devuelve solo enunciado y opciones; `enviarQuiz` corrige contra el banco y devuelve solo cuántas acertó y los puntos: ni cuál era la correcta ni qué preguntas acertó, porque eso se pasaría entre personas. El detalle por pregunta queda en el índice y en `respuestas_json`, para la auditoría. Las vistas `PREGUNTAS` y `PANEL_ADMIN` sí la reciben, porque sirven para editarla.
-- **Fallas esperadas como dato:** un código inválido o un stand ya respondido devuelven `{ ok: false, motivo, mensaje }`. Los motivos son `STAND`, `CERRADA`, `ENTRADA`, `CODIGO`, `BLOQUEADO`, `SIN_PREGUNTAS`, `YA_RESPONDIDO`, `VENCIDO` y `NO_EXISTE`. Las excepciones quedan para permisos y errores reales.
+- **Fallas esperadas como dato:** un código inválido o un quiz ya respondido devuelven `{ ok: false, motivo, mensaje }`. Los motivos son `STAND` (la unidad no existe), `CERRADA`, `AUN_NO` (una charla que todavía no empieza), `ENTRADA`, `CODIGO`, `BLOQUEADO`, `SIN_PREGUNTAS`, `YA_RESPONDIDO`, `VENCIDO` y `NO_EXISTE`. Las excepciones quedan para permisos y errores reales.
 - **Límite de intentos de código:** 3 códigos incorrectos de una misma persona la bloquean 120 segundos (`FALLOS_DE_CODIGO_MAX` y `SEGUNDOS_BLOQUEO_CODIGO`, en `quiz.gs`). Se cuentan en su caché propia (`getUserCache`), dentro de su bloqueo por persona, para que varias llamadas en paralelo no se salten la cuenta. Durante el bloqueo, `iniciarQuiz` responde `BLOQUEADO` con `esperaSegundos` sin mirar el código (ni siquiera el correcto) y sin alargar la espera. Acertar borra la cuenta; los fallos también se olvidan 120 segundos después del último. Un campo vacío no cuenta. Solo aplica a quien intenta abrir un stand con código: retomar un quiz en curso no pasa por aquí. La caché es de mejor esfuerzo: si el sistema la vaciara antes de tiempo, la cuenta empezaría de cero.
 - **Tiempo del servidor:** las horas viajan en milisegundos junto con `ahora`, y el navegador calcula su reloj a partir de esa diferencia. La hora del celular no cuenta.
 - **Columnas por nombre:** las hojas se leen y escriben según el encabezado, no según la posición de la columna. La única posición que importa es la columna A: `leerHoja_` ignora las filas que la tienen vacía.
@@ -88,10 +90,10 @@ Hay dos cachés: la compartida (`CacheService.getScriptCache`) y la propia de ca
 | Qué | Dónde | Duración | Se renueva o se descarta cuando |
 |---|---|---|---|
 | Catálogo (pabellones, stands, staff, permisos, config) | Compartida | `segundos_cache_catalogo`, entre 5 y 21.600 | Cambian `Staff`, `Permisos` o `Config`; se guardan los ajustes de la pantalla de ranking; hay una limpieza completa |
-| Preguntas de cada stand | Compartida | `segundos_cache_catalogo` | Un líder guarda una pregunta de ese stand; hay una limpieza completa. Al empezar un quiz se relee sola, una vez, si la copia tiene menos de las 16 preguntas que hacen falta |
+| Preguntas de cada banco (stand o charla) | Compartida | `segundos_cache_catalogo` | Un expositor o ponente guarda una pregunta de ese banco; hay una limpieza completa. Al empezar un quiz se relee sola, una vez, si algún banco tiene menos preguntas de las que hacen falta |
 | Premios de la sala de espera | Compartida | `segundos_cache_catalogo` | Hay una limpieza completa |
 | Ranking | Compartida | `segundos_cache_ranking`, mínimo 5 | Se pulsa actualizar en `RANKING`; hay una limpieza completa |
-| Código vigente de cada stand | Compartida | `minutos_vigencia_codigo` | Se genera otro código para ese stand |
+| Código vigente de cada unidad (pabellón o charla) | Compartida | `minutos_vigencia_codigo` | Se genera otro código para esa unidad |
 | Marca "roles al día" | Compartida | 30 segundos | Vence sola |
 | Marca de pasada reciente del registro | Compartida | 5 segundos (`SEGUNDOS_ENTRE_REPARTOS`) | Vence sola |
 | Pedido de releer el índice de alguien | Compartida | 6 horas | Esa persona entra y su índice se rearma |
@@ -113,12 +115,12 @@ Lo que decide qué ve cada persona se revisa aparte. Al abrir la app y al pulsar
 - **Por persona** (`getUserLock`): al validar un código, crear un intento, enviarlo y escribir un resultado pendiente. Dos personas distintas no se esperan entre sí. Al tomar el bloqueo se descarta lo que la petición había leído del índice y se lee de nuevo: otra petición de la misma persona pudo escribir mientras esta esperaba. Cada bloqueo confirma sus escrituras (`SpreadsheetApp.flush`) antes de soltarse.
 - **Empezar y enviar un quiz no usan el turno global.** El turno hace falta para agregar una fila al final de una hoja, porque dos ejecuciones pueden ver la misma última fila y caer en el mismo lugar (en la prueba del punto 0.4 del plan sobrevivieron 286 de 1.000). Los intentos ya no se agregan al final: cada persona escribe en su propio bloque de filas (ver "Filas propias"). Antes, cada inicio de quiz pedía el turno, y la prueba de carga midió un techo de unos 50 inicios por minuto y de unas 15 personas empezando en el mismo instante.
 - **Turno global para el registro** (`repartir_`, con `getScriptLock`): las filas nuevas de `Usuarios` se escriben por lotes, y en la misma pasada cada persona recibe su número de orden. Quien encuentra el turno ocupado no hace fila (ver "Registro por lotes").
-- **Generar un código no usa el turno global.** Cada stand tiene su propia fila en `Codigos` y el código nuevo la reemplaza: la generación lee la hoja (unas 20 filas), escribe esa fila y deja el código en caché, sin esperar a otros líderes ni al registro. Las filas de los stands las deja puestas `prepararFeria` (o `prepararCodigos()` desde el editor), y el reinicio del panel las conserva. Solo cuando a un stand le falta la fila (un stand nuevo, o una fila borrada a mano) se toma el turno una vez, en `asegurarFilasDeCodigos_`, para crear las filas de todos los stands de golpe. Antes cada generación tomaba el turno unos 0,9 s y el sistema aguantaba unas 20 en cola antes de fallar. Si dos personas generan para el mismo stand a la vez, queda el código de la última escritura.
+- **Generar un código no usa el turno global.** Cada unidad (pabellón con código o charla) tiene su propia fila en `Codigos` y el código nuevo la reemplaza: la generación lee la hoja (una decena de filas), escribe esa fila y deja el código en caché, sin esperar a otros líderes ni al registro. Las filas de las unidades las deja puestas `prepararFeria` (o `prepararCodigos()` desde el editor), y el reinicio del panel las conserva. Solo cuando a una unidad le falta la fila (una unidad nueva, o una fila borrada a mano) se toma el turno una vez, en `asegurarFilasDeCodigos_`, para crear las filas de todas de golpe.
 - **Global** (`getScriptLock`): guardar los ajustes de la pantalla de ranking, guardar una pregunta como líder, guardar, importar, desactivar o eliminar desde el panel, reiniciar los datos, `prepararFeria` y las simulaciones. Son pocas y necesitan orden entre ellas.
 
 Un bloqueo espera hasta 20 segundos (`SEGUNDOS_BLOQUEO`); el del reinicio, hasta 30.
 
-Al empezar un quiz, las validaciones (stand, feria abierta, quiz de entrada, código, preguntas suficientes) se hacen antes de tomar el bloqueo de la persona. Dentro se vuelve a comprobar que no exista ya un intento, se reserva la fila y se escribe.
+Al empezar un quiz, las validaciones (unidad, permiso de la vista, feria abierta o charla ya empezada, quiz de entrada, código, preguntas suficientes en cada banco) se hacen antes de tomar el bloqueo de la persona. Dentro se vuelve a comprobar que no exista ya un intento, se reserva la fila y se escribe.
 
 ## Registro por lotes
 
@@ -171,7 +173,7 @@ Google no documenta si escribir propiedades en paralelo es seguro. La prueba `in
 
 Cada persona guarda sus propios intentos en `UserProperties` ([indice.gs](../../appscript/indice.gs)). El mapa, empezar un quiz y enviarlo leen ese índice y no recorren la hoja `Intentos`. La hoja sigue siendo el registro oficial y la fuente del ranking:
 
-- Hay una propiedad por stand (`i:STD-001`), una propiedad `epoca` y una propiedad `orden` con la copia del número de orden de la persona.
+- Hay una propiedad por unidad (`i:PAB-001` para un pabellón, `i:CHA-001` para una charla), una propiedad `epoca` y una propiedad `orden` con la copia del número de orden de la persona.
 - El índice se arma desde las hojas la primera vez: los intentos, buscando solo las filas de esa persona por su correo en `Intentos`; el número de orden, de su marcador en el registro.
 - Cada reinicio de datos cambia la época (`ULTIMO_REINICIO`) y obliga a volver a armarlo. `prepararFeria` también abre una época nueva.
 - Al crear o corregir un intento se escribe primero el índice y después la hoja. Si la hoja falla, el reintento del celular encuentra el mismo intento, con su fila ya reservada.
@@ -201,7 +203,7 @@ El almacén de cada persona es de su cuenta y de este proyecto de Apps Script: n
 
 ## Filas propias
 
-Cada persona tiene en `Intentos` un bloque de 25 filas (`FILAS_POR_PERSONA`, en `datos.gs`) que es solo suyo. Su número de orden dice cuál: la persona 1 tiene las filas 2 a 26, la persona 2 las filas 27 a 51, y así. La primera fila del bloque es `2 + (orden − 1) × 25`. Como nadie más escribe en ese bloque, empezar y enviar un quiz no esperan a nadie.
+Cada persona tiene en `Intentos` un bloque de 16 filas (`FILAS_POR_PERSONA`, en `datos.gs`) que es solo suyo. Su número de orden dice cuál: la persona 1 tiene las filas 2 a 17, la persona 2 las filas 18 a 33, y así. La primera fila del bloque es `2 + (orden − 1) × 16`. Como nadie más escribe en ese bloque, empezar y enviar un quiz no esperan a nadie.
 
 - **Empezar un quiz** (`iniciarQuiz_`): con el bloqueo de la persona, lee su bloque (`filaLibreDe_`), comprueba que todo lo escrito ahí lleve su correo y elige la primera fila que está vacía en la hoja y que tampoco tiene reservada en su índice. Guarda el intento en el índice con esa fila y después escribe la fila `EN_CURSO` (`escribirInicio_`).
 - **Enviar un quiz** (`registrarResultado_`): va directo a la fila guardada, comprueba que tenga su `intento_id` y la completa. Si la fila está vacía porque la de inicio no llegó a escribirse, la escribe completa ahí mismo.
@@ -209,7 +211,7 @@ Cada persona tiene en `Intentos` un bloque de 25 filas (`FILAS_POR_PERSONA`, en 
 - **Si en el bloque aparece el correo de otra persona**, no se escribe y la persona ve un error. Significa que alguien movió filas a mano o que dos personas tienen el mismo número de orden.
 - **De dónde sale el número** (`miOrden_`): del índice de la persona. Si no está ahí, de su marcador en el registro; y si la persona todavía no tiene número, de una pasada urgente. Sin número no se escribe nada en `Intentos`.
 
-El tamaño del bloque es una constante del código y no un parámetro de `Config`: cambiarlo con intentos en la hoja movería a todos de bloque. Con 19 stands, 25 filas dejan lugar para seis más.
+El tamaño del bloque es una constante del código y no un parámetro de `Config`: cambiarlo con intentos en la hoja movería a todos de bloque. Con el quiz de entrada, 6 pabellones y 5 charlas hay 12 intentos por persona: 16 filas dejan 4 de margen.
 
 Reglas de operación que salen de esto:
 
@@ -229,12 +231,12 @@ Estas no estaban definidas en los prototipos:
 4. **Caracteres del código:** cuatro, solo consonantes y dígitos del 2 al 9, empezando siempre por letra. Además de evitar confusiones al dictarlo, impide que Sheets convierta el código en otra cosa (por ejemplo `TRUE` o `2E45`). Un código nuevo no repite ninguno que esté activo en otro stand.
 5. **Quién aparece en el ranking:** solo quienes tienen al menos un quiz completado. Cada persona cuenta un solo intento completado por stand, aunque en la hoja hubiera una fila repetida. El ranking lleva nombre y puntos; el quiz de entrada suma como cualquier otro.
 6. **El celular no muestra el puesto:** el mapa y el resultado del quiz muestran puntos. El ranking lo ve quien tenga la vista `RANKING`.
-7. **Retomar un quiz:** si alguien cierra la app a mitad del quiz y vuelve dentro de su tiempo, el stand aparece "En curso" y continúa con las mismas preguntas sin pedir el código.
+7. **Retomar un quiz:** si alguien cierra la app a mitad del quiz y vuelve dentro de su tiempo, el pabellón o la charla aparece "En curso" y continúa con las mismas preguntas sin pedir el código.
 8. **Envío repetido:** si el envío se repite por mala señal, el servidor devuelve el resultado ya guardado en lugar de un error. Al empezar un quiz, al enviarlo y al cargar el mapa, el celular reintenta solo hasta tres veces, con esperas de 1,5, 3 y 6 segundos.
 9. **Margen de envío:** se aceptan respuestas hasta 10 segundos después del límite. Se cuenta desde la primera vez que el envío llegó al servidor, para que un reintento no haga vencer un quiz respondido a tiempo.
 10. **Identificador del intento:** `INT-` y 12 caracteres al azar. No sale del número de filas, porque dos personas en paralelo recibirían el mismo.
 11. **Feria cerrada:** con `feria_abierta = FALSE` nadie puede empezar un quiz. Solo el `USUARIO` tiene número y puede empezar un quiz; `ADMIN` y `LIDER` reciben el rechazo "Tu rol no responde quizzes" antes de cualquier otra comprobación.
-12. **Alcance del admin:** el admin ve en la barra todas las vistas que `Permisos` le dé. En `GENERAR_CODIGO` y `PREGUNTAS` alcanza todos los stands del mapa; el quiz de entrada no lleva código y sus preguntas se editan desde el panel.
+12. **Alcance del admin:** el admin ve en la barra todas las vistas que `Permisos` le dé. En `GENERAR_CODIGO` alcanza todos los pabellones con código y todas las charlas; en `PREGUNTAS`, todos los stands y charlas. El quiz de entrada no lleva código y sus preguntas se editan desde el panel.
 13. **Respaldos del reinicio:** quedan como hojas ocultas `respaldo_<Hoja>_AAAA-MM-DD_HHMM` en el mismo archivo. No se borran solas.
 
 ## Subir cambios con clasp
@@ -270,7 +272,7 @@ Cuando la app muestra "No pudimos abrir la app":
 
 1. **Leer el recuadro** de esa página: muestra el correo detectado, el nombre, el rol asignado, las vistas de ese rol y cómo está la hoja `Permisos` en el Sheet en ese momento.
 2. **Mirar la versión** al pie de esa página. Debe coincidir con `VERSION_DEL_CODIGO` de `main.gs`. Si no aparece o es otra, la URL publicada sigue con código anterior: hay que crear una nueva versión de la implementación.
-3. **Ejecutar `probarTodo`** desde el editor y abrir el registro de ejecución. Cada línea empieza con `OK` o `FALLA` y dice qué encontró; por ejemplo, marca `FALLA` en cada stand con menos de 16 preguntas activas. No modifica ninguna hoja. Exige que quien lo ejecuta esté en `Staff` como `ADMIN`: si `Staff` es justamente lo que está mal, falla con "Solo un administrador puede hacer esto." y hay que corregir esa fila a mano primero. Para ver qué lee la app en `Staff` sin ser admin, agrega la propiedad del script `DIAGNOSTICO = 1` (Configuración del proyecto > Propiedades del script), ejecuta `diagnosticarAccesoPrueba` y **borra la propiedad al terminar**: mientras exista, cualquier participante podría ejecutarla.
+3. **Ejecutar `probarTodo`** desde el editor y abrir el registro de ejecución. Cada línea empieza con `OK` o `FALLA` y dice qué encontró; por ejemplo, marca `FALLA` en cada banco (stand o charla) con menos preguntas activas de las que necesita. No modifica ninguna hoja. Exige que quien lo ejecuta esté en `Staff` como `ADMIN`: si `Staff` es justamente lo que está mal, falla con "Solo un administrador puede hacer esto." y hay que corregir esa fila a mano primero. Para ver qué lee la app en `Staff` sin ser admin, agrega la propiedad del script `DIAGNOSTICO = 1` (Configuración del proyecto > Propiedades del script), ejecuta `diagnosticarAccesoPrueba` y **borra la propiedad al terminar**: mientras exista, cualquier participante podría ejecutarla.
 
 Mientras se hacen cambios conviene abrir la URL de prueba (Implementar, Probar implementaciones), que termina en `/dev` y siempre usa el último código guardado. La URL `/exec` solo cambia al publicar una nueva versión.
 
@@ -294,9 +296,9 @@ Son funciones para ejecutar a mano desde el editor, todas con `exigirAdmin_`. Us
 
 El detalle carta por carta de cada ejecución queda en su propio registro, en la sección "Ejecuciones" del editor.
 
-[appscript/prueba-feria.gs](../../appscript/prueba-feria.gs) prueba el recorrido completo con varias ejecuciones a la vez. Cada ejecución imita a una persona tras otra, sin descanso: se registra y recibe su número de orden, arma su índice, responde el quiz de entrada y dos stands con código, cada intento en su bloque de filas. Usa las funciones reales en todo lo que las personas comparten (`repartir_`, `ordenUrgente_`, `filaLibreDe_`, `escribirInicio_`, `registrarResultado_`, `filasDeEmail_`, la caché del catálogo, de las preguntas y de los códigos). Lo que es de cada persona (índice, bloqueo y caché propios) se reemplaza por operaciones del mismo costo sobre la cuenta que ejecuta, porque todas las ejecuciones de una cuenta comparten esos tres. Sigue el mismo orden que la app, incluido lo que pasa cuando algo falla: si la fila de inicio no se puede escribir, el quiz sigue con el índice y la fila se escribe completa al enviar; si empezar o enviar fallan, reintenta a los 1,5, 3 y 6 segundos. La primera persona de cada ejecución pulsa "Empezar" sin esperar a su registro, para ejercitar la pasada urgente.
+[appscript/prueba-feria.gs](../../appscript/prueba-feria.gs) prueba el recorrido completo con varias ejecuciones a la vez. Cada ejecución imita a una persona tras otra, sin descanso: se registra y recibe su número de orden, arma su índice, responde el quiz de entrada y dos pabellones con código, cada intento en su bloque de filas. Usa las funciones reales en todo lo que las personas comparten (`repartir_`, `ordenUrgente_`, `filaLibreDe_`, `escribirInicio_`, `registrarResultado_`, `filasDeEmail_`, la caché del catálogo, de las preguntas y de los códigos). Lo que es de cada persona (índice, bloqueo y caché propios) se reemplaza por operaciones del mismo costo sobre la cuenta que ejecuta, porque todas las ejecuciones de una cuenta comparten esos tres. Sigue el mismo orden que la app, incluido lo que pasa cuando algo falla: si la fila de inicio no se puede escribir, el quiz sigue con el índice y la fila se escribe completa al enviar; si empezar o enviar fallan, reintenta a los 1,5, 3 y 6 segundos. La primera persona de cada ejecución pulsa "Empezar" sin esperar a su registro, para ejercitar la pasada urgente.
 
-- `iniciarPruebaCarga` (20 ejecuciones), `iniciarPruebaCarga10` e `iniciarPruebaCarga5`: exigen la columna `orden` en `Usuarios` y que el registro tenga su contador (`prepararFeria`), borran los restos de una prueba anterior, releen el catálogo y las preguntas, dejan en la caché un código de prueba por stand, miden a dos personas sin competencia y programan las ejecuciones, que arrancan a la misma hora, 4 minutos después. Si esa medición tiene algún fallo, no programan nada. La carga dura 2 minutos.
+- `iniciarPruebaCarga` (20 ejecuciones), `iniciarPruebaCarga10` e `iniciarPruebaCarga5`: exigen la columna `orden` en `Usuarios` y que el registro tenga su contador (`prepararFeria`), borran los restos de una prueba anterior, releen el catálogo y las preguntas, dejan en la caché un código de prueba por pabellón, miden a dos personas sin competencia y programan las ejecuciones, que arrancan a la misma hora, 4 minutos después. Si esa medición tiene algún fallo, no programan nada. La carga dura 2 minutos.
 - `revisarPruebaCarga`: a partir de la hora que indica el registro. Da el veredicto de datos (`DATOS: OK` o `FALLA`) comparando lo que cada persona dio por hecho con lo que quedó en `Intentos` y `Usuarios`: inicios y envíos confirmados sin su fila, filas con contenido distinto al enviado, `intento_id` repetidos, persona y stand repetidos, números de orden entregados a más de una persona, personas con otro número en `Usuarios` que el entregado, personas repetidas en `Usuarios`, filas fuera del bloque de su dueño y bloques con más de un correo. Muestra además los tiempos de cada operación (p50, p90, p95 y máximo), separando leer el bloque de escribir la fila y los inicios que tuvieron que pedir su número, los inicios y envíos logrados por minuto, cuánto estuvo ocupado el turno global (que ahora solo usa el registro), los errores por mensaje y una línea por cada 10 segundos. No borra nada y se puede ejecutar más de una vez.
 - `sumarmeAPruebaCarga`: otro admin agrega sus propias 20 ejecuciones a una prueba ya iniciada, antes de la hora que indica el registro. Es la forma de pasar de 20 ejecuciones a la vez, que es el límite de disparadores de una cuenta. Al terminar, esa cuenta ejecuta `quitarMisDisparadoresDeCarga`.
 - `limpiarPruebaCarga`: borra las filas, las cartas, los informes y los códigos de prueba. Los correos empiezan con `carga-` y usan el dominio de la simulación.
@@ -375,8 +377,9 @@ Para entrar con otro rol se agrega `?como=` con una de las cuentas de ejemplo:
 | Cuenta | Qué es |
 |---|---|
 | `ana.torres@demo.com` | Usuario. Es la cuenta por defecto; cualquier correo que no esté en `Staff` también lo es |
-| `lider.apx@demo.com` | Líder de un stand |
-| `lider.backend@demo.com` | Líder de un pabellón completo |
+| `expositor.apx@demo.com` | Expositor de un stand |
+| `lider.backend@demo.com` | Líder de un pabellón |
+| `ponente.uno@demo.com` | Ponente de una charla |
 | `validador@demo.com` | Validador: solo lectura de Mapa, Quiz y Preguntas |
 | `admin@demo.com` | Admin |
 | `sin.vistas@demo.com` | Rol sin filas en `Permisos`, para ver la página de error |
@@ -387,6 +390,7 @@ Variables de entorno:
 |---|---|
 | `PORT` | Puerto del servidor. Por defecto 8123 |
 | `ESPERA=1` | Enciende la sala de espera, con la fecha a tres días |
+| `CHARLAS=1` | Simula la semana de charlas: el usuario ve la ruta de charlas (`CHARLAS` y `QUIZ`) en lugar del mapa |
 | `ESPERA=0` | Enciende la sala de espera con la fecha ya cumplida, para ver "Llegó el día" |
 | `DESORDEN=1` | Carga los datos como escritos a mano: pestañas, encabezados, roles e identificadores con otras mayúsculas y espacios |
 
@@ -397,3 +401,31 @@ Variables de entorno:
 En los datos de ejemplo ningún rol tiene la vista `PREGUNTAS`. Para probarla hay que agregar esa fila a `Permisos`, desde el panel admin o con `POST /hoja`.
 
 El simulador no reproduce los límites de Apps Script (tiempo de ejecución, ejecuciones simultáneas) ni la conversión automática de valores que hace Sheets. Los bloqueos no hacen nada, porque todo corre en un solo proceso: en el registro por lotes el turno siempre está libre, y lo único que retrasa una pasada es el descanso de 5 segundos. Tampoco tiene directorio de la organización ni disparadores: los nombres salen de `Staff` o del correo, y las simulaciones y la prueba de filas no se pueden ejecutar. Esa parte solo se comprueba en el despliegue real.
+
+## Quiz por unidad: pabellón o charla
+
+Desde 2026-10-13 el quiz no es por stand sino por **unidad**: un pabellón (sus stands aportan preguntas) o una charla. Todo lo que antes iba por `stand_id` va por `unidad_id`:
+
+- **Catálogo.** `leerCatalogo_` arma `catalogo_().unidades`. Cada unidad trae sus **bancos**: un pabellón, uno por stand activo (`cuantas` = `preguntas_por_stand`, `minimo` = `preguntas_banco_stand`); una charla, uno solo (`preguntas_quiz`, `preguntas_banco`). La caché de preguntas sigue siendo por banco (`preguntas:<id>`); la columna `stand_id` de `Preguntas` lleva el ID del stand o de la charla.
+- **Iniciar y corregir.** `iniciarQuiz(unidadId, codigo)` comprueba que el rol tenga la vista que abre ese tipo de unidad (`MAPA` para pabellones, `CHARLAS` para charlas), que cada banco tenga sus preguntas, sortea `cuantas` de cada banco y guarda todo en un solo intento. `enviarQuiz` corrige contra las preguntas de todos los bancos de la unidad.
+- **Códigos.** `Codigos.unidad_id`: una fila por pabellón con código y por charla. `unidadesParaCodigo_` decide qué puede generar cada rol: el líder, su pabellón; el ponente, su charla; el admin, todo.
+- **Preguntas.** `bancosParaPreguntas_` decide qué bancos puede ver o editar cada rol y cuál es su tope.
+- **Índice y ranking.** El índice por persona usa `i:<unidad_id>`; `reconstruirIndice_` lee `unidad_id` de la hoja. El ranking cuenta un intento completado por `email` y `unidad_id`.
+- **Roles.** `LIDER` (pabellón), `EXPOSITOR` (stand) y `PONENTE` (charla) son roles de `Staff` de un solo valor; ninguno responde quizzes. Una persona, una fila, un rol.
+- **Disponibilidad.** No hay un parámetro por charla ni por pabellón: lo que ve el usuario lo deciden las filas de `Permisos` (`CHARLAS` en la semana de charlas, `MAPA` en el evento) y la hora `inicio` de cada charla.
+- **Pruebas.** `prueba-feria.gs`, `pruebas-lideres.gs`, `simulacion.gs`, `simulacion-puntajes.gs`, `pruebas-carga.gs` y `datos-test.gs` trabajan con unidades. El simulador local acepta disparadores falsos y exporta su contexto con `require`, para correr `pasoPruebaCarga_` y `revisarPruebaCarga` en local.
+
+**Los reinicios dejan de ser seguros con la primera charla.** `reiniciarDatos` y `prepararFeria` borran o renumeran `Intentos`; con puntos de charlas ya escritos habría que no usarlos. Todo el cambio de modelo (`unidad_id`, `FILAS_POR_PERSONA`, el motor genérico) quedó fijo antes de esa fecha.
+
+### Pruebas automáticas del simulador
+
+`simulador/pruebas/` tiene cuatro scripts que se corren contra el simulador local (Node 18 o más; sin dependencias):
+
+| Script | Qué comprueba | Cómo se corre |
+|---|---|---|
+| `evento.js` | Recorrido del evento: entrada, código del líder, quiz del pabellón (2 preguntas por stand), expositor, validador, panel y ranking | Con `RANKING=0 PORT=8135 node simulador/servidor.js` en otra terminal: `node simulador/pruebas/evento.js 8135` |
+| `charlas.js` | Semana de charlas: ruta, ponente, código, quiz sin entrada, ranking y altas desde el panel | Con `CHARLAS=1 RANKING=0 PORT=8134 node simulador/servidor.js`: `node simulador/pruebas/charlas.js 8134` |
+| `casos-limite.js` | Banco incompleto, banco sobre el tope, roles que no responden, pabellón sin stands | Igual que `evento.js`, con un simulador recién arrancado |
+| `carga-local.js` | `iniciarPruebaCarga5`, `pasoPruebaCarga_` y `revisarPruebaCarga` en un solo proceso | `node simulador/pruebas/carga-local.js "$(pwd)/simulador/servidor.js"` |
+
+Cada una necesita un simulador recién arrancado (guardan datos en memoria) y termina con `TODO BIEN` o el número de fallas.
