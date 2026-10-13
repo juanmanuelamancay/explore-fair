@@ -31,7 +31,7 @@ const ESPERA_TURNO_URGENTE_MS = 1000;
 // Cuando a Intentos le faltan filas para un bloque nuevo, se agranda de una vez para estas personas más.
 const PERSONAS_DE_HOLGURA = 100;
 // Personas para las que prepararFeria deja lista la hoja Intentos.
-const PERSONAS_PREVISTAS = 800;
+const PERSONAS_PREVISTAS = 2500;
 
 /**
  * Se registra solo el usuario: quien no está en Staff. Admin y líder ya están en Staff, así que no reciben número

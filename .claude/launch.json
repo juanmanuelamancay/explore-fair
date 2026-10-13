@@ -22,6 +22,19 @@
       }
     },
     {
+      "name": "simulador-ranking-500",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "simulador/servidor.js"
+      ],
+      "port": 8133,
+      "env": {
+        "VIVO": "1",
+        "RANKING": "500",
+        "PORT": "8133"
+      }
+    },
+    {
       "name": "simulador-espera",
       "runtimeExecutable": "node",
       "runtimeArgs": [

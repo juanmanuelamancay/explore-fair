@@ -104,7 +104,7 @@ Una **limpieza completa** (`limpiarCache_`) cambia el prefijo de todas las clave
 
 Un valor de más de 90.000 caracteres no se guarda en caché. Con cerca de 1.000 personas el ranking puede superar ese tamaño, y entonces se recalcula en cada pedido; lo pide solo la pantalla del admin.
 
-Un cambio hecho a mano en `Pabellones`, `Stands` o `Preguntas` tarda hasta `segundos_cache_catalogo` en verse en la app. El valor por defecto es 60 segundos; el plan de concurrencia (punto 1.8) pide ponerlo en 1800 en la hoja `Config` para la feria. Para verlo al instante, el admin pulsa "Actualizar ahora" en el panel. Nada de esto está fijo en el código: lo que muestra la app sale siempre de las hojas.
+Un cambio hecho a mano en `Pabellones`, `Stands` o `Preguntas` tarda hasta `segundos_cache_catalogo` en verse en la app. El valor por defecto es 60 segundos; el plan de concurrencia (punto 1.8) pide ponerlo en 1800 en la hoja `Config` para la feria. Para verlo al instante, el admin pulsa "Actualizar ahora" en el panel: además de releer el catálogo, deja en caché las preguntas de todos los stands (con una sola lectura de `Preguntas`) y los premios, así que conviene pulsarlo antes de abrir la feria y no con mucha gente dentro. Nada de esto está fijo en el código: lo que muestra la app sale siempre de las hojas.
 
 Lo que decide qué ve cada persona se revisa aparte. Al abrir la app y al pulsar actualizar, `sincronizarRoles_` compara `Staff`, `Permisos` y `Config` del Sheet con lo guardado y, si cambiaron, relee solo el catálogo. Lo hace como mucho una vez cada 30 segundos para toda la feria, así que un cambio hecho a mano en esas tres hojas tarda hasta 30 segundos en notarse. Quien ya tenía la app abierta y pierde una vista ve el aviso "Tu acceso cambió" en cuanto el servidor le rechaza un pedido, y la app se vuelve a abrir con lo que le corresponde. La página de error lee siempre el Sheet actual, no la copia guardada.
 
@@ -163,7 +163,7 @@ Cómo ve el admin los números, que no están en la hoja sino en las propiedades
 - **`probarTodo`** incluye un resumen de lo mismo en la línea "Filas propias en Intentos".
 - **`reconstruirRegistro`** (editor): si se pierden las propiedades del script, vuelve a crear los marcadores que falten a partir de la columna `orden` de `Usuarios`, sin cambiar el número de nadie. Por eso la columna importa aunque la app no la lea para decidir: es el respaldo. Sin marcadores ni contador, y con números en la hoja, el registro se niega a entregar números nuevos hasta que se ejecute.
 
-Límites: las propiedades del script admiten 9 KB por valor y 500 KB en total. Una carta ocupa alrededor de 100 bytes y se borra al escribirse. Un marcador ocupa unos 45 bytes y no se borra: 800 personas son unos 36 KB.
+Límites: las propiedades del script admiten 9 KB por valor y 500 KB en total. Una carta ocupa alrededor de 100 bytes y se borra al escribirse. Un marcador ocupa unos 45 bytes y no se borra: 800 personas son unos 36 KB y 2.500, unos 112 KB.
 
 Google no documenta si escribir propiedades en paralelo es seguro. La prueba `iniciarPruebaRegistro` lo comprueba en el Apps Script real (ver "Pruebas de carga, simulaciones y auditoría") y hay que ejecutarla antes de usar esto en la feria.
 
@@ -217,7 +217,7 @@ Reglas de operación que salen de esto:
 - **`Intentos` tiene filas vacías** entre el bloque de una persona y el de la siguiente. La app ignora las filas con la columna A vacía. Para contar intentos se usa `filasConDato_`, no la última fila.
 - **Nada agrega filas al final de `Intentos`.** Las simulaciones y la prueba de carga también escriben en bloques, y `limpiarSimulacion` y `limpiarPruebaCarga` vacían las filas en su lugar en vez de subir las demás, tanto en `Intentos` como en `Usuarios`, y borran los marcadores de orden de las personas de mentira.
 
-`prepararFeria`, para ejecutar desde el editor antes de abrir la feria y con `Intentos` vacía: deja `Usuarios` con una fila por correo, seguidas y numeradas desde 1; rehace los marcadores de orden y el contador a partir de la hoja; abre una época nueva para que cada celular vuelva a pedir su número, y agranda `Intentos` y `Usuarios` para 800 personas (`PERSONAS_PREVISTAS`). Hay que ejecutarla después de las pruebas, que gastan números de orden; al pasar de una versión anterior a esta, y cuando el script pasa a apuntar a otro Sheet. Si `Intentos` tiene filas, no hace nada y lo dice.
+`prepararFeria`, para ejecutar desde el editor antes de abrir la feria y con `Intentos` vacía: deja `Usuarios` con una fila por correo, seguidas y numeradas desde 1; rehace los marcadores de orden y el contador a partir de la hoja; abre una época nueva para que cada celular vuelva a pedir su número, y agranda `Intentos` y `Usuarios` para 2.500 personas (`PERSONAS_PREVISTAS`). Hay que ejecutarla después de las pruebas, que gastan números de orden; al pasar de una versión anterior a esta, y cuando el script pasa a apuntar a otro Sheet. Si `Intentos` tiene filas, no hace nada y lo dice.
 
 ## Decisiones tomadas al programar
 
@@ -258,7 +258,7 @@ El manifiesto usa `executeAs: USER_ACCESSING` y `access: DOMAIN`. La app corre c
 5. Implementar como aplicación web, con "Ejecutar como: usuario que accede a la aplicación" y acceso para la organización.
 6. Compartir el Sheet con la organización con permiso de editor. Sin eso, cada persona vería un error de permisos al entrar.
 7. Escribir a mano en `Staff` la fila del primer `ADMIN`.
-8. Antes de abrir la feria, con `Intentos` vacía, ejecutar `prepararFeria` desde el editor: deja la numeración de `Usuarios` desde 1 y la hoja `Intentos` con filas para 800 personas (ver "Filas propias").
+8. Antes de abrir la feria, con `Intentos` vacía, ejecutar `prepararFeria` desde el editor: deja la numeración de `Usuarios` desde 1 y la hoja `Intentos` con filas para 2.500 personas (ver "Filas propias").
 
 La app identifica a cada persona con `Session.getActiveUser().getEmail()`. Si no obtiene un correo, muestra "No pudimos identificar tu cuenta. Entra con tu cuenta de la empresa."
 

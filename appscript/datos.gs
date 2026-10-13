@@ -392,12 +392,31 @@ function preguntasDeStand_(standId, sinCache) {
     const porDefecto = catalogo_().config.puntos_por_defecto;
     preguntas = leerHoja_(HOJA.PREGUNTAS)
       .filter(p => id_(p.stand_id) === standId && esVerdadero_(p.activo))
-      .map(p => ({
-        id: id_(p.pregunta_id), texto: texto_(p.texto),
-        opciones: [p.opcion_a, p.opcion_b, p.opcion_c, p.opcion_d].map(texto_),
-        correcta: texto_(p.correcta).toUpperCase(), puntos: Number(p.puntos) || porDefecto,
-      }));
+      .map(p => preguntaDeFila_(p, porDefecto));
     cachePoner_(clave, preguntas, segundosDeCatalogo_(catalogo_().config));
   }
   return preguntas;
+}
+
+function preguntaDeFila_(p, porDefecto) {
+  return {
+    id: id_(p.pregunta_id), texto: texto_(p.texto),
+    opciones: [p.opcion_a, p.opcion_b, p.opcion_c, p.opcion_d].map(texto_),
+    correcta: texto_(p.correcta).toUpperCase(), puntos: Number(p.puntos) || porDefecto,
+  };
+}
+
+/** Guarda en caché las preguntas de todos los stands con una sola lectura de la hoja, y los premios. Devuelve cuántos stands quedaron listos. */
+function precargarPreguntasYPremios_() {
+  const catalogo = catalogo_();
+  const segundos = segundosDeCatalogo_(catalogo.config);
+  const porStand = {};
+  catalogo.stands.forEach(s => { porStand[s.id] = []; });
+  leerHoja_(HOJA.PREGUNTAS).forEach(p => {
+    const standId = id_(p.stand_id);
+    if (porStand[standId] && esVerdadero_(p.activo)) porStand[standId].push(preguntaDeFila_(p, catalogo.config.puntos_por_defecto));
+  });
+  Object.keys(porStand).forEach(standId => cachePoner_('preguntas:' + standId, porStand[standId], segundos));
+  cachePoner_('premios', leerPremios_(), segundos);
+  return Object.keys(porStand).length;
 }

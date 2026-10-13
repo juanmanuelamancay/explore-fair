@@ -337,7 +337,7 @@
 
   $('panel-actualizar').addEventListener('click', () => {
     const boton = $('panel-actualizar'); boton.disabled = true;
-    servidor('actualizarCatalogo').then(r => toast(`Listo: ${r.pabellones} pabellones, ${r.stands} stands y ${r.preguntas} preguntas activas.`)).catch(error => toast(error && error.message ? error.message : 'No se pudo actualizar.')).then(() => { boton.disabled = false; });
+    servidor('actualizarCatalogo').then(r => toast(`Listo: ${r.pabellones} pabellones, ${r.stands} stands y ${r.preguntas} preguntas activas. Preguntas listas en ${r.standsListos} stands.`)).catch(error => toast(error && error.message ? error.message : 'No se pudo actualizar.')).then(() => { boton.disabled = false; });
   });
 
   function abrirConfirmacion() {
@@ -350,7 +350,7 @@
   }
 
   function abrirConfirmacionPreparar() {
-    App.abrirHoja(`<div class="hoja-texto"><h2>¿Preparar la feria?</h2><p>Renumera a las personas de la hoja Usuarios desde 1, en el orden en que aparecen. Intentos queda lista para 800 personas.</p><div class="resumen"><ul><li>Se quitan las filas repetidas y vacías de Usuarios</li><li>Si había huecos, quienes estaban después reciben un número más bajo</li><li>Quien no tenga fila en Usuarios pierde su número</li></ul></div><p class="chico">Esta acción no guarda copia de Usuarios. Haz una copia de la hoja antes de continuar.</p><label for="panel-confirmar-preparar">Escribe ${PALABRA_PREPARAR} para confirmar</label><input id="panel-confirmar-preparar" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn peligro" id="panel-ejecutar-preparar" disabled>Preparar feria</button><button class="btn texto" data-cerrar>Cancelar</button></div>`);
+    App.abrirHoja(`<div class="hoja-texto"><h2>¿Preparar la feria?</h2><p>Renumera a las personas de la hoja Usuarios desde 1, en el orden en que aparecen. Intentos queda lista para 2.500 personas.</p><div class="resumen"><ul><li>Se quitan las filas repetidas y vacías de Usuarios</li><li>Si había huecos, quienes estaban después reciben un número más bajo</li><li>Quien no tenga fila en Usuarios pierde su número</li></ul></div><p class="chico">Esta acción no guarda copia de Usuarios. Haz una copia de la hoja antes de continuar.</p><label for="panel-confirmar-preparar">Escribe ${PALABRA_PREPARAR} para confirmar</label><input id="panel-confirmar-preparar" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn peligro" id="panel-ejecutar-preparar" disabled>Preparar feria</button><button class="btn texto" data-cerrar>Cancelar</button></div>`);
     const campo = $('panel-confirmar-preparar'); const boton = $('panel-ejecutar-preparar');
     campo.oninput = () => { boton.disabled = campo.value.trim().toUpperCase() !== PALABRA_PREPARAR; };
     campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };

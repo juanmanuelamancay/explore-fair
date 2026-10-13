@@ -262,7 +262,7 @@ Lo que esto implica al mirar o tocar la hoja:
 
 - **Hay filas vacías** entre los intentos de una persona y los de la siguiente. Para leerla a mano sirve un filtro que oculte las vacías.
 - **No se ordena ni se borran filas** con la feria en curso. Los números de fila guardados en cada celular dejarían de coincidir.
-- **La hoja necesita filas de sobra**, porque escribir en una fila concreta no la agranda. La app la agranda sola cuando hace falta, y `prepararFeria` la deja lista para 800 personas (20.000 filas).
+- **La hoja necesita filas de sobra**, porque escribir en una fila concreta no la agranda. La app la agranda sola cuando hace falta, y `prepararFeria` la deja lista para 2.500 personas (unas 65.000 filas, contando la holgura).
 - **25 filas por persona** alcanzan para los 19 stands y seis más. El tamaño está fijo en el código (`FILAS_POR_PERSONA`).
 
 | Campo | Se llena | Tipo | Ejemplo | Nota |

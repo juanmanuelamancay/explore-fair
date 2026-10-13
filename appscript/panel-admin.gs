@@ -40,15 +40,17 @@ function registrarPendientes() {
   return registro_();
 }
 
-/** Descarta la caché para que la app relea ahora las hojas de catálogo, y devuelve qué encontró. */
+/** Descarta la caché, relee las hojas de catálogo y deja listas las preguntas de cada stand y los premios. Devuelve qué encontró. */
 function actualizarCatalogo() {
   exigirVista_('PANEL_ADMIN');
   limpiarCache_();
   const catalogo = catalogo_();
+  const standsListos = precargarPreguntasYPremios_();
   return {
     pabellones: catalogo.pabellones.length,
     stands: catalogo.stands.length,
     preguntas: leerHoja_(HOJA.PREGUNTAS).filter(p => esVerdadero_(p.activo)).length,
+    standsListos: standsListos,
   };
 }
 
