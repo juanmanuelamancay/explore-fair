@@ -16,12 +16,20 @@ const LARGO_DE_CODIGO = 4;
  */
 function unidadesParaCodigo_(sesion, catalogo) {
   const todas = pabellonesDelMapa_(catalogo).map(p => ({ id: p.id, nombre: p.nombre, grupo: 'Pabellón', indice: p.indice, tipo: 'PABELLON' }))
-    .concat(charlasDe_(catalogo).map((c, i) => ({ id: c.id, nombre: c.nombre, grupo: 'Charla', indice: i, tipo: 'CHARLA' })));
+    .concat(charlasDe_(catalogo).map((c, i) => ({ id: c.id, nombre: c.nombre, grupo: 'Charla', indice: i, tipo: 'CHARLA', cierre: c.cierre })));
   if (sesion.rol === 'ADMIN') return todas;
   if (!sesion.staff) return [];
   if (sesion.rol === 'LIDER') return todas.filter(u => u.tipo === 'PABELLON' && u.id === sesion.staff.pabellonId);
   if (sesion.rol === 'PONENTE') return todas.filter(u => u.tipo === 'CHARLA' && u.id === sesion.staff.charlaId);
   return [];
+}
+
+/**
+ * ¿Esta persona ya no puede generar el código de esta charla porque cerró? El admin sí puede: es la salida de emergencia.
+ * "sinCierre" lo usan las sesiones armadas en memoria por las pruebas de líderes.
+ */
+function cierreBloquea_(sesion, unidad, ahoraMs) {
+  return sesion.rol !== 'ADMIN' && !sesion.sinCierre && charlaCerrada_(unidad, ahoraMs);
 }
 
 function estaVigente_(codigo, ahoraMs) {
@@ -41,9 +49,11 @@ function obtenerCodigosDe_(sesion) {
   });
   return {
     ahora: ahora,
-    unidades: unidadesParaCodigo_(sesion, catalogo_()).map(u => ({
-      id: u.id, nombre: u.nombre, grupo: u.grupo, indice: u.indice, activo: vigentes[u.id] || null,
-    })),
+    unidades: unidadesParaCodigo_(sesion, catalogo_()).map(u => {
+      // "cerrada": a esta persona ya no se le deja generar (la pantalla no muestra código ni botón). "cierre" solo viaja en las charlas.
+      const cerrada = cierreBloquea_(sesion, u, ahora);
+      return { id: u.id, nombre: u.nombre, grupo: u.grupo, indice: u.indice, cierre: u.cierre || 0, cerrada: cerrada, activo: cerrada ? null : (vigentes[u.id] || null) };
+    }),
   };
 }
 
@@ -59,6 +69,7 @@ function generarCodigoDe_(sesion, unidadId) {
   const catalogo = catalogo_();
   const stand = unidadesParaCodigo_(sesion, catalogo).find(u => u.id === id_(unidadId));
   if (!stand) throw new Error('No puedes generar códigos para este quiz.');
+  if (cierreBloquea_(sesion, stand, Date.now())) throw new Error('La hora de esta charla se venció: ya no se pueden generar códigos.');
 
   // Cada unidad tiene su fila en Codigos y el código nuevo la reemplaza: no se agrega nada al final de la hoja,
   // así que no hace falta el turno global y dos unidades nunca se esperan. Solo si la fila no existe todavía se

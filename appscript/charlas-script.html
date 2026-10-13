@@ -2,9 +2,11 @@
 (() => {
   const ruta = $('charlas-ruta');
   const REPINTAR_MS = 30000;   // el estado de cada charla depende de la hora: se repinta aunque nadie toque nada
+  const DIA_MS = 86400000;
   let datos = null;
   let desfase = 0;             // hora del servidor menos hora del celular
   let intervalo = null;
+  let centrado = false;        // la vista se lleva a la charla vigente una sola vez por visita, no en cada repintado
 
   const ahora = () => Date.now() + desfase;
   const hora = ms => new Date(ms).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -15,6 +17,7 @@
     const primerNombre = INICIO.nombre.split(' ')[0];
     $('charlas-saludo').textContent = 'Hola, ' + primerNombre.charAt(0).toUpperCase() + primerNombre.slice(1);
     $('charlas-guia-icono').innerHTML = svg(ICONO.megafono, 20);
+    centrado = false;
     if (!datos) App.cargando(ruta);
     else aplicarResultadoReciente();
     cargar();
@@ -51,46 +54,73 @@
     if (reciente.estado === 'COMPLETADO') toast(`+${reciente.puntaje} puntos en ${charla.nombre}`);
   }
 
-  /** Cómo se ve cada charla ahora: hecha, vencida, próxima, abierta o en vivo. */
+  /** Cómo se ve cada charla ahora: hecha, vencida, próxima, abierta, en vivo o cerrada. "compacta" = tarjeta de una línea. */
   function aspecto(c) {
     const t = ahora();
     if (c.estado === 'COMPLETADO') return { clase: 'hecha', icono: ICONO.check, etiqueta: ['Completada', 'verde'] };
-    if (c.estado === 'VENCIDO') return { clase: 'vencida', icono: ICONO.equis, etiqueta: ['Se venció', 'gris'] };
+    if (c.estado === 'VENCIDO') return { clase: 'vencida compacta', icono: ICONO.equis, etiqueta: ['Se venció', 'gris'] };
     if (c.estado === 'EN_CURSO') return { clase: 'abierta en-vivo', icono: ICONO.play, etiqueta: ['En curso', ''] };
     if (c.inicio && t < c.inicio) return { clase: 'proxima', icono: ICONO.reloj, etiqueta: ['Próxima', 'gris'] };
+    // Pasada la hora de cierre ya no se empieza el quiz. No es un fallo: cada persona va a las charlas que quiere.
+    if (c.cierre && t > c.cierre) return { clase: 'cerrada compacta', icono: ICONO.candado, etiqueta: ['Cerrada', 'gris'] };
     const envivo = !!c.fin && t <= c.fin;
     return { clase: 'abierta' + (envivo ? ' en-vivo' : ''), icono: ICONO.llave, etiqueta: [envivo ? 'En vivo' : 'Abierta', ''] };
   }
 
-  function parada(c, indice, ultima) {
+  /** ¿Todas las charlas tienen las mismas preguntas y el mismo tiempo? Entonces se dicen una vez arriba y no en cada tarjeta. */
+  function esUniforme() {
+    const primera = datos.charlas[0];
+    return datos.charlas.every(c => c.numPreguntas === primera.numPreguntas);
+  }
+
+  function tarjeta(c, indice, uniforme) {
     const a = aspecto(c);
-    const horario = c.inicio ? hora(c.inicio) + (c.fin ? ' – ' + hora(c.fin) : '') : 'Sin horario';
+    const compacta = a.clase.indexOf('compacta') >= 0;
+    // Solo se muestra la hora de fin si es posterior al inicio ("16:30 – 16:30" no dice nada).
+    const horario = c.inicio ? hora(c.inicio) + (c.fin && c.fin > c.inicio ? ' – ' + hora(c.fin) : '') : 'Sin horario';
+    const reloj = svg(ICONO.reloj, 14);
+    const vigente = a.clase.indexOf('abierta') >= 0 || a.clase.indexOf('proxima') >= 0;
+
+    let datosDeLaCharla = '';
+    if (!compacta && c.estado !== 'COMPLETADO') {
+      datosDeLaCharla = '<div class="ch-datos">' +
+        (uniforme ? '' : `<span class="chip">${c.numPreguntas} preguntas</span>`) +
+        `<span class="chip">Hasta ${c.puntosMax} pts</span>` +
+        (vigente && c.cierre ? `<span class="chip ch-cierre">${reloj} Responde hasta las ${hora(c.cierre)}</span>` : '') +
+        '</div>';
+    }
+
     let accion = '';
     if (INICIO.rol === 'VALIDADOR') {
       // El validador no responde: recorre las preguntas de la charla sin poder elegir.
       accion = '<button class="btn secundario" data-quiz="' + esc(c.id) + '">Ver preguntas</button>';
     } else if (c.estado === 'COMPLETADO') {
-      accion = `<p class="ch-nota">${c.correctas} de ${c.total} correctas · ${c.puntaje} pts</p>`;
+      accion = `<p class="ch-resultado"><b class="tnum">+${c.puntaje} pts</b><span>${c.correctas} de ${c.total} correctas</span></p>`;
     } else if (c.estado === 'VENCIDO') {
       accion = '<p class="ch-nota">Se te venció el tiempo en esta charla. No se puede repetir.</p>';
-    } else if (a.clase.indexOf('proxima') >= 0) {
-      accion = `<p class="ch-nota">Comienza el ${esc(dia(c.inicio))} a las ${hora(c.inicio)}.</p>`;
-    } else if (!datos.soloLectura) {
+    } else if (a.clase.indexOf('cerrada') >= 0) {
+      accion = `<p class="ch-nota">La hora para responder se venció (cerró a las ${hora(c.cierre)}).</p>`;
+    } else if (a.clase.indexOf('abierta') >= 0 && !datos.soloLectura) {
       accion = `<button class="btn" data-quiz="${esc(c.id)}">${c.estado === 'EN_CURSO' ? 'Continuar el quiz' : 'Ingresar código'}</button>
         ${c.estado === 'EN_CURSO' ? '' : '<p class="ch-nota">El código lo comparte quien dicta la charla al terminar.</p>'}`;
     }
+
     return `
-      <article class="ch-parada ${a.clase} ${ultima ? 'ultima' : ''}" style="--c:${paleta(indice).color}">
-        <span class="ch-nodo">${svg(a.icono, 22, 'currentColor', a.clase === 'hecha' ? 3 : 2)}</span>
-        <div class="ch-tarjeta">
-          <div class="ch-hora"><span class="tnum">${horario}</span><span class="ch-etiqueta ${a.etiqueta[1]}">${a.etiqueta[0]}</span></div>
-          <h2>${esc(c.nombre)}</h2>
-          ${c.ponente ? `<p class="ch-ponente">${esc(c.ponente)}</p>` : ''}
-          ${c.descripcion ? `<p class="ch-desc">${esc(c.descripcion)}</p>` : ''}
-          <div class="ch-datos"><span class="chip">${c.numPreguntas} preguntas</span><span class="chip">${INICIO.minutosParaResponder} minutos</span><span class="chip">Hasta ${c.puntosMax} pts</span></div>
-          ${accion}
-        </div>
+      <article class="ch-card ${a.clase}" data-charla="${esc(c.id)}">
+        <div class="ch-hora"><span class="ch-icono">${svg(a.icono, 16, 'currentColor', a.clase === 'hecha' ? 3 : 2)}</span><span class="tnum">${horario}</span><span class="ch-etiqueta ${a.etiqueta[1]}">${a.etiqueta[0]}</span></div>
+        <h2>${esc(c.nombre)}</h2>
+        ${compacta ? '' : (c.ponente ? `<p class="ch-ponente">${esc(c.ponente)}</p>` : '') + (c.descripcion ? `<p class="ch-desc">${esc(c.descripcion)}</p>` : '')}
+        ${datosDeLaCharla}
+        ${accion}
       </article>`;
+  }
+
+  /** "Hoy", "Mañana" o nada, según el reloj del servidor. */
+  function rotuloDelDia(ms) {
+    const clave = claveDia(ms);
+    if (clave === claveDia(ahora())) return '<span class="ch-hoy">Hoy</span> · ';
+    if (clave === claveDia(ahora() + DIA_MS)) return 'Mañana · ';
+    return '';
   }
 
   function pintar() {
@@ -100,19 +130,30 @@
       ruta.innerHTML = '<p class="ch-vacio">Todavía no hay charlas programadas.</p>';
       return;
     }
-    let html = '';
+    const uniforme = esUniforme();
+    let html = uniforme ? `<p class="ch-resumen">Cada charla: ${datos.charlas[0].numPreguntas} preguntas · ${INICIO.minutosParaResponder} minutos para responder.</p>` : '';
     let diaActual = null;
     datos.charlas.forEach((c, i) => {
       const grupo = c.inicio ? claveDia(c.inicio) : 'sin-fecha';
       if (grupo !== diaActual) {
         diaActual = grupo;
-        html += `<h2 class="ch-dia">${c.inicio ? esc(dia(c.inicio)) : 'Sin fecha'}</h2>`;
+        html += `<h2 class="ch-dia">${c.inicio ? rotuloDelDia(c.inicio) + esc(dia(c.inicio)) : 'Sin fecha'}</h2>`;
       }
-      const siguiente = datos.charlas[i + 1];
-      const ultimaDelDia = !siguiente || (siguiente.inicio ? claveDia(siguiente.inicio) : 'sin-fecha') !== grupo;
-      html += parada(c, i, ultimaDelDia);
+      html += tarjeta(c, i, uniforme);
     });
     ruta.innerHTML = html;
+    if (!centrado) { centrado = true; irALaVigente(); }
+  }
+
+  /**
+   * Con varias charlas ya cerradas arriba, la que sigue vigente puede quedar fuera de la pantalla: se lleva a la vista, una sola
+   * vez por visita. Es la primera abierta o en curso y, si no hay, la primera próxima. Si ya se ve, no se mueve nada.
+   */
+  function irALaVigente() {
+    const vigente = ruta.querySelector('.ch-card.abierta') || ruta.querySelector('.ch-card.proxima');
+    if (!vigente) return;
+    const arriba = vigente.getBoundingClientRect().top;
+    if (arriba > window.innerHeight * 0.6) vigente.scrollIntoView({ block: 'start' });
   }
 
   ruta.addEventListener('click', e => {
@@ -121,7 +162,7 @@
     const indice = datos.charlas.findIndex(c => c.id === boton.dataset.quiz);
     if (indice < 0) return;
     const tono = paleta(indice);
-    App.ir('quiz', { unidad: datos.charlas[indice], etiqueta: 'Charla', titulo: datos.charlas[indice].nombre, volver: 'charlas', color: tono.color, tinte: tono.tinte });
+    App.ir('quiz', { unidad: datos.charlas[indice], etiqueta: 'Charla', titulo: datos.charlas[indice].nombre, volver: 'charlas', color: tono.color, tinte: tono.tinte, desfase: desfase });
   });
 
   App.registrar('charlas', { alMostrar: mostrar, alOcultar: ocultar, alRefrescar: cargar });

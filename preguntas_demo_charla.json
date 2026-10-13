@@ -1,0 +1,152 @@
+[
+  {
+    "texto": "¿Qué es un prompt?",
+    "opcion_a": "La instrucción y el contexto que se le dan a un modelo de IA",
+    "opcion_b": "El nombre de un modelo de lenguaje",
+    "opcion_c": "Un tipo de base de datos",
+    "opcion_d": "El resultado que devuelve el modelo",
+    "correcta": "A",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Qué suele incluir un buen prompt?",
+    "opcion_a": "Solo una palabra clave",
+    "opcion_b": "Contexto, tarea concreta y formato esperado",
+    "opcion_c": "Únicamente la respuesta que se espera",
+    "opcion_d": "Siempre el código completo del proyecto",
+    "correcta": "B",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Qué es un agente de IA?",
+    "opcion_a": "Un buscador que solo devuelve enlaces",
+    "opcion_b": "Una hoja de cálculo con fórmulas",
+    "opcion_c": "Un sistema que usa un modelo para planificar y ejecutar pasos hacia un objetivo",
+    "opcion_d": "Un programa que no necesita instrucciones",
+    "correcta": "C",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "Antes de aceptar la salida de un agente, ¿qué debes hacer?",
+    "opcion_a": "Publicarla de inmediato",
+    "opcion_b": "Guardarla sin abrirla",
+    "opcion_c": "Pedirle que la repita tres veces",
+    "opcion_d": "Revisarla y validarla con tu criterio",
+    "correcta": "D",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Qué es una alucinación en IA?",
+    "opcion_a": "Una respuesta que parece convincente pero es incorrecta o inventada",
+    "opcion_b": "Un error de conexión a internet",
+    "opcion_c": "Una pregunta sin respuesta posible",
+    "opcion_d": "Una actualización del modelo",
+    "correcta": "A",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Qué información no debes pegar en una herramienta de IA no autorizada?",
+    "opcion_a": "Una definición de un concepto público",
+    "opcion_b": "Datos confidenciales, contraseñas o credenciales",
+    "opcion_c": "Un ejemplo de código genérico",
+    "opcion_d": "Una lista de buenas prácticas",
+    "correcta": "B",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Qué son los tokens?",
+    "opcion_a": "Las contraseñas de acceso al modelo",
+    "opcion_b": "Los permisos de un usuario",
+    "opcion_c": "Las unidades de texto que procesa el modelo y con las que se mide su uso",
+    "opcion_d": "Los errores que devuelve un agente",
+    "correcta": "C",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Cómo ayuda a reducir el consumo de tokens?",
+    "opcion_a": "Escribir prompts más largos siempre",
+    "opcion_b": "Repetir la pregunta varias veces",
+    "opcion_c": "Pegar todo el repositorio en cada consulta",
+    "opcion_d": "Dar solo el contexto relevante y pedir respuestas concisas",
+    "correcta": "D",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Qué evidencia respalda la calidad de un trabajo hecho con un agente?",
+    "opcion_a": "Pruebas, revisiones y registro de lo que se verificó",
+    "opcion_b": "El tiempo que tardó el agente",
+    "opcion_c": "La cantidad de líneas generadas",
+    "opcion_d": "El número de prompts escritos",
+    "correcta": "A",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Quién es responsable del código generado por un agente que se entrega?",
+    "opcion_a": "El agente que lo generó",
+    "opcion_b": "La persona que lo acepta y lo entrega",
+    "opcion_c": "El proveedor del modelo",
+    "opcion_d": "Nadie, porque lo escribió una máquina",
+    "correcta": "B",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Qué ayuda a obtener resultados más consistentes de un agente?",
+    "opcion_a": "Cambiar de modelo en cada intento",
+    "opcion_b": "Escribir el prompt lo más corto posible",
+    "opcion_c": "Dar ejemplos y criterios de aceptación claros",
+    "opcion_d": "No explicar el objetivo",
+    "correcta": "C",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿En qué puede apoyar un agente dentro del ciclo de desarrollo (SDLC)?",
+    "opcion_a": "En reemplazar toda revisión humana",
+    "opcion_b": "En aprobar despliegues sin supervisión",
+    "opcion_c": "En decidir los requisitos del negocio por sí solo",
+    "opcion_d": "En generar borradores de pruebas y documentación, con supervisión",
+    "correcta": "D",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "Si el agente responde algo que no entiendes, ¿qué conviene hacer?",
+    "opcion_a": "Pedirle que lo explique y verificarlo antes de usarlo",
+    "opcion_b": "Usarlo tal cual",
+    "opcion_c": "Borrarlo y no volver a preguntar",
+    "opcion_d": "Copiarlo en producción para probar",
+    "correcta": "A",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Por qué conviene iterar sobre un prompt?",
+    "opcion_a": "Porque el modelo siempre acierta a la primera",
+    "opcion_b": "Porque refinarlo con lo que devolvió suele mejorar el resultado",
+    "opcion_c": "Porque así se gastan menos tokens siempre",
+    "opcion_d": "Porque el modelo olvida la primera versión",
+    "correcta": "B",
+    "puntos": 10,
+    "activo": true
+  },
+  {
+    "texto": "¿Qué principio forma parte del uso responsable de la IA?",
+    "opcion_a": "Ocultar cuándo se usó para no dar explicaciones",
+    "opcion_b": "Confiar en la salida sin comprobarla",
+    "opcion_c": "Ser transparente sobre su uso y mantener una revisión humana",
+    "opcion_d": "Usarla solo cuando nadie mira",
+    "correcta": "C",
+    "puntos": 10,
+    "activo": true
+  }
+]

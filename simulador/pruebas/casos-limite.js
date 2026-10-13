@@ -69,6 +69,21 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
   x = await intenta(admin, 'guardarAdminRegistro', 'staff', { email: 'otro@demo.com', nombre: 'Otro', rol: 'LIDER', activo: true });
   ok(x.error && /pabellón/.test(x.error), 'staff LIDER sin pabellón se rechaza', x);
 
+  // Respaldos: un reinicio los crea y el admin puede borrarlos, con palabra de confirmación y solo siendo admin
+  x = await intenta(admin, 'reiniciarDatos', 'REINICIAR');
+  ok(x.valor && x.valor.respaldos >= 1, 'el reinicio deja hojas de respaldo', x.error || x.valor.respaldos);
+  const antes = x.valor && x.valor.respaldos;
+  const panel = await llamar(admin, 'obtenerPanel');
+  ok(panel.respaldos === antes, 'el panel cuenta los respaldos', panel.respaldos);
+  x = await intenta(admin, 'borrarRespaldos', 'algo');
+  ok(x.error && /confirmación/.test(x.error), 'borrar respaldos pide la palabra BORRAR', x);
+  x = await intenta(ana, 'borrarRespaldos', 'BORRAR');
+  ok(x.error, 'un usuario no puede borrar respaldos', x);
+  x = await intenta(admin, 'borrarRespaldos', 'BORRAR');
+  ok(x.valor && x.valor.borradas === antes && x.valor.respaldos === 0, 'el admin borra los respaldos', x.error || x.valor);
+  const hojas = (await (await fetch(base + '/hoja?nombre=no-existe')).json()).hojas;
+  ok(hojas.indexOf('Intentos') >= 0 && !hojas.some(h => h.indexOf('respaldo_') === 0), 'quedan las hojas de la feria y ningún respaldo', hojas);
+
   console.log(fallos ? '\n' + fallos + ' FALLAS' : '\nTODO BIEN');
   process.exit(fallos ? 1 : 0);
 })().catch(e => { console.log('ERROR', e); process.exit(2); });

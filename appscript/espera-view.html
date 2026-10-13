@@ -11,20 +11,21 @@
   <!-- Cuenta regresiva, o el aviso de que ya llegó el día -->
   <section class="tarjeta centro espera-cuenta" id="espera-cuenta" aria-live="polite"></section>
 
-  <!-- Carrusel: empieza en el Objetivo, sigue con Cómo participar, luego una tarjeta por pabellón
+  <!-- Carrusel: empieza en el Objetivo, sigue con Cómo participar, las Charlas (si hay), luego una tarjeta por pabellón
        (las agrega el script antes de Premios) y termina en Premios.
        Se desliza con el dedo, avanza solo y los puntos llevan a cada lámina. -->
   <div class="carrusel" id="espera-carrusel" hidden>
 
     <!-- Es la lámina más larga: se le da más tiempo antes de avanzar (data-segundos) -->
     <section class="lamina" data-titulo="Objetivo" data-segundos="25">
-      <h2 class="titulo-seccion">Objetivo de la feria</h2>
+      <h2 class="titulo-seccion">Objetivo del evento</h2>
       <div class="tarjeta espera-objetivo">
         <div class="objetivo-cab">
           <div class="disco-chico" id="espera-objetivo-icono"></div>
           <h2>Una experiencia práctica</h2>
         </div>
         <p class="objetivo-texto">Conocerás qué agentes existen y cuál puede ayudarte, cómo utilizarlo y cómo combinar sus capacidades para resolver retos reales de desarrollo.</p>
+        <p class="objetivo-texto">El evento reúne unas charlas previas y la feria. Los puntos de las dos se suman en un solo ranking.</p>
 
         <p class="objetivo-sub">¿Qué encontrarás?</p>
         <ul class="objetivo-lista">
@@ -37,7 +38,7 @@
         </ul>
 
         <div class="objetivo-meta">
-          <span>Al terminar la feria podrás decir:</span>
+          <span>Al terminar el evento podrás decir:</span>
           <b>“Sé qué agente puede ayudarme y cómo empezar a utilizarlo en mi día a día.”</b>
         </div>
       </div>
@@ -45,13 +46,17 @@
 
     <section class="lamina" data-titulo="Cómo participar">
       <h2 class="titulo-seccion">Esta app te servirá para…</h2>
-      <p class="espera-intro">Recorrer la feria a tu ritmo, participar en las charlas y completar quizzes para sumar puntos y subir en el ranking.</p>
+      <p class="espera-intro">Seguir las charlas, recorrer la feria a tu ritmo y completar quizzes para sumar puntos y subir en el ranking. Los puntos de las charlas y los de la feria se acumulan.</p>
       <ol class="lista espera-pasos">
-        <li class="fila"><span class="paso">1</span><span class="quien"><b>Responde el quiz de entrada</b><span>Es lo primero al llegar: te da tus primeros puntos y abre los pabellones para que sigas respondiendo y sumando.</span></span></li>
-        <li class="fila"><span class="paso">2</span><span class="quien"><b>Visita los stands</b><span>Al terminar cada charla, el líder te da un código. Úsalo en la app para desbloquear las preguntas de ese stand.</span></span></li>
-        <li class="fila"><span class="paso">3</span><span class="quien"><b>Suma puntos y sube en el ranking</b><span>Cada respuesta correcta cuenta. Solo hay un intento por stand.</span></span></li>
+        <li class="fila"><span class="paso">1</span><span class="quien"><b>Asiste a las charlas</b><span>Al terminar cada una, quien la dicta comparte un código. Ingrésalo en la app para responder su quiz y sumar tus primeros puntos.</span></span></li>
+        <li class="fila"><span class="paso">2</span><span class="quien"><b>Responde el quiz de entrada</b><span>Cuando empiece la feria, es lo primero al llegar: te da puntos y abre los pabellones.</span></span></li>
+        <li class="fila"><span class="paso">3</span><span class="quien"><b>Recorre los pabellones</b><span>Al terminar la charla de un pabellón, su líder te da un código. Úsalo para responder el quiz de todo el pabellón.</span></span></li>
+        <li class="fila"><span class="paso">4</span><span class="quien"><b>Suma puntos y sube en el ranking</b><span>Cada respuesta correcta cuenta. Solo hay un intento por charla y por pabellón.</span></span></li>
       </ol>
     </section>
+
+    <!-- Las llena el script con las charlas de la hoja Charlas, agrupadas por día; sin charlas, no se muestra -->
+    <section class="lamina" data-titulo="Charlas" id="espera-charlas" hidden></section>
 
     <section class="lamina" data-titulo="Premios" id="espera-premios" hidden></section>
 

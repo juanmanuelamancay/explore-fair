@@ -371,7 +371,7 @@ function leerCatalogo_() {
     return {
       id: id, tipo: 'PABELLON', nombre: texto_(p.nombre), nombreCorto: texto_(p.nombre_corto), descripcion: texto_(p.descripcion),
       orden: Number(p.orden) || 0, requiereCodigo: requiere, bancos: bancos,
-      porQuiz: bancos.reduce((suma, b) => suma + b.cuantas, 0), ponente: '', inicio: 0, fin: 0,
+      porQuiz: bancos.reduce((suma, b) => suma + b.cuantas, 0), ponente: '', inicio: 0, fin: 0, cierre: 0,
     };
   }).sort(porOrden);
 
@@ -382,7 +382,7 @@ function leerCatalogo_() {
     return {
       id: id, tipo: 'CHARLA', nombre: texto_(c.titulo), nombreCorto: texto_(c.titulo), descripcion: texto_(c.descripcion),
       orden: Number(c.orden) || 0, requiereCodigo: true, bancos: [{ id: id, nombre: texto_(c.titulo), cuantas: cuantas, minimo: minimo }],
-      porQuiz: cuantas, ponente: texto_(c.ponente), inicio: fechaEnMs_(c.inicio), fin: fechaEnMs_(c.fin),
+      porQuiz: cuantas, ponente: texto_(c.ponente), inicio: fechaEnMs_(c.inicio), fin: fechaEnMs_(c.fin), cierre: fechaEnMs_(c.cierre),
     };
   }).sort((a, b) => a.inicio - b.inicio || a.orden - b.orden);
 

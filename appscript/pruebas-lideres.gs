@@ -324,7 +324,7 @@ function sesionDeLiderPrueba_(turno) {
   return {
     email: turno.email, rol: esCharla ? 'PONENTE' : 'LIDER',
     staff: esCharla ? { charlaId: turno.unidadId } : { pabellonId: turno.unidadId },
-    vistas: ['GENERAR_CODIGO'], enEspera: false,
+    vistas: ['GENERAR_CODIGO'], enEspera: false, sinCierre: true,
   };
 }
 

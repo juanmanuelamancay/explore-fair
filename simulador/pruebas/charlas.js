@@ -97,6 +97,41 @@ const hoja = async nombre => (await (await fetch(base + '/hoja?nombre=' + nombre
   x = await intenta(admin, 'borrarAdminRegistro', 'charlas', cat.charlas.find(c => c.charla_id === 'CHA-006')._fila);
   ok(x.error && /preguntas activas/.test(x.error), 'panel: no desactiva una charla con preguntas activas', x);
 
+  // ---- Cierre de la charla: hora límite para empezar el quiz y para que el ponente genere códigos ----
+  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Ya cerrada', ponente: 'X', inicio: '2020-01-01 10:00', fin: '2020-01-01 11:00', cierre: '2020-01-01 11:30', orden: 8, activo: true, ponente_email: 'cerrada.ponente@demo.com' });
+  const cerrada = x.valor && x.valor.charlas.find(c => c.titulo === 'Ya cerrada');
+  ok(cerrada && cerrada.cierre, 'panel: crea una charla con hora de cierre', x.error);
+  const poncerrado = 'cerrada.ponente@demo.com';
+  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Mal cierre', inicio: '2026-10-21 18:00', cierre: '2026-10-21 17:00', orden: 9, activo: true });
+  ok(x.error && /posterior/.test(x.error), 'panel: el cierre debe ser posterior al inicio', x);
+
+  r = await llamar(ana, 'iniciarQuiz', cerrada.charla_id, 'ZZZZ');
+  ok(!r.ok && r.motivo === 'CIERRE' && r.cerroEn > 0, 'una charla cerrada no se puede empezar, ni con código', r);
+  cod = await llamar(poncerrado, 'obtenerCodigos');
+  ok(cod.unidades.length === 1 && cod.unidades[0].cerrada === true && cod.unidades[0].activo === null && cod.unidades[0].cierre > 0, 'ponente: su charla aparece cerrada, sin código', cod.unidades);
+  x = await intenta(poncerrado, 'generarCodigo', cerrada.charla_id);
+  ok(x.error && /se venció/.test(x.error), 'ponente: no puede generar código después del cierre', x);
+  x = await intenta(admin, 'generarCodigo', cerrada.charla_id);
+  ok(x.valor && /^[A-Z0-9]{4}$/.test(x.valor.codigo), 'admin: sí puede generar código después del cierre', x.error);
+  r = await llamar(ana, 'iniciarQuiz', cerrada.charla_id, x.valor.codigo);
+  ok(!r.ok && r.motivo === 'CIERRE', 'aunque el código sea válido, la charla cerrada no abre', r);
+  ch = await llamar(ana, 'obtenerCharlas');
+  ok(ch.charlas.find(c => c.id === cerrada.charla_id).cerrada === true && ch.charlas.find(c => c.id === 'CHA-002').cerrada === false, 'la ruta marca cerrada solo la que pasó su hora');
+
+  // Quien ya empezó su quiz lo termina aunque pase el cierre
+  const codigo2 = (await llamar(admin, 'generarCodigo', 'CHA-002')).codigo;
+  r = await llamar(ana, 'iniciarQuiz', 'CHA-002', codigo2);
+  ok(r.ok && r.preguntas.length === 5, 'CHA-002 abre antes del cierre');
+  cat = await llamar(admin, 'obtenerAdminCatalogo');
+  const c2 = cat.charlas.find(c => c.charla_id === 'CHA-002');
+  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', Object.assign({}, c2, { inicio: '2020-01-01 10:00', fin: '2020-01-01 11:00', cierre: '2020-01-01 11:30' }));
+  ok(x.valor, 'el admin mueve el cierre de CHA-002 al pasado', x.error);
+  const retomado = await llamar(ana, 'iniciarQuiz', 'CHA-002', '');
+  ok(retomado.ok && retomado.intentoId === r.intentoId, 'con el quiz en curso se puede retomar aunque la charla haya cerrado', retomado);
+  const respCierre = {}; r.preguntas.forEach(q => { respCierre[q.id] = 'A'; });
+  const finCierre = await llamar(ana, 'enviarQuiz', r.intentoId, respCierre);
+  ok(finCierre.ok && finCierre.total === 5, 'y se puede enviar después del cierre', finCierre);
+
   console.log(fallos ? '\n' + fallos + ' FALLAS' : '\nTODO BIEN');
   process.exit(fallos ? 1 : 0);
 })().catch(e => { console.log('ERROR', e); process.exit(2); });

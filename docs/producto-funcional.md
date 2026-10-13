@@ -6,7 +6,7 @@ Explore Fair es una aplicación para convertir una feria en una experiencia de p
 
 ## Para qué sirve
 
-- Guiar a cada persona por la ruta de charlas de la semana previa y por los pabellones y stands de la feria.
+- Guiar a cada persona por la agenda de charlas de la semana previa y por los pabellones y stands de la feria.
 - Comprobar de forma sencilla qué aprendió en cada charla.
 - Dar a los líderes de pabellón y a los ponentes una forma rápida de habilitar cada cuestionario, y a los expositores y ponentes mantener las preguntas de lo que presentan.
 - Mostrar a cada participante los puntos que lleva.
@@ -57,13 +57,13 @@ Los cuestionarios completados suman al ranking. Si se acaba el tiempo, el cuesti
 
 ## La semana de charlas
 
-Antes del evento hay cinco charlas o talleres, con su día y hora. Quien asiste ingresa a la app, ve la **ruta de charlas** y, al terminar cada una, ingresa el código que comparte el ponente (dura 5 minutos) y responde 5 preguntas de las 15 del banco de la charla. No pide el cuestionario de entrada. Los puntos suman al ranking y las mismas personas siguen sumando en el evento.
+Antes del evento hay cinco charlas o talleres, con su día y hora. Quien asiste ingresa a la app, ve la **agenda de charlas** y, al terminar cada una, ingresa el código que comparte el ponente (dura 5 minutos) y responde 5 preguntas de las 15 del banco de la charla. No pide el cuestionario de entrada. Los puntos suman al ranking y las mismas personas siguen sumando en el evento.
 
 Las fechas y horas, los puntos y el tiempo salen de las hojas (`Charlas`, `Preguntas`, `Config`), no del código. El administrador alterna lo que ve el participante entre la semana de charlas y el evento con la hoja `Permisos`.
 
 ## Antes del evento
 
-El administrador puede encender una sala de espera. Mientras está activa, los participantes ven una cuenta regresiva hasta la feria, los premios, cómo se juega y los pabellones con sus stands. Líderes y administradores entran a la app normal, sin registrarse. Quien entra a la sala de espera y no está en Staff queda registrado como participante desde ese momento.
+El administrador puede encender una sala de espera. Mientras está activa, los participantes ven una cuenta regresiva hasta el inicio del evento (la primera charla o la feria, lo que ocurra antes), un resumen de las fechas de las charlas y de la feria, cómo se juega, la lista de charlas por día, los premios y los pabellones con sus stands. Los puntos de las charlas y los de la feria se acumulan en el mismo ranking. Líderes, expositores, ponentes y administradores entran a la app normal, sin registrarse. Quien entra a la sala de espera y no está en Staff queda registrado como participante desde ese momento. Cuando empieza el evento el administrador apaga la sala (`espera_activa` en FALSE) y deja a `USUARIO` con la vista que toque (`CHARLAS` o `MAPA`).
 
 ## Roles principales
 

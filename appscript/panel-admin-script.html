@@ -2,6 +2,7 @@
 (() => {
   const PALABRA = 'REINICIAR';
   const PALABRA_PREPARAR = 'PREPARAR';
+  const PALABRA_BORRAR = 'BORRAR';
   // Hojas que borra el reinicio, con el nombre que se muestra en la confirmación.
   const HOJAS = [
     { hoja: 'Intentos', nombre: 'Intentos' },
@@ -27,7 +28,8 @@
     charlas: { titulo: 'Charlas', singular: 'charla', icono: ICONO.megafono, campos: [
       { clave: 'charla_id', etiqueta: 'ID', readonlyNuevo: true }, { clave: 'titulo', etiqueta: 'Título' }, { clave: 'ponente', etiqueta: 'Nombre del ponente', opcional: true },
       { clave: 'descripcion', etiqueta: 'Descripción', tipo: 'textarea', ancho: true, opcional: true },
-      { clave: 'inicio', etiqueta: 'Inicio', tipo: 'fecha' }, { clave: 'fin', etiqueta: 'Fin', tipo: 'fecha', opcional: true },
+      { clave: 'inicio', etiqueta: 'Inicio (desde aquí se puede responder)', tipo: 'fecha' }, { clave: 'fin', etiqueta: 'Fin de la charla (solo informativo)', tipo: 'fecha', opcional: true },
+      { clave: 'cierre', etiqueta: 'Cierre (hasta aquí se puede responder y generar código)', tipo: 'fecha', opcional: true },
       // No es una columna de Charlas: el servidor lo guarda en Staff como PONENTE de esta charla (genera su código y edita sus preguntas).
       { clave: 'ponente_email', etiqueta: 'Correo del ponente', tipo: 'email', opcional: true, ancho: true, ayuda: ayudaResponsable('charlas', 'la charla') },
       { clave: 'preguntas_banco', etiqueta: 'Preguntas del banco', tipo: 'number', opcional: true, ayuda: () => 'Vacío = el valor de Config (preguntas_banco_charla, 15). Es el tope del ponente y el mínimo para abrir el quiz.' },
@@ -68,6 +70,7 @@
   const VISTAS = ['MAPA', 'CHARLAS', 'QUIZ', 'RANKING', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN'];
   let conteos = null;
   let registro = null;
+  let respaldos = null;   // cuántas hojas de respaldo hay en el Sheet
   let ultimo = null;
   let recien = null;
   let datos = {};
@@ -98,6 +101,7 @@
     return Promise.all([servidor('obtenerPanel'), servidor('obtenerAdminCatalogo')]).then(r => {
       conteos = r[0].conteos;
       registro = r[0].registro;
+      respaldos = r[0].respaldos;
       ultimo = r[0].ultimo;
       datos = r[1];
       pintar();
@@ -127,7 +131,35 @@
       ? 'Intentos todavía tiene ' + filas(conteos.Intentos) + '. Reinicia los datos antes de preparar la feria.'
       : 'Intentos está vacía: la feria se puede preparar.';
     pintarRegistro();
+    pintarRespaldos();
     $('panel-ultimo').textContent = ultimo ? 'Último reinicio: ' + new Date(ultimo.cuando).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' }) + ' por ' + ultimo.por : 'Aún no se ha hecho ningún reinicio';
+  }
+
+  function pintarRespaldos() {
+    if (respaldos === null) return;
+    $('panel-respaldos').textContent = respaldos
+      ? 'Hay ' + respaldos + (respaldos === 1 ? ' hoja de respaldo' : ' hojas de respaldo') + ' en el Sheet.'
+      : 'No hay hojas de respaldo.';
+    const boton = $('panel-borrar-respaldos');
+    boton.disabled = !respaldos;
+    boton.textContent = respaldos ? 'Borrar respaldos' : 'No hay respaldos que borrar';
+  }
+
+  function abrirConfirmacionRespaldos() {
+    App.abrirHoja(`<div class="hoja-texto"><h2>¿Borrar los respaldos?</h2><p>Se borran <b>${respaldos}</b> ${respaldos === 1 ? 'hoja' : 'hojas'} cuyo nombre empieza por <b>respaldo_</b>. Esta acción no se puede deshacer. Los datos de la feria y el catálogo no se tocan.</p><label for="panel-confirmar-borrar">Escribe ${PALABRA_BORRAR} para confirmar</label><input id="panel-confirmar-borrar" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn peligro" id="panel-ejecutar-borrar" disabled>Borrar respaldos</button><button class="btn texto" data-cerrar>Cancelar</button></div>`);
+    const campo = $('panel-confirmar-borrar'); const boton = $('panel-ejecutar-borrar');
+    campo.oninput = () => { boton.disabled = campo.value.trim().toUpperCase() !== PALABRA_BORRAR; };
+    campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
+    boton.onclick = () => {
+      boton.disabled = true; campo.disabled = true; boton.innerHTML = '<i class="giro"></i>Borrando…';
+      servidor('borrarRespaldos', campo.value.trim()).then(r => {
+        respaldos = r.respaldos;
+        App.cerrarHoja();
+        toast(r.borradas === 1 ? 'Se borró 1 hoja de respaldo.' : 'Se borraron ' + r.borradas + ' hojas de respaldo.');
+        pintar();
+      }).catch(error => { toast(error && error.message ? error.message : 'No se pudo borrar. Inténtalo de nuevo.'); campo.disabled = false; boton.disabled = false; boton.textContent = 'Borrar respaldos'; });
+    };
+    setTimeout(() => campo.focus(), 250);
   }
 
   /** Cuántas personas están en Usuarios y cuántas siguen en el buzón, esperando la siguiente escritura. */
@@ -423,7 +455,7 @@
     const campo = $('panel-confirmar'); const boton = $('panel-ejecutar');
     campo.oninput = () => { boton.disabled = campo.value.trim().toUpperCase() !== PALABRA; };
     campo.onkeydown = e => { if (e.key === 'Enter' && !boton.disabled) boton.click(); };
-    boton.onclick = () => { boton.disabled = true; campo.disabled = true; boton.innerHTML = '<i class="giro"></i>Reiniciando…'; servidor('reiniciarDatos', campo.value.trim()).then(r => { const partes = HOJAS.filter(h => r.borradas[h.hoja] > 0).map(h => r.borradas[h.hoja] + ' ' + h.nombre.toLowerCase()); recien = 'Se borraron ' + partes.join(', ').replace(/, ([^,]*)$/, ' y $1') + '. Copia guardada como ' + r.respaldo + '.'; conteos = r.conteos; ultimo = r.ultimo; App.cerrarHoja(); pintar(); window.scrollTo(0, 0); }).catch(error => { toast(error && error.message ? error.message : 'No se pudo reiniciar. Inténtalo de nuevo.'); campo.disabled = false; boton.disabled = false; boton.textContent = 'Reiniciar datos'; }); };
+    boton.onclick = () => { boton.disabled = true; campo.disabled = true; boton.innerHTML = '<i class="giro"></i>Reiniciando…'; servidor('reiniciarDatos', campo.value.trim()).then(r => { const partes = HOJAS.filter(h => r.borradas[h.hoja] > 0).map(h => r.borradas[h.hoja] + ' ' + h.nombre.toLowerCase()); recien = 'Se borraron ' + partes.join(', ').replace(/, ([^,]*)$/, ' y $1') + '. Copia guardada como ' + r.respaldo + '.'; conteos = r.conteos; ultimo = r.ultimo; respaldos = r.respaldos; App.cerrarHoja(); pintar(); window.scrollTo(0, 0); }).catch(error => { toast(error && error.message ? error.message : 'No se pudo reiniciar. Inténtalo de nuevo.'); campo.disabled = false; boton.disabled = false; boton.textContent = 'Reiniciar datos'; }); };
     setTimeout(() => campo.focus(), 250);
   }
 
@@ -445,6 +477,7 @@
   }
 
   $('panel-abrir').addEventListener('click', abrirConfirmacion);
+  $('panel-borrar-respaldos').addEventListener('click', abrirConfirmacionRespaldos);
   $('panel-preparar').addEventListener('click', abrirConfirmacionPreparar);
   App.registrar('panel-admin', { alMostrar: mostrar, alRefrescar: cargar });
 })();

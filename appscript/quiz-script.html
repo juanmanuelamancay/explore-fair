@@ -18,7 +18,7 @@
   const validador = INICIO.rol === 'VALIDADOR';
 
   function mostrar(datos) {
-    q = { unidad: datos.unidad, etiqueta: datos.etiqueta, titulo: datos.titulo, volver: datos.volver || 'mapa', color: datos.color, tinte: datos.tinte, intervalo: null };
+    q = { unidad: datos.unidad, etiqueta: datos.etiqueta, titulo: datos.titulo, volver: datos.volver || 'mapa', color: datos.color, tinte: datos.tinte, intervalo: null, desfase: datos.desfase || 0, vigila: null };
     if (validador) {
       // El validador no pide código ni responde: entra directo a ver las preguntas.
       verPreguntas();
@@ -32,7 +32,7 @@
   }
 
   function ocultar() {
-    if (q) clearInterval(q.intervalo);
+    if (q) { clearInterval(q.intervalo); clearInterval(q.vigila); }
     clearInterval(cuentaAtras);
   }
 
@@ -43,9 +43,28 @@
     </div>`;
 
   /* ---------- Código ---------- */
+  /**
+   * Una charla cierra a la hora de su columna "cierre". Si pasa mientras la persona está en la pantalla del código, se la
+   * saca de aquí y se la lleva a la ruta de charlas con el aviso, sin esperar a que toque "Empezar". Con el quiz ya en curso
+   * no se vigila: ese se termina.
+   */
+  function vigilarCierre() {
+    clearInterval(q.vigila);
+    if (!q.unidad.cierre || validador) return;
+    const revisar = () => {
+      if (Date.now() + q.desfase <= q.unidad.cierre) return;
+      clearInterval(q.vigila);
+      toast('La hora para responder esta charla se venció.');
+      App.ir(q.volver);
+    };
+    q.vigila = setInterval(revisar, 1000);
+    revisar();
+  }
+
   function pantallaCodigo() {
     const s = q.unidad;
     clearInterval(cuentaAtras);
+    vigilarCierre();
     pantalla.innerHTML = `
       ${cabecera()}
       <div class="tarjeta centro" style="--c:${q.color};--t:${q.tinte}">
@@ -157,6 +176,7 @@
   }
 
   function iniciar(codigo) {
+    clearInterval(q.vigila);
     pantallaEspera('Preparando tu quiz', 'Estamos armando tus preguntas.', q.unidad.numPreguntas);
 
     servidorInsistente('iniciarQuiz', q.unidad.id, codigo).then(r => {
@@ -191,6 +211,7 @@
       return;
     }
     if (r.motivo === 'VENCIDO') return pantallaVencido();
+    // La charla cerró: se vuelve a la ruta (default de abajo), donde ya aparece "Cerrada".
     toast(r.mensaje);
     App.ir(q.volver);
   }

@@ -11,7 +11,7 @@ Este documento reúne **todo lo que hay que hacer** para pasar de la versión an
 | Un quiz por stand (banco de 16, se responden 4) | Un quiz por **pabellón**: cada stand aporta 2 preguntas de su banco de 12. Pabellón de 4 stands = 8 preguntas |
 | Un código por stand | Un código por **pabellón** |
 | `LIDER` genera códigos y edita preguntas | `LIDER` genera el código de su pabellón · `EXPOSITOR` edita su stand (hasta 12 preguntas) · `PONENTE` genera el código de su charla y edita sus preguntas (hasta 15) |
-| Solo el evento | **Semana de charlas** (lun 19 a mié 21): ruta de charlas con horario, 5 preguntas de un banco de 15, código de 5 minutos. Los puntos suman al mismo ranking que el evento |
+| Solo el evento | **Semana de charlas** (lun 19 a mié 21): agenda de charlas con horario, 5 preguntas de un banco de 15, código de 5 minutos. Los puntos suman al mismo ranking que el evento |
 | 25 filas por persona en `Intentos` | **16 filas** por persona (entrada + 6 pabellones + 5 charlas = 12 intentos) |
 
 Reglas que no cambian: un intento por persona y unidad, 5 minutos para responder, el quiz de entrada va primero (solo para pabellones, no para charlas), 3 códigos errados bloquean 2 minutos.
@@ -22,7 +22,7 @@ Reglas que no cambian: un intento por persona y unidad, 5 minutos para responder
 |---|---|
 | Hasta el vie 16 | Preparar la copia de pruebas (parte 1), subir el código ahí y probar (parte 2) |
 | Sáb 17 – dom 18 | Preparar el Sheet real (parte 3) y hacer el **último** `prepararFeria` |
-| **Lun 19 – mié 21** | Charlas en vivo. `USUARIO` ve la ruta de charlas. **No reiniciar datos ni cambiar la forma de las hojas** |
+| **Lun 19 – mié 21** | Charlas en vivo. `USUARIO` ve la agenda de charlas. **No reiniciar datos ni cambiar la forma de las hojas** |
 | Mié 21, noche | Pasar `USUARIO` de `CHARLAS` a `MAPA` (parte 5) |
 | **Jue 22** | Feria |
 
@@ -114,7 +114,7 @@ Una fila por rol y vista. Estas son las filas que debe tener (`activo = TRUE`):
 
 - [ ] Cree la hoja **`Charlas`** (nombre exacto) con estas columnas en la fila 1:
 
-`charla_id` · `titulo` · `ponente` · `descripcion` · `inicio` · `fin` · `preguntas_banco` · `preguntas_quiz` · `orden` · `activo` · `creado_en`
+`charla_id` · `titulo` · `ponente` · `descripcion` · `inicio` · `fin` · `cierre` · `preguntas_banco` · `preguntas_quiz` · `orden` · `activo` · `creado_en`
 
 - [ ] Pegue el contenido de [charlas_demo.tsv](charlas_demo.tsv) (las 5 charlas) y corrija títulos, ponentes y horarios.
 
@@ -124,12 +124,15 @@ Una fila por rol y vista. Estas son las filas que debe tener (`activo = TRUE`):
 | `titulo` | Lo que verá la gente en la ruta |
 | `ponente` | Nombre del ponente (el **correo** va en `Staff`) |
 | `inicio` | Fecha y hora de inicio, por ejemplo `2026-10-19 10:00` (hora de Lima). Desde esa hora la charla se puede responder |
-| `fin` | Opcional, solo informativa: **no cierra** la charla (el código se genera al terminar) |
+| `fin` | Opcional. Hora real en que termina la charla, **solo informativa**: no controla nada |
+| `cierre` | **Hora límite para responder.** Hasta esta hora los asistentes pueden empezar el quiz y el ponente generar códigos; después desaparecen el botón de ingresar código y el de generar código. Con una charla de 16:00 a 17:00, ponga `cierre` 17:30. **Si queda vacía, la charla no se cierra nunca.** El admin puede seguir generando códigos después del cierre |
 | `preguntas_banco` | `15` (o vacío: usa `Config`) |
 | `preguntas_quiz` | `5` (o vacío: usa `Config`) |
 | `orden` | Desempata charlas con la misma hora |
 | `activo` | `TRUE` |
 
+- Quien ya empezó su quiz puede terminarlo aunque pase la hora de cierre. Quien tiene la pantalla del código abierta y llega la hora de cierre, vuelve solo a la ruta con el aviso "La hora para responder esta charla se venció".
+- Para alargar una charla que se pasó de hora, cambie `cierre` desde el panel (pestaña Charlas) o en el Sheet: rige de inmediato desde el panel y en unos 30 segundos desde el Sheet.
 - Las fechas se manejan solo desde la hoja. Si una charla cambia de hora, edítela aquí o en el panel (pestaña Charlas).
 
 ### 1.8 `Preguntas`: bancos completos
@@ -184,6 +187,7 @@ El `.clasp.json` del proyecto apunta al proyecto de Apps Script **real**. `clasp
 ## Parte 3. Preparar el Sheet y el proyecto reales (sáb 17 – dom 18)
 
 - [ ] Repita en el **Sheet real** los pasos de la Parte 1 (renombres, columnas, hoja `Charlas`, `Staff`, `Permisos`, preguntas).
+- [ ] Si el Sheet tiene muchas hojas `respaldo_...` (de reinicios anteriores), bórrelas desde el panel: tarjeta **Respaldos de los reinicios** → "Borrar respaldos" (escribir `BORRAR`). Hágalo después de reiniciar y preparar la feria, cuando ya no necesite las copias.
 - [ ] Revise cuántas filas tiene hoy `Usuarios` (la sala de espera ya registra gente): `prepararFeria` las renumera desde 1 sin quitar a nadie.
 - [ ] Suba el código al proyecto real con `clasp push` (versión `2026-10-13.1`), cree una **nueva versión de la implementación** y confirme que la página de error muestra esa versión.
 - [ ] Ejecute `probarTodo` en el proyecto real: todo `OK`.
@@ -228,7 +232,7 @@ Durante estos días **no** se cambia código ni se reinicia nada. Sí se puede, 
 | "Agrega la columna `requiere_codigo` en la hoja Pabellones" (al guardar desde el panel) | Falta la columna (1.3) |
 | "Agrega la columna `charla_id` en la hoja Staff" | Falta la columna (1.5) |
 | "Crea primero la hoja Charlas" | Falta la hoja (1.7) |
-| La ruta de charlas sale vacía | `Charlas` sin filas activas, o `USUARIO` sin la vista `CHARLAS` |
+| La agenda de charlas sale vacía | `Charlas` sin filas activas, o `USUARIO` sin la vista `CHARLAS` |
 | El usuario ve el mapa en la semana de charlas | `Permisos` de `USUARIO` sigue en modo evento (1.6) |
 | Un líder dice "No tienes nada asignado" | Falta su `pabellon_id` en `Staff`, o el pabellón no tiene stands activos |
 | "Esta charla todavía no empieza" | Aún no llega su `inicio` (hora de Lima) |

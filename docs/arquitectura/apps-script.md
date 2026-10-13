@@ -23,7 +23,7 @@ Cada vista tiene cuatro archivos con el mismo prefijo:
 | `RANKING` | `ranking` | `obtenerRanking`, `guardarAjustesPantalla` |
 | `GENERAR_CODIGO` | `generar-codigo` | `obtenerCodigos`, `generarCodigo` (líder de pabellón y ponente) |
 | `PREGUNTAS` | `preguntas` | `obtenerBancoPreguntas`, `guardarPreguntaLider` (expositor y ponente, con tope de preguntas activas) |
-| `PANEL_ADMIN` | `panel-admin` | `obtenerPanel`, `obtenerAdminCatalogo`, `guardarAdminRegistro`, `importarPreguntasAdmin`, `borrarAdminRegistro`, `eliminarAdminPabellon`, `actualizarCatalogo`, `registrarPendientes`, `reiniciarDatos` |
+| `PANEL_ADMIN` | `panel-admin` | `obtenerPanel`, `obtenerAdminCatalogo`, `guardarAdminRegistro`, `importarPreguntasAdmin`, `borrarAdminRegistro`, `eliminarAdminPabellon`, `actualizarCatalogo`, `registrarPendientes`, `reiniciarDatos`, `borrarRespaldos` |
 | `ESPERA` (no va en `Permisos`) | `espera` | `obtenerEspera` |
 
 La tabla que relaciona cada vista con su prefijo es `ARCHIVO_DE_VISTA`, en `main.gs`. Una vista que no esté ahí no existe para la app.
@@ -43,7 +43,7 @@ Archivos compartidos:
 | `registro.gs` | Registro en `Usuarios` por lotes: el buzón de cartas, `registrarme`, el cartero (`repartir_`), el número de orden de cada persona, `completarUsuarios` y `prepararFeria` |
 | `indice.gs` | Índice de intentos de cada persona en `UserProperties`, el bloqueo por persona y el bloque de filas de cada persona en `Intentos` |
 | `datos-test.gs` | Diagnóstico: `probarTodo` se ejecuta desde el editor y registra si el Sheet, las hojas, el catálogo (pabellones, quiz de entrada, charlas), los bancos de preguntas, la sesión y la caché están bien. `probarLimiteDeCodigos` comprueba, con la caché y el bloqueo reales, que 3 códigos incorrectos bloqueen la cuenta que la ejecuta |
-| `charlas.gs` | Vista `CHARLAS`: la ruta de charlas con el estado de cada una para quien la mira (`obtenerCharlas`) |
+| `charlas.gs` | Vista `CHARLAS`: la agenda de charlas con el estado de cada una para quien la mira (`obtenerCharlas`) |
 | `pruebas-carga.gs` | Pruebas de carga y auditoría de puntajes, para ejecutar desde el editor |
 | `prueba-registro.gs` | Prueba del registro por lotes, con bitácora de lo que hace el cartero, para ejecutar desde el editor |
 | `prueba-feria.gs` | Prueba de carga de la feria completa: hasta 20 ejecuciones a la vez por cuenta registran personas y responden quizzes; revisa que no se pierda ni se repita nada y mide tiempos |
@@ -75,7 +75,7 @@ El `VALIDADOR` es un rol de solo lectura: `VISTAS_DEL_VALIDADOR` (`sesion.gs`) l
 - **Funciones del editor:** las que se ejecutan a mano (diagnóstico, pruebas de carga, prueba del registro, prueba de carga de la feria, simulaciones, `limpiarCache`, `releerIndiceDe`, `completarUsuarios`, `auditarRegistro`, `reconstruirRegistro`, `prepararFeria`) empiezan con `exigirAdmin_()`. Quien las ejecute tiene que estar en `Staff` como `ADMIN`. Las únicas funciones públicas sin comprobación de rol son `obtenerAcceso` y `probarNombre`, que solo informan sobre la propia cuenta, `registrarme`, que solo registra a la propia cuenta, y `diagnosticarAccesoPrueba`, que no puede pedir admin porque sirve justo cuando esa comprobación falla: solo corre si el script tiene la propiedad `DIAGNOSTICO = 1` (ver "Diagnóstico").
 - **Funciones privadas:** las que terminan en `_` no se pueden llamar desde el navegador. Por eso los pasos que ejecutan los disparadores se llaman `pasoSimulacion_`, `pasoPuntajes_`, `pasoPruebaFilas_`, `pasoPruebaRegistro_` y `pasoPruebaCarga_`.
 - **La respuesta correcta no llega al participante:** `iniciarQuiz` devuelve solo enunciado y opciones; `enviarQuiz` corrige contra el banco y devuelve solo cuántas acertó y los puntos: ni cuál era la correcta ni qué preguntas acertó, porque eso se pasaría entre personas. El detalle por pregunta queda en el índice y en `respuestas_json`, para la auditoría. Las vistas `PREGUNTAS` y `PANEL_ADMIN` sí la reciben, porque sirven para editarla.
-- **Fallas esperadas como dato:** un código inválido o un quiz ya respondido devuelven `{ ok: false, motivo, mensaje }`. Los motivos son `STAND` (la unidad no existe), `CERRADA`, `AUN_NO` (una charla que todavía no empieza), `ENTRADA`, `CODIGO`, `BLOQUEADO`, `SIN_PREGUNTAS`, `YA_RESPONDIDO`, `VENCIDO` y `NO_EXISTE`. Las excepciones quedan para permisos y errores reales.
+- **Fallas esperadas como dato:** un código inválido o un quiz ya respondido devuelven `{ ok: false, motivo, mensaje }`. Los motivos son `STAND` (la unidad no existe), `CERRADA`, `AUN_NO` (una charla que todavía no empieza), `CIERRE` (una charla pasada su hora de `cierre`), `ENTRADA`, `CODIGO`, `BLOQUEADO`, `SIN_PREGUNTAS`, `YA_RESPONDIDO`, `VENCIDO` y `NO_EXISTE`. Las excepciones quedan para permisos y errores reales.
 - **Límite de intentos de código:** 3 códigos incorrectos de una misma persona la bloquean 120 segundos (`FALLOS_DE_CODIGO_MAX` y `SEGUNDOS_BLOQUEO_CODIGO`, en `quiz.gs`). Se cuentan en su caché propia (`getUserCache`), dentro de su bloqueo por persona, para que varias llamadas en paralelo no se salten la cuenta. Durante el bloqueo, `iniciarQuiz` responde `BLOQUEADO` con `esperaSegundos` sin mirar el código (ni siquiera el correcto) y sin alargar la espera. Acertar borra la cuenta; los fallos también se olvidan 120 segundos después del último. Un campo vacío no cuenta. Solo aplica a quien intenta abrir un stand con código: retomar un quiz en curso no pasa por aquí. La caché es de mejor esfuerzo: si el sistema la vaciara antes de tiempo, la cuenta empezaría de cero.
 - **Tiempo del servidor:** las horas viajan en milisegundos junto con `ahora`, y el navegador calcula su reloj a partir de esa diferencia. La hora del celular no cuenta.
 - **Columnas por nombre:** las hojas se leen y escriben según el encabezado, no según la posición de la columna. La única posición que importa es la columna A: `leerHoja_` ignora las filas que la tienen vacía.
@@ -390,7 +390,7 @@ Variables de entorno:
 |---|---|
 | `PORT` | Puerto del servidor. Por defecto 8123 |
 | `ESPERA=1` | Enciende la sala de espera, con la fecha a tres días |
-| `CHARLAS=1` | Simula la semana de charlas: el usuario ve la ruta de charlas (`CHARLAS` y `QUIZ`) en lugar del mapa |
+| `CHARLAS=1` | Simula la semana de charlas: el usuario ve la agenda de charlas (`CHARLAS` y `QUIZ`) en lugar del mapa |
 | `ESPERA=0` | Enciende la sala de espera con la fecha ya cumplida, para ver "Llegó el día" |
 | `DESORDEN=1` | Carga los datos como escritos a mano: pestañas, encabezados, roles e identificadores con otras mayúsculas y espacios |
 

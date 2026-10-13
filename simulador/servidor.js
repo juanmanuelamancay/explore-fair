@@ -94,6 +94,7 @@ class Libro {
   constructor(tablas) { this.hojas = Object.keys(tablas).map(n => new Hoja(this, n, tablas[n])); }
   getSheetByName(nombre) { return this.hojas.find(h => h.nombre === nombre) || null; }
   getSheets() { return this.hojas; }
+  deleteSheet(hoja) { this.hojas = this.hojas.filter(h => h !== hoja); }
   getName() { return 'Sheet simulado'; }
   getUrl() { return 'http://localhost:' + PUERTO + '/hoja'; }
 }
@@ -134,9 +135,10 @@ function datosDeEjemplo() {
       ...pabellones.map(([id, nombre], i) => [id, nombre, '', 'Descubre agentes de IA para aumentar tu productividad', id !== 'PAB-000', id === 'PAB-000' ? 4 : '', i, true, hoy])],
     Stands: [['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'orden', 'activo', 'creado_en'],
       ...stands.map(([id, pab, nombre], i) => [id, pab, nombre, '', i, true, hoy])],
-    Charlas: [['charla_id', 'titulo', 'ponente', 'descripcion', 'inicio', 'fin', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo', 'creado_en'],
+    Charlas: [['charla_id', 'titulo', 'ponente', 'descripcion', 'inicio', 'fin', 'cierre', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo', 'creado_en'],
       ...charlas.map(([id, titulo, ponente, desfase], i) => [id, titulo, ponente, 'Charla de ejemplo para la semana previa al evento.',
-        new Date(Date.now() + desfase), new Date(Date.now() + desfase + 3600000), 15, 5, i, true, hoy])],
+        // Cierra 2 horas después de empezar, pero nunca antes de una hora a partir de ahora (la primera ya empezó hace 2 horas).
+        new Date(Date.now() + desfase), new Date(Date.now() + desfase + 3600000), new Date(Date.now() + Math.max(desfase + 7200000, 3600000)), 15, 5, i, true, hoy])],
     Preguntas: [['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo', 'creado_en'], ...preguntas],
     Staff: [['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'charla_id', 'activo'],
       ['admin@demo.com', 'Marta Salinas', 'ADMIN', '', '', '', true],

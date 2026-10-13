@@ -42,6 +42,8 @@
         </li>`).join('')}
       </ul>`;
 
+    pintarCharlas();
+
     $('espera-objetivo-icono').innerHTML = svg(ICONO.mapa, 22);
     document.querySelectorAll('.obj-ico').forEach(e => { e.innerHTML = svg(ICONO.check, 12, 'currentColor', 3); });
 
@@ -63,6 +65,30 @@
         </section>`;
     }).join(''));
     armarCarrusel();
+  }
+
+  const diaLargo = ms => { const d = new Date(ms).toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }); return d.charAt(0).toUpperCase() + d.slice(1); };
+  const horaCorta = ms => new Date(ms).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const claveDia = ms => { const d = new Date(ms); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+
+  /** Una lámina con las charlas, un día tras otro. Sin charlas en la hoja, no aparece. */
+  function pintarCharlas() {
+    const lamina = $('espera-charlas');
+    lamina.hidden = !datos.charlas.length;
+    if (!datos.charlas.length) { lamina.innerHTML = ''; return; }
+    // Un rótulo y una lista por día.
+    const dias = [];
+    datos.charlas.forEach(c => {
+      const ultimo = dias[dias.length - 1];
+      if (ultimo && ultimo.clave === claveDia(c.inicio)) ultimo.charlas.push(c);
+      else dias.push({ clave: claveDia(c.inicio), inicio: c.inicio, charlas: [c] });
+    });
+    const filas = dias.map(d => `<p class="dia-charlas">${esc(diaLargo(d.inicio))}</p>
+      <ul class="lista espera-charlas">${d.charlas.map(c => `<li class="fila"><span class="hora-charla tnum">${horaCorta(c.inicio)}</span><span class="quien"><b>${esc(c.titulo)}</b>${c.ponente ? `<span>${esc(c.ponente)}</span>` : ''}</span></li>`).join('')}</ul>`).join('');
+    lamina.innerHTML = `
+      <h2 class="titulo-seccion">Empieza con las charlas</h2>
+      <p class="espera-intro">Al terminar cada charla, quien la dicta comparte un código. Ingrésalo en la app, responde su quiz y suma puntos para el ranking.</p>
+      ${filas}`;
   }
 
   /* ---------- Carrusel ---------- */
@@ -139,22 +165,38 @@
     irALamina(activa + 1, true);
   }
 
+  /** "Charlas del lunes 19 al miércoles 21 de octubre · Feria el jueves 22 de octubre", con las fechas de las hojas. */
+  function resumenDelEvento() {
+    const partes = [];
+    if (datos.charlas.length) {
+      const primera = datos.charlas[0].inicio, ultima = datos.charlas[datos.charlas.length - 1].inicio;
+      const corto = ms => new Date(ms).toLocaleDateString('es', { weekday: 'long', day: 'numeric' });
+      const mes = ms => new Date(ms).toLocaleDateString('es', { month: 'long' });
+      partes.push(claveDia(primera) === claveDia(ultima) ? 'Charlas el ' + corto(primera) + ' de ' + mes(primera)
+        : 'Charlas del ' + corto(primera) + ' al ' + corto(ultima) + ' de ' + mes(ultima));
+    }
+    if (datos.fechaFeria) partes.push('Feria el ' + new Date(datos.fechaFeria).toLocaleDateString('es', { weekday: 'long', day: 'numeric' }) + ' de ' + new Date(datos.fechaFeria).toLocaleDateString('es', { month: 'long' }));
+    return partes.join(' · ');
+  }
+
   function pintarCuenta() {
     const cuando = !datos.fecha ? '' : new Date(datos.fecha).toLocaleString('es', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+    const resumen = resumenDelEvento();
     const pie = `
       ${cuando ? `<p class="cuando">${esc(cuando.charAt(0).toUpperCase() + cuando.slice(1))}</p>` : ''}
+      ${resumen ? `<p class="donde-es">${esc(resumen)}</p>` : ''}
       ${datos.lugar ? `<p class="donde-es">${esc(datos.lugar)}</p>` : ''}
       ${datos.mensaje ? `<p class="mensaje">${esc(datos.mensaje)}</p>` : ''}`;
 
     if (!datos.fecha) {
       cuenta.innerHTML = `<div class="disco-grande">${svg(ICONO.reloj, 34)}</div><h2>Muy pronto</h2>
-        <p class="aviso">Estamos preparando la feria de agentes.</p>${pie}`;
+        <p class="aviso">Estamos preparando las charlas y la feria de agentes.</p>${pie}`;
     } else if (restante() === 0) {
       cuenta.innerHTML = `<div class="disco-grande" style="--t:var(--verde-suave);--c:var(--verde)">${svg(ICONO.check, 34, 'currentColor', 2.5)}</div>
-        <h2>Llegó el día</h2><p class="aviso">La feria está por abrir. Esta pantalla cambiará sola cuando empiece.</p>${pie}`;
+        <h2>Llegó el día</h2><p class="aviso">El evento está por empezar. Esta pantalla cambiará sola cuando abra.</p>${pie}`;
     } else {
       cuenta.innerHTML = `
-        <p class="sec chico">La feria de agentes empieza en</p>
+        <p class="sec chico">El evento de agentes empieza en</p>
         <div class="reloj-grande tnum" role="timer">
           <div><b id="espera-d">0</b><span>días</span></div>
           <div><b id="espera-h">0</b><span>horas</span></div>

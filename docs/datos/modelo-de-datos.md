@@ -84,13 +84,14 @@ Google Sheets no valida relaciones; estas reglas las hace cumplir el Apps Script
 12. **El quiz de entrada va primero:** el servidor no deja empezar un pabellón con código hasta que el quiz de entrada esté respondido o vencido. Las charlas no lo piden.
 13. **Un permiso por rol y vista:** la combinación `rol` + `vista` es única en `Permisos`.
 14. **Roles válidos:** todo `rol` usado en una fila activa de `Staff` debe tener al menos una fila activa en `Permisos`. `USUARIO` no hace falta escribirlo en `Staff`: es el rol de quien no aparece ahí.
-15. **`QUIZ` necesita `MAPA` o `CHARLAS`:** el quiz se abre desde el mapa (pabellones) o desde la ruta de charlas, así que el panel no deja activar `QUIZ` para un rol que no tenga una de las dos. El servidor además exige `MAPA` para abrir un pabellón y `CHARLAS` para abrir una charla.
+15. **`QUIZ` necesita `MAPA` o `CHARLAS`:** el quiz se abre desde el mapa (pabellones) o desde la agenda de charlas, así que el panel no deja activar `QUIZ` para un rol que no tenga una de las dos. El servidor además exige `MAPA` para abrir un pabellón y `CHARLAS` para abrir una charla.
 16. **Los permisos no reemplazan la validación del servidor:** `Permisos` decide qué vistas se muestran, pero cada función del Apps Script vuelve a comprobar el permiso antes de ejecutar.
 17. **Un número de orden por persona, sin repetir:** cada persona tiene un `orden` distinto y una sola fila en `Usuarios`, la de su número (la persona 1 en la fila 2). Lo entrega el registro por lotes con el turno global y no se reutiliza aunque se borre la fila.
 18. **Cada intento, en el bloque de su persona:** la fila de un intento en `Intentos` está dentro de las 16 filas que le corresponden al `orden` de su `email`. En un bloque hay filas de una sola persona. Antes de escribir, la app comprueba que todo lo que hay en el bloque lleve el correo de quien escribe.
 19. **Responsable desde el formulario:** el formulario de un pabellón maneja un solo **líder** (`LIDER`, `pabellon_id`), el de un stand un solo **expositor** (`EXPOSITOR`, `pabellon_id` y `stand_id`) y el de una charla un solo **ponente** (`PONENTE`, `charla_id`). En cada caso es la primera fila activa de `Staff` con ese rol y esa ID. Cambiar el correo da de alta al nuevo y desactiva al anterior (la fila queda); vaciarlo desactiva al responsable; si el correo ya tiene una fila inactiva de ese rol, se reactiva con esta ubicación y conserva su nombre. El servidor rechaza, antes de escribir, un correo que ya está en `Staff` con otro rol (para no degradar a un `ADMIN`), que ya responde de otra cosa, o un pabellón sin código, o un registro inactivo. Si el stand cambia de pabellón, su expositor lo sigue. Otros responsables de lo mismo escritos a mano en `Staff` no se tocan.
 20. **Un rol, una cosa:** una persona tiene una sola fila en `Staff` y un solo rol. El líder trabaja sobre un pabellón (ignora `stand_id`), el expositor sobre un stand y el ponente sobre una charla; cada función del servidor comprueba el rol además de la vista. Quien lidere o exponga en más de un lugar necesita otro correo.
 21. **Disponibilidad por permisos:** durante la semana de charlas el `USUARIO` tiene las vistas `CHARLAS` y `QUIZ`; durante el evento, `MAPA` y `QUIZ`. El admin lo cambia en `Permisos`. Mientras `espera_activa` esté en TRUE el usuario solo ve la sala de espera, así que debe estar en FALSE.
+22. **Cierre de una charla:** la columna `cierre` de `Charlas` es la hora límite para empezar el quiz y para que el ponente genere códigos; el servidor lo comprueba (motivo `CIERRE`) y no lo salva un código vigente. Quien ya tiene su quiz en curso lo termina. El admin puede generar un código después del cierre. Solo aplica a charlas: los pabellones no cierran. Sin `cierre`, la charla no cierra nunca.
 
 ## Campos por hoja
 
@@ -129,11 +130,12 @@ Hoja opcional: solo hace falta para la semana de charlas. Cada fila es una charl
 | Campo | Tipo | Ejemplo | Nota |
 |---|---|---|---|
 | `charla_id` | Texto | `CHA-001` | Clave. La genera el panel |
-| `titulo` | Texto | Introducción a los custom agents | Visible en la ruta de charlas |
+| `titulo` | Texto | Introducción a los custom agents | Visible en la agenda de charlas |
 | `ponente` | Texto | Rosa Quiroz | Opcional. Nombre que ve la gente; el correo del ponente va en `Staff` |
 | `descripcion` | Texto | | Opcional |
 | `inicio` | Fecha/hora | `2026-10-19 10:00` | Desde esta hora la charla se puede responder si hay un código vigente. Se interpreta en la zona horaria del script (`America/Lima`) |
-| `fin` | Fecha/hora | `2026-10-19 11:00` | Opcional. Solo informativa: no cierra la charla, porque el código se genera al terminar |
+| `fin` | Fecha/hora | `2026-10-19 11:00` | Opcional. Hora real de término de la charla; solo informativa |
+| `cierre` | Fecha/hora | `2026-10-19 11:30` | Opcional. **Hora límite para responder:** hasta ahí se puede empezar el quiz y el ponente puede generar códigos (el admin sí puede después). Vacía = la charla no cierra nunca. Debe ser posterior a `inicio` |
 | `preguntas_banco` | Número | 15 | Opcional. Tope del ponente y mínimo para abrir el quiz; vacío = `preguntas_banco_charla` de `Config` |
 | `preguntas_quiz` | Número | 5 | Opcional. Cuántas preguntas se sortean; vacío = `preguntas_quiz_charla` de `Config` |
 | `orden` | Número | 1 | Desempata charlas con la misma hora |
@@ -193,7 +195,7 @@ Vistas disponibles:
 | `vista` | Qué muestra |
 |---|---|
 | `MAPA` | Inicio del usuario en el evento: puntos y mapa de pabellones (cada uno es un solo quiz) |
-| `CHARLAS` | Inicio del usuario en la semana de charlas: la ruta de charlas con su horario, para ingresar el código y responder |
+| `CHARLAS` | Inicio del usuario en la semana de charlas: la agenda de charlas con su horario, para ingresar el código y responder |
 | `QUIZ` | Ingresar el código de un pabellón o una charla, responder las preguntas y ver el resultado |
 | `RANKING` | Tabla de puntajes para la pantalla gigante, con sus ajustes |
 | `GENERAR_CODIGO` | Generar el código temporal de un pabellón (líder) o de una charla (ponente) |
@@ -352,7 +354,7 @@ Claves que la app reconoce, con el valor que usa si la fila no existe o su valor
 | `segundos_cache_ranking` | 60 | Cuánto dura en caché el ranking. Mínimo 5 |
 | `feria_abierta` | TRUE | Con FALSE nadie puede empezar un quiz. No afecta el registro: el `USUARIO` igual se graba en `Usuarios` y recibe su número |
 | `espera_activa` | FALSE | Sala de espera previa al evento |
-| `fecha_feria` | (vacío) | Fecha y hora del evento |
+| `fecha_feria` | (vacío) | Fecha y hora de la feria. La cuenta regresiva de la sala de espera llega hasta lo primero que empiece del evento: la primera charla (hoja `Charlas`) o esta fecha, lo que caiga antes |
 | `lugar_feria` | (vacío) | Texto bajo la fecha |
 | `espera_mensaje` | (vacío) | Texto bajo la fecha |
 | `premios_mensaje` | Participando y aprendiendo podrás ganar: | Frase bajo el título "Premios" de la sala de espera. Con la fila vacía, no se muestra |
@@ -377,7 +379,7 @@ Reglas de `Config`:
 Claves de la sala de espera:
 
 - `espera_activa`: con TRUE, quien tiene rol `USUARIO` ve solo la sala de espera. Con FALSE la sala no existe para nadie.
-- `fecha_feria`: fecha y hora del evento, para la cuenta regresiva. Puede ser una celda con formato de fecha y hora, o texto como `2026-10-22 09:00` o `22/10/2026 09:00`. Vacía, la sala muestra "Muy pronto" sin cuenta.
+- `fecha_feria`: fecha y hora de la feria. La sala de espera cuenta hasta el inicio del evento, que es la primera charla o esta fecha, lo que ocurra antes, y muestra las dos fechas debajo. Puede ser una celda con formato de fecha y hora, o texto como `2026-10-22 09:00` o `22/10/2026 09:00`. Vacía, la sala usa solo la primera charla; sin charlas ni fecha, muestra "Muy pronto".
 - `lugar_feria` y `espera_mensaje`: textos opcionales que aparecen bajo la fecha.
 - `premios_mensaje`: frase que va bajo el título "Premios". Si la fila no existe usa la de la tabla; si existe y está vacía, no se muestra frase.
 - Los cambios hechos a mano en `Pabellones`, `Stands`, `Premios`, `Staff`, `Permisos` y `Config` se notan en la sala de espera en unos 30 segundos, aunque `segundos_cache_catalogo` sea mayor: la app compara el Sheet con su caché cada 30 segundos y la renueva si cambió.

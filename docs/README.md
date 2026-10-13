@@ -1,6 +1,6 @@
 # Documentación de Explore Fair
 
-Aplicación transversal de la feria de custom agents: ruta de charlas previa al evento y quiz por pabellón en la feria, códigos temporales generados por líderes de pabellón y ponentes, y ranking en pantalla gigante. Corre en Google Apps Script y guarda sus datos en un único archivo de Google Sheets.
+Aplicación transversal de la feria de custom agents: agenda de charlas previa al evento y quiz por pabellón en la feria, códigos temporales generados por líderes de pabellón y ponentes, y ranking en pantalla gigante. Corre en Google Apps Script y guarda sus datos en un único archivo de Google Sheets.
 
 Esta carpeta describe la app tal como está en el código. Si un documento y el código no coinciden, manda el código y se corrige el documento. Última revisión contra el código: 2026-10-13, versión `2026-10-13.1` (`VERSION_DEL_CODIGO` en `appscript/main.gs`).
 

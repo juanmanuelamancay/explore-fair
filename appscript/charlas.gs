@@ -21,7 +21,9 @@ function obtenerCharlas() {
     puntos: puntosDe_(mios),
     soloLectura: !responde,
     charlas: charlasDe_(catalogo).map(c => Object.assign(estadoDeUnidad_(c, mios[c.id], ahora, puntosPorPregunta), {
-      ponente: c.ponente, descripcion: c.descripcion, inicio: c.inicio, fin: c.fin,
+      ponente: c.ponente, descripcion: c.descripcion, inicio: c.inicio, fin: c.fin, cierre: c.cierre,
+      // Pasada la hora de cierre ya no se puede empezar el quiz de esta charla (el que está en curso se termina).
+      cerrada: charlaCerrada_(c, ahora),
       // Una charla sin fecha de inicio está abierta desde el principio.
       empezo: !c.inicio || ahora >= c.inicio,
     })),

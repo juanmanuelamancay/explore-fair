@@ -4,6 +4,9 @@
 
 const PALABRA_DE_REINICIO = 'REINICIAR';
 const PALABRA_DE_PREPARACION = 'PREPARAR';
+const PALABRA_DE_BORRADO = 'BORRAR';
+// Las hojas de respaldo que crea reiniciarDatos empiezan así.
+const PREFIJO_DE_RESPALDO = 'respaldo_';
 // Hojas que borra el reinicio. Usuarios se conserva: quien ya se registró no vuelve a escribir al entrar.
 // Las de catálogo nunca se tocan.
 // Van como texto y no como HOJA.X porque el orden en que Apps Script carga los archivos no está garantizado.
@@ -27,9 +30,36 @@ function registro_() {
   return { registrados: filasConDato_('Usuarios'), pendientes: leerBuzon_().length };
 }
 
+/** Hojas de respaldo (ocultas) que dejaron los reinicios. */
+function respaldos_() {
+  return libro_().getSheets().filter(h => h.getName().toLowerCase().indexOf(PREFIJO_DE_RESPALDO) === 0);
+}
+
 function obtenerPanel() {
   exigirVista_('PANEL_ADMIN');
-  return { conteos: conteos_(), ultimo: ultimoReinicio_(), registro: registro_() };
+  return { conteos: conteos_(), ultimo: ultimoReinicio_(), registro: registro_(), respaldos: respaldos_().length };
+}
+
+/**
+ * Borra las hojas de respaldo que guardan los reinicios (respaldo_Intentos_..., respaldo_Codigos_...). Cada reinicio
+ * copia las hojas enteras y con el tiempo ocupan celdas del Sheet, que tiene un límite. No se puede deshacer.
+ * Solo toca hojas cuyo nombre empieza por "respaldo_": ni el catálogo ni los datos vivos.
+ */
+function borrarRespaldos(palabra) {
+  const sesion = exigirVista_('PANEL_ADMIN');
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede borrar los respaldos.');
+  if (texto_(palabra).toUpperCase() !== PALABRA_DE_BORRADO) throw new Error('La palabra de confirmación no coincide.');
+  const libro = libro_();
+  const bloqueo = LockService.getScriptLock();
+  bloqueo.waitLock(SEGUNDOS_BLOQUEO_REINICIO);
+  try {
+    const hojas = respaldos_();
+    hojas.forEach(hoja => libro.deleteSheet(hoja));
+    SpreadsheetApp.flush();
+    return { borradas: hojas.length, respaldos: respaldos_().length };
+  } finally {
+    bloqueo.releaseLock();
+  }
 }
 
 /** Escribe ahora en Usuarios las cartas pendientes, sin esperar a que entre otra persona. */
@@ -90,7 +120,7 @@ function reiniciarDatos(palabra) {
     limpiarCache_();
     // Codigos queda con exactamente una fila por stand con código, lista para generar sin turno (ver generar-codigo.gs).
     crearFilasDeCodigos_(catalogo_());
-    return { borradas: borradas, respaldo: 'respaldo_' + sello, conteos: conteos_(), ultimo: ultimo };
+    return { borradas: borradas, respaldo: 'respaldo_' + sello, conteos: conteos_(), ultimo: ultimo, respaldos: respaldos_().length };
   } finally {
     bloqueo.releaseLock();
   }
@@ -113,7 +143,7 @@ function prepararFeriaPanel(palabra) {
 const ADMIN_DEFINICIONES = {
   pabellones: { hoja: HOJA.PABELLONES, campos: ['pabellon_id', 'nombre', 'nombre_corto', 'descripcion', 'requiere_codigo', 'preguntas_por_stand', 'orden', 'activo'] },
   stands: { hoja: HOJA.STANDS, campos: ['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'orden', 'activo'] },
-  charlas: { hoja: HOJA.CHARLAS, campos: ['charla_id', 'titulo', 'ponente', 'descripcion', 'inicio', 'fin', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo'] },
+  charlas: { hoja: HOJA.CHARLAS, campos: ['charla_id', 'titulo', 'ponente', 'descripcion', 'inicio', 'fin', 'cierre', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo'] },
   preguntas: { hoja: HOJA.PREGUNTAS, campos: ['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo'] },
   staff: { hoja: HOJA.STAFF, campos: ['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'charla_id', 'activo'] },
   permisos: { hoja: HOJA.PERMISOS, campos: ['rol', 'vista', 'activo'] },
@@ -260,6 +290,7 @@ function adminNormalizar_(entidad, entrada) {
     // El formulario manda "2026-10-19T18:00"; en la hoja queda "2026-10-19 18:00".
     registro.inicio = texto_(registro.inicio).replace('T', ' ');
     registro.fin = texto_(registro.fin).replace('T', ' ');
+    registro.cierre = texto_(registro.cierre).replace('T', ' ');
     registro.preguntas_banco = texto_(registro.preguntas_banco) === '' ? '' : Number(registro.preguntas_banco);
     registro.preguntas_quiz = texto_(registro.preguntas_quiz) === '' ? '' : Number(registro.preguntas_quiz);
     registro.orden = Number(registro.orden);
@@ -350,6 +381,8 @@ function adminValidarRelaciones_(entidad, registro, fila) {
     if (!registro.titulo) throw new Error('Escribe un título para la charla.');
     if (!fechaEnMs_(registro.inicio)) throw new Error('Escribe la fecha y la hora de inicio, por ejemplo 2026-10-19 18:00.');
     if (registro.fin && !fechaEnMs_(registro.fin)) throw new Error('La fecha de fin no tiene un formato válido. Ejemplo: 2026-10-19 19:00.');
+    if (registro.cierre && !fechaEnMs_(registro.cierre)) throw new Error('La hora de cierre no tiene un formato válido. Ejemplo: 2026-10-19 19:30.');
+    if (registro.cierre && fechaEnMs_(registro.cierre) <= fechaEnMs_(registro.inicio)) throw new Error('El cierre tiene que ser posterior al inicio de la charla.');
     adminNumero_(registro, 'orden', 0);
     if (registro.preguntas_banco !== '') adminNumero_(registro, 'preguntas_banco', 1);
     if (registro.preguntas_quiz !== '') adminNumero_(registro, 'preguntas_quiz', 1);
@@ -549,6 +582,9 @@ function guardarAdminRegistro(entidad, entrada) {
     ['requiere_codigo', 'preguntas_por_stand'].forEach(campo => {
       if (columnas.indexOf(campo) < 0 && (campo === 'requiere_codigo' || registro[campo] !== '')) throw new Error('Agrega la columna ' + campo + ' en la hoja Pabellones para guardar este dato.');
     });
+  }
+  if (entidad === 'charlas' && registro.cierre && encabezados_(def.hoja).indexOf('cierre') < 0) {
+    throw new Error('Agrega la columna cierre en la hoja Charlas para guardar la hora de cierre.');
   }
   adminValidarRelaciones_(entidad, registro, original);
   // El responsable (líder, expositor o ponente) va en el mismo formulario pero se guarda en Staff. La búsqueda del

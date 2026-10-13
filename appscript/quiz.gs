@@ -12,6 +12,14 @@ const GRACIA_DE_ENVIO_MS = 10000;   // tolerancia de red al enviar justo al lím
 function falla_(motivo, mensaje) { return { ok: false, motivo: motivo, mensaje: mensaje }; }
 
 /**
+ * ¿La charla ya cerró? Es la hora de la columna "cierre" de Charlas: desde ahí nadie empieza su quiz, aunque tenga un
+ * código válido, y el ponente ya no genera códigos. Sin "cierre" escrito, la charla no se cierra nunca. Los pabellones no cierran.
+ */
+function charlaCerrada_(unidad, ahoraMs) {
+  return unidad.tipo === 'CHARLA' && !!unidad.cierre && ahoraMs > unidad.cierre;
+}
+
+/**
  * Identificador único sin mirar cuántas filas tiene la hoja. Con bloqueos por persona, dos personas
  * podrían leer la misma cantidad de filas y recibir el mismo número.
  */
@@ -91,6 +99,14 @@ function iniciarQuiz(unidadId, codigo) {
 
   const mios = miIndice_(sesion);
   if (mios[unidad.id]) return retomarIndice_(mios[unidad.id], unidad, bancos, ahora);
+
+  // Con el quiz ya en curso (arriba) se puede terminar aunque pase el cierre; empezar uno nuevo, no. Va antes del código
+  // para que un intento tardío no cuente como código fallado.
+  if (charlaCerrada_(unidad, ahora.getTime())) {
+    const cerrada = falla_('CIERRE', 'La hora para responder esta charla se venció.');
+    cerrada.cerroEn = unidad.cierre;
+    return cerrada;
+  }
 
   // El quiz de entrada va primero: ningún pabellón con código se abre hasta haberlo terminado (respondido o vencido).
   // Las charlas son aparte: no lo piden.

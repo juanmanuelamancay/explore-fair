@@ -8,7 +8,7 @@
 const ENCABEZADOS_ESPERADOS = {
   Pabellones: ['pabellon_id', 'nombre', 'requiere_codigo', 'preguntas_por_stand', 'orden', 'activo'],
   Stands: ['stand_id', 'pabellon_id', 'nombre', 'orden', 'activo'],
-  Charlas: ['charla_id', 'titulo', 'ponente', 'inicio', 'fin', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo'],
+  Charlas: ['charla_id', 'titulo', 'ponente', 'inicio', 'fin', 'cierre', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo'],
   Preguntas: ['pregunta_id', 'stand_id', 'texto', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'correcta', 'puntos', 'activo'],
   Staff: ['email', 'nombre', 'rol', 'pabellon_id', 'stand_id', 'charla_id', 'activo'],
   Permisos: ['rol', 'vista', 'activo'],
@@ -119,7 +119,7 @@ function probarCatalogo() {
   paso_('Charlas activas', () => {
     const charlas = charlasDe_(catalogo_());
     if (!hojaSiExiste_(HOJA.CHARLAS)) return 'no existe la hoja Charlas (solo hace falta para la semana de charlas)';
-    return charlas.map(c => c.id + ' ' + c.nombre + ' (' + (c.inicio ? new Date(c.inicio).toISOString() : 'SIN FECHA de inicio') + ')').join(' | ') || 'NINGUNA';
+    return charlas.map(c => c.id + ' ' + c.nombre + ' (' + (c.inicio ? new Date(c.inicio).toISOString() : 'SIN FECHA de inicio') + ' · ' + (c.cierre ? 'cierra ' + new Date(c.cierre).toISOString() : 'SIN CIERRE: nunca se cierra') + ')').join(' | ') || 'NINGUNA';
   });
   paso_('Staff activo', () => catalogo_().staff.map(s => s.email + ' ' + s.rol).join(' | ') || 'NINGUNO: falta escribir el primer ADMIN');
   paso_('Permisos por rol', () => {

@@ -111,10 +111,10 @@ El usuario tiene tres vistas, que corresponden a los valores de `vista` en la ho
 | `vista` | Pantallas que incluye |
 |---|---|
 | `MAPA` | Mapa (inicio), hoja del pabellón y hoja "Cómo participar" |
-| `CHARLAS` | Ruta de charlas (inicio en la semana previa) |
+| `CHARLAS` | Agenda de charlas (inicio en la semana previa) |
 | `QUIZ` | Ingreso de código, preguntas, resultado y tiempo agotado |
 
-No tiene barra inferior, porque tiene un solo destino: el mapa en el evento o la ruta de charlas en la semana previa (el admin decide cuál con `Permisos`).
+No tiene barra inferior, porque tiene un solo destino: el mapa en el evento o la agenda de charlas en la semana previa (el admin decide cuál con `Permisos`).
 
 ### Mapa (inicio)
 
@@ -183,28 +183,35 @@ Al tocar un pabellón sube una hoja desde abajo, sobre un velo oscuro. Se cierra
 
 Pantalla propia, en tono neutro (gris, sin rojo): explica que ese quiz no suma y recuerda que puede seguir sumando en los demás pabellones (o en las demás charlas).
 
-## Ruta de charlas
+## Charlas (agenda de la semana previa)
 
-Vista `CHARLAS`: lo que ve el usuario en la semana previa al evento, en lugar del mapa. Tiene la misma cabecera que el mapa (saludo y puntos), un mensaje guía y una **ruta vertical**: una parada por charla, unidas por una línea, agrupadas bajo el día ("Lunes, 19 de octubre").
+Vista `CHARLAS`: lo que ve el usuario en la semana previa al evento, en lugar del mapa. Es una **agenda**, no un recorrido: cada charla es independiente, no hay que terminar una para pasar a otra y cada persona entra a las que quiere (una, dos o todas). Por eso no hay línea que una las charlas ni contadores de avance.
 
-- **Parada:** un círculo con el estado (llave si está abierta, reloj si es próxima, check verde si está completada, equis si venció) y una tarjeta con el horario ("10:00 – 11:00"), una etiqueta de estado, el título, el ponente, la descripción y los chips de preguntas, minutos y puntos posibles.
-- **Estados:** *Próxima* (aún no es su hora de inicio: dice cuándo comienza, sin botón), *Abierta* / *En vivo* (botón "Ingresar código"), *En curso* ("Continuar el quiz"), *Completada* ("N de M correctas · P pts") y *Se venció*. La hora se calcula con el reloj del servidor y la ruta se repinta cada 30 segundos.
-- **El código lo da el ponente** al terminar; este quiz abre la misma pantalla de código, preguntas y resultado que los pabellones, y al terminar vuelve a la ruta ("Volver a las charlas"). No pide el quiz de entrada.
-- **Solo lectura:** el validador ve la ruta con "Ver preguntas" en cada charla; el admin la ve sin botones.
+De arriba hacia abajo: cabecera con saludo y puntos, mensaje guía ("Entra a las que quieras: cada una suma puntos por separado…"), una línea "Cada charla: N preguntas · M minutos para responder" (si todas tienen las mismas preguntas; si no, cada tarjeta lo dice) y las charlas agrupadas por día. El día lleva "Hoy" (en azul) o "Mañana" cuando corresponde.
+
+- **Tarjeta abierta o próxima:** ícono de estado, horario de la charla ("16:00 – 17:00"; la hora de fin solo se muestra si es posterior al inicio), etiqueta de estado, título, ponente, descripción y los datos: "Hasta N pts" y "Responde hasta las HH:MM" (el cierre, separado del horario de la charla). La abierta lleva borde azul y el botón "Ingresar código".
+- **Estados:** *Próxima* (aún no es su hora de inicio, sin botón), *Abierta* / *En vivo* / *En curso* (botón "Ingresar código" o "Continuar el quiz"), *Completada* (borde verde y los puntos ganados en grande: "+20 pts · 2 de 5 correctas"), *Cerrada* y *Se venció* (ver abajo).
+- **Tarjetas compactas:** una charla *Cerrada* (pasó la hora de `cierre`) o *Se venció* ocupa una sola línea de título con su estado y una nota ("La hora para responder se venció (cerró a las HH:MM)"), sin descripción ni datos, para que lo vigente quede arriba. No se muestra como fallo: gris, sin rojo.
+- **La charla vigente a la vista:** al abrir la pantalla, si la primera charla abierta (o, si no hay, la primera próxima) queda fuera de la pantalla, la lista se mueve hasta ella, una sola vez por visita.
+- **El estado se actualiza solo** con la hora del servidor (la pantalla se repinta cada 30 segundos).
+- **Si el cierre llega mientras la persona escribe el código,** la app la saca de esa pantalla y la lleva a la agenda, con el aviso "La hora para responder esta charla se venció"; el servidor rechaza empezar con el motivo `CIERRE` aunque el código sea válido. Quien ya empezó su quiz puede terminarlo.
+- **El código lo da el ponente** al terminar; el quiz abre la misma pantalla de código, preguntas y resultado que los pabellones, y al terminar vuelve a la agenda ("Volver a las charlas"). No pide el quiz de entrada.
+- **Solo lectura:** el validador ve las charlas con "Ver preguntas" en cada una; el admin las ve sin botones.
 
 ## Sala de espera
 
 Es lo que ve un usuario antes del evento, mientras `espera_activa` está en TRUE. No tiene barra inferior: es su única vista. De arriba hacia abajo:
 
-- **Cuenta regresiva:** cuatro recuadros (días, horas, minutos, segundos) que avanzan cada segundo según la hora del servidor, con la fecha, el lugar y un mensaje opcional debajo. Sin fecha configurada dice "Muy pronto".
+- **Cuenta regresiva:** cuatro recuadros (días, horas, minutos, segundos) que avanzan cada segundo según la hora del servidor, bajo "El evento de agentes empieza en". Cuenta hasta lo primero que empiece: la primera charla (hoja `Charlas`) o `fecha_feria`, lo que caiga antes. Debajo van esa fecha y hora, un resumen ("Charlas del lunes 19 al miércoles 21 de octubre · Feria el jueves 22 de octubre"), el lugar y un mensaje opcional. Sin ninguna fecha dice "Muy pronto".
 - **Llegada la hora:** la cuenta se reemplaza por "Llegó el día" y la app pregunta al servidor una vez por minuto si ya se abrió. Cuando `espera_activa` pasa a FALSE, la app se vuelve a abrir sola con el mapa; si el navegador no la deja, queda el aviso "Tu acceso cambió" con el botón "Abrir de nuevo". El botón de actualizar hace la misma comprobación al instante.
-- **Carrusel:** debajo de la cuenta va una fila de láminas que empieza en el Objetivo, sigue con Cómo participar, continúa con una tarjeta por cada pabellón (su título de sección es "Descubre agentes de IA") y termina en Premios. Se pasa de una a otra deslizando con el dedo.
+- **Carrusel:** debajo de la cuenta va una fila de láminas que empieza en el Objetivo del evento, sigue con Cómo participar, las Charlas (si la hoja tiene charlas), continúa con una tarjeta por cada pabellón (su título de sección es "Descubre agentes de IA") y termina en Premios. Se pasa de una a otra deslizando con el dedo.
 - **Puntos:** bajo el carrusel hay un punto por lámina; el de la lámina a la vista se alarga y se pinta de azul. Tocar un punto lleva a esa lámina.
 - **Avance solo:** cambia de lámina cada 6 segundos y al llegar a la última vuelve a la primera. Se detiene 12 segundos cuando la persona lo toca, y no avanza con la app en segundo plano, con movimiento reducido activado, ni cuando la persona ya bajó y dejó el inicio del carrusel fuera de la pantalla.
 - **Alto variable:** el carrusel toma el alto de la lámina a la vista.
 - **Premios:** título, la frase "Participando y aprendiendo podrás ganar:" y la lista con la medalla de cada puesto (ver "Medallas de puesto"). La feria entrega cuatro premios; del cuarto puesto en adelante la medalla es azul, con corona azul (clase `azul` en `espera-style.html`). Es la última lámina. Si no hay premios cargados, no aparece y el carrusel termina en el último pabellón.
-- **Objetivo:** primera lámina, texto fijo tomado de la invitación al evento: una frase sobre la experiencia práctica, la lista de seis cosas que se encontrarán en la feria (demos en vivo, retos técnicos, casos prácticos, buenas prácticas, espacio para dudas, dinámicas) y, en un recuadro azul, la frase con la que se espera que cada persona termine: "Sé qué agente puede ayudarme y cómo empezar a utilizarlo en mi día a día." Es la lámina más alta y se queda 25 segundos antes de avanzar (`data-segundos`), el resto 6.
-- **Cómo participar:** titulada "Esta app te servirá para…", con la misma frase de apertura de la hoja de ayuda del mapa y tres pasos fijos: responder el quiz de entrada, visitar los stands (el código del líder desbloquea las preguntas de cada stand) y sumar puntos para subir en el ranking.
+- **Objetivo:** primera lámina, "Objetivo del evento": una frase sobre la experiencia práctica, otra que explica que el evento reúne unas charlas previas y la feria y que sus puntos se suman en un solo ranking, la lista de seis cosas que se encontrarán (demos en vivo, retos técnicos, casos prácticos, buenas prácticas, espacio para dudas, dinámicas) y, en un recuadro azul, la frase con la que se espera que cada persona termine: "Sé qué agente puede ayudarme y cómo empezar a utilizarlo en mi día a día." Es la lámina más alta y se queda 25 segundos antes de avanzar (`data-segundos`), el resto 6.
+- **Cómo participar:** titulada "Esta app te servirá para…", con una frase de apertura que incluye que los puntos de las charlas y los de la feria se acumulan, y cuatro pasos fijos: asistir a las charlas (el código del ponente abre el quiz), responder el quiz de entrada cuando empiece la feria, recorrer los pabellones (el código del líder abre el quiz de todo el pabellón) y sumar puntos para subir en el ranking.
+- **Charlas:** lámina "Empieza con las charlas", entre Cómo participar y los pabellones. Un rótulo por día ("Lunes, 19 de octubre") y, debajo, una fila por charla con su hora (en un recuadro azul), el título y el ponente. Sale de la hoja `Charlas`; sin charlas activas no aparece.
 - **Tarjeta de pabellón:** ícono y nombre en su color, cantidad de stands y la lista de sus stands con su abreviatura. Es solo informativa, no se puede tocar. Un pabellón nuevo en el Sheet agrega su tarjeta sin tocar código.
 
 El `ADMIN` ve esta misma pantalla como una pestaña más, "Espera", mientras la sala está activa.
@@ -219,6 +226,7 @@ De arriba hacia abajo: saludo, mensaje guía, pabellón o charla y tarjeta del c
 
 - **Mensaje guía:** sin código activo indica generarlo al terminar la charla; con código activo indica compartirlo en voz alta o mostrando la pantalla.
 - **Pabellón o charla:** se muestra fijo con su abreviatura y su rótulo ("Pabellón" o "Charla"). El admin, que ve varios, elige con fichas horizontales; un punto verde marca los que tienen código activo.
+- **Charla cerrada (ponente):** al llegar la hora de `cierre` la tarjeta pasa a "Charla cerrada" (candado, "Cerró a las HH:MM. Ya no se pueden generar códigos ni responder el quiz"), sin código y sin botón. Antes del cierre, bajo la tarjeta, dice "Puedes generar códigos hasta las HH:MM". El admin conserva el botón y ve la nota "como admin todavía puedes generar un código".
 - **Tarjeta sin código:** ícono neutro, "Sin código activo", cuánto dura y para qué pabellón o charla sirve, y el botón principal "Generar código".
 - **Mientras se genera:** cuatro casillas giran con caracteres al azar y se fijan una por una cuando llega el código real.
 - **Tarjeta con código activo:** mismo encabezado y mismas cuatro casillas que al generar, ahora fijas con el código y con el título "Código listo"; debajo, una barra que se vacía, el tiempo restante para ingresarlo y el botón secundario "Generar uno nuevo". En el último minuto la barra y el tiempo pasan a rojo.
@@ -270,6 +278,7 @@ Sincronización y reinicio:
 - **Confirmación:** hoja inferior con el número exacto de filas a borrar de `Intentos` y `Codigos` sobre fondo rojo suave, el aviso de que se guarda una copia y un campo donde hay que escribir `REINICIAR`. El botón rojo relleno se habilita solo cuando la palabra coincide.
 - **Durante la ejecución:** el botón muestra un indicador giratorio y "Reiniciando…", y no se puede volver a tocar.
 - **Resultado:** el mensaje guía pasa a verde con lo borrado y el nombre de la copia, y bajo el botón se muestra la hora del último reinicio y quién lo hizo.
+- **Tarjeta "Respaldos de los reinicios":** cada reinicio copia `Intentos` y `Codigos` en hojas ocultas `respaldo_...`, que con el tiempo ocupan muchas celdas del Sheet. La tarjeta dice cuántas hay y el botón "Borrar respaldos" las elimina. Pide escribir `BORRAR` en una hoja inferior, no se puede deshacer y solo toca hojas cuyo nombre empieza por `respaldo_`. Sin respaldos, el botón queda deshabilitado ("No hay respaldos que borrar").
 
 ### Ranking
 
@@ -314,7 +323,7 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
   | `ADMIN` | Mapa, Charlas, Código, Panel y Ranking |
 
 - **La barra se oculta** en todo el quiz (código, preguntas, resultado y tiempo agotado), para no ofrecer salidas a mitad, y en la pantalla de ranking cuando se activa "Ocultar menú de navegación".
-- **Flecha de volver** arriba a la izquierda en código, resultado y tiempo agotado; lleva al mapa o, si el quiz era de una charla, a la ruta de charlas. Durante las preguntas no hay flecha.
+- **Flecha de volver** arriba a la izquierda en código, resultado y tiempo agotado; lleva al mapa o, si el quiz era de una charla, a la agenda de charlas. Durante las preguntas no hay flecha.
 
 ## Mensajes y textos
 
@@ -329,10 +338,10 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
 
 | Estado | Dónde se ve | Cómo se ve |
 |---|---|---|
-| Pendiente | Hoja del pabellón; ruta de charlas | Botón "Responder el quiz del pabellón" / "Ingresar código" |
-| En curso | Hoja del pabellón; ruta de charlas | Botón "Continuar el quiz" |
-| Respondido | Hoja del pabellón, mapa, ruta de charlas | Check verde, aciertos y puntos; llena el arco del pabellón y suma a los puntos |
-| Vencido | Hoja del pabellón; ruta de charlas | Mensaje "Se te venció el tiempo", 0 pts; no permite reintento |
+| Pendiente | Hoja del pabellón; agenda de charlas | Botón "Responder el quiz del pabellón" / "Ingresar código" |
+| En curso | Hoja del pabellón; agenda de charlas | Botón "Continuar el quiz" |
+| Respondido | Hoja del pabellón, mapa, agenda de charlas | Check verde, aciertos y puntos; llena el arco del pabellón y suma a los puntos |
+| Vencido | Hoja del pabellón; agenda de charlas | Mensaje "Se te venció el tiempo", 0 pts; no permite reintento |
 
 ## Elementos solo del prototipo
 

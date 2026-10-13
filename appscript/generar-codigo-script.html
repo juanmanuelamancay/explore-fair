@@ -10,6 +10,7 @@
   const pendientes = {};    // stand -> true mientras el servidor crea su código (la animación ocupa la tarjeta)
 
   const stand = () => stands.find(s => s.id === elegido);
+  const horaDe = ms => new Date(ms).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
   // Las mismas casillas que se ven mientras se genera: el código queda donde ya lo venían leyendo.
   const casillas = (codigo, clase) => `<div class="codigo-girando" role="img" aria-label="Código ${esc(codigo.split('').join(' '))}">${
     codigo.split('').map(c => `<span class="ranura ${clase}" aria-hidden="true">${esc(c)}</span>`).join('')}</div>`;
@@ -68,6 +69,18 @@
     // Mientras se genera, la tarjeta sigue mostrando la animación; no se repinta hasta terminar.
     if (pendientes[s.id]) return;
 
+    // Charla cerrada: ya no hay código ni botón (el admin sí sigue viendo el suyo, ver abajo).
+    if (s.cerrada) {
+      $('codigo-guia-icono').innerHTML = svg(ICONO.candado, 20);
+      $('codigo-guia-titulo').textContent = 'La charla ya cerró';
+      $('codigo-guia-texto').textContent = 'La hora para generar códigos se venció.';
+      tarjeta.innerHTML = `
+        <div class="disco-grande">${svg(ICONO.candado, 32)}</div>
+        <h2>Charla cerrada</h2>
+        <p class="aviso">Cerró a las ${horaDe(s.cierre)}. Ya no se pueden generar códigos ni responder el quiz.</p>`;
+      return;
+    }
+
     if (activo) {
       const r = restante(activo), poco = r <= SEGUNDOS_EN_ROJO;
       tarjeta.innerHTML = `
@@ -91,10 +104,23 @@
         <p class="aviso">El código dura ${INICIO.minutosVigenciaCodigo} minutos y sirve solo para ${esc(s.nombre)}.</p>
         <button class="btn" data-accion="pedir">Generar código</button>`;
     }
+    // Hasta cuándo se puede generar, o el recordatorio al admin de que está pasando el cierre.
+    if (s.cierre) {
+      const yaCerro = Date.now() + desfase > s.cierre;
+      tarjeta.insertAdjacentHTML('beforeend', yaCerro
+        ? `<p class="aviso">Esta charla cerró a las ${horaDe(s.cierre)}; como admin todavía puedes generar un código.</p>`
+        : `<p class="aviso">Puedes generar códigos hasta las ${horaDe(s.cierre)}.</p>`);
+    }
   }
 
   function tic() {
     if (!stands) return;
+    // Al llegar la hora de cierre, el ponente pasa a "Charla cerrada" sin recargar (el admin no se bloquea).
+    let cerro = false;
+    stands.forEach(s => {
+      if (!s.cerrada && s.cierre && INICIO.rol !== 'ADMIN' && Date.now() + desfase > s.cierre) { s.cerrada = true; s.activo = null; cerro = true; }
+    });
+    if (cerro) return pintar();
     let vencio = false;
     stands.forEach(s => {
       if (s.activo && restante(s.activo) === 0) { vencidos[s.id] = s.activo.codigo; s.activo = null; vencio = true; }
