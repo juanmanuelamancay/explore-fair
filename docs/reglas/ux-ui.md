@@ -53,8 +53,9 @@ Cada pabellón tiene un color, un tinte claro del mismo tono y un ícono. El col
 | 4 | Seguridad | `#e37400` | `#fef7e0` |
 | 5 | Data | `#9334e6` | `#f3e8fd` |
 | 6 | Host | `#c2185b` | `#fce4ec` |
+| 7 | Codegraph | `#00897b` | `#e0f2f1` |
 
-Los colores no están atados al nombre: salen de la lista `PALETA` de `comun-script.html` según la posición del pabellón en el mapa. Un séptimo pabellón repite el primer color. Si se quiere elegir el color de cada pabellón, tiene que pasar a ser un campo de `Pabellones`.
+Los colores no están atados al nombre: salen de la lista `PALETA` de `comun-script.html` según la posición del pabellón en el mapa. Codegraph usa un ícono de tres nodos conectados; a partir del octavo pabellón se repite la paleta. Si se quiere elegir el color de cada pabellón, tiene que pasar a ser un campo de `Pabellones`.
 
 ### Tipografía
 

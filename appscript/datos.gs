@@ -67,7 +67,7 @@ const MAX_CARACTERES_CACHE = 90000;   // CacheService admite 100 KB por valor
 
 // ID del Sheet de la feria: lo que va entre /d/ y /edit en su dirección.
 // Hace falta porque el script es independiente (no se creó desde Extensiones > Apps Script del Sheet).
-const ID_DEL_SHEET = '1fm4WWndlnZMIx-FCUlNafp4KuHUJhKGU-9YFvMjC4fI';
+const ID_DEL_SHEET = '15dUACK9DdXYXGpNSEihFqT_TdFJt2GcM43RAtLqJhVM';
 
 let LIBRO_ = null;
 

@@ -51,7 +51,7 @@ function avatarDePuesto(nombre, puesto) {
   return `<span class="avatar ${metal}">${metal ? CORONA : ''}${esc(iniciales(nombre))}</span>`;
 }
 
-// Color, tinte e ícono de cada pabellón según su posición en el mapa. Se repiten si hay más de seis.
+// Color, tinte e ícono de cada pabellón según su posición en el mapa. Se repiten si hay más de siete.
 const PALETA = [
   { color: '#1a73e8', tinte: '#e8f0fe', icono: 'M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01' },
   { color: '#d93025', tinte: '#fce8e6', icono: 'M3 4h18v12H3zM8 20h8M12 16v4' },
@@ -59,6 +59,7 @@ const PALETA = [
   { color: '#e37400', tinte: '#fef7e0', icono: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z' },
   { color: '#9334e6', tinte: '#f3e8fd', icono: 'M5 20V10M12 20V4M19 20v-7' },
   { color: '#c2185b', tinte: '#fce4ec', icono: 'M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4' },
+  { color: '#00897b', tinte: '#e0f2f1', icono: 'M8 6h8M7 8l4 8M17 8l-4 8M8 6a2 2 0 11-4 0 2 2 0 014 0zM20 6a2 2 0 11-4 0 2 2 0 014 0zM14 18a2 2 0 11-4 0 2 2 0 014 0z' },
 ];
 const paleta = indice => PALETA[indice % PALETA.length];
 
