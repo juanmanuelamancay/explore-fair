@@ -20,7 +20,7 @@
 
   /* Podio: su ancho y su escala (--rp-ancho-top, --rp-escala) son propios; no dependen de las columnas ni de las filas */
   #vista-ranking .podio {
-    --rp-podio: 4; width: calc(var(--rp-ancho-top) * var(--rp-podio) / 4); margin: 0 auto 20px; padding-top: 16px;
+    --rp-podio: 3; width: calc(var(--rp-ancho-top) * var(--rp-podio) / 3); margin: 0 auto 20px; padding-top: 16px;
     display: grid; grid-template-columns: repeat(var(--rp-podio), 1fr); gap: 8px; align-items: end;
   }
   #vista-ranking .lugar { text-align: center; min-width: 0; position: relative; }
@@ -28,7 +28,20 @@
     display: grid; margin: 0 auto calc(10px * var(--rp-escala)); width: calc(84px * var(--rp-escala)); height: calc(84px * var(--rp-escala));
     font-size: calc(28px * var(--rp-escala));
   }
-  #vista-ranking .lugar.l1 .avatar { width: calc(112px * var(--rp-escala)); height: calc(112px * var(--rp-escala)); font-size: calc(40px * var(--rp-escala)); }
+  #vista-ranking .lugar.l1 .avatar {
+    position: relative; z-index: 2; width: calc(112px * var(--rp-escala)); height: calc(112px * var(--rp-escala));
+    font-size: calc(40px * var(--rp-escala)); animation: rp-brillo-oro 2.8s ease-in-out infinite;
+  }
+  #vista-ranking .lugar.l1 .avatar::before, #vista-ranking .lugar.l1 .avatar::after {
+    content: ''; position: absolute; z-index: 3; width: calc(19px * var(--rp-escala)); height: calc(19px * var(--rp-escala)); background: #fbbc04;
+    clip-path: polygon(50% 0, 62% 37%, 100% 50%, 62% 63%, 50% 100%, 38% 63%, 0 50%, 38% 37%);
+    filter: drop-shadow(0 0 5px rgba(249, 171, 0, .8)); animation: rp-estrella-oro 1.8s ease-in-out infinite;
+  }
+  #vista-ranking .lugar.l1 .avatar::before { top: 13%; right: -12%; }
+  #vista-ranking .lugar.l1 .avatar::after {
+    left: -11%; bottom: 14%; width: calc(15px * var(--rp-escala)); height: calc(15px * var(--rp-escala)); background: #e37400;
+    filter: drop-shadow(0 0 5px rgba(227, 116, 0, .75)); animation-delay: .9s;
+  }
   #vista-ranking .lugar .corona { width: calc(28px * var(--rp-escala)); height: calc(21px * var(--rp-escala)); top: calc(-20px * var(--rp-escala)); }
   #vista-ranking .lugar.l1 .corona { width: calc(40px * var(--rp-escala)); height: calc(30px * var(--rp-escala)); top: calc(-28px * var(--rp-escala)); }
   #vista-ranking .lugar .nombre { font-size: calc(22px * var(--rp-escala)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -41,8 +54,15 @@
   #vista-ranking .lugar.l1 .base { height: calc(150px * var(--rp-escala)); font-size: calc(52px * var(--rp-escala)); }
   #vista-ranking .lugar.l2 .base { height: calc(110px * var(--rp-escala)); }
   #vista-ranking .lugar.l3 .base { height: calc(84px * var(--rp-escala)); }
-  #vista-ranking .lugar.l4 .base { height: calc(60px * var(--rp-escala)); }
   #vista-ranking .lugar .delta { top: calc(-26px * var(--rp-escala)); left: 50%; margin-left: -20px; }
+  @keyframes rp-brillo-oro {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(249, 171, 0, 0)); }
+    50% { filter: drop-shadow(0 0 16px rgba(249, 171, 0, .55)); }
+  }
+  @keyframes rp-estrella-oro {
+    0%, 100% { opacity: .45; transform: scale(.65) rotate(0); }
+    50% { opacity: 1; transform: scale(1.25) rotate(45deg); }
+  }
 
   /* Cuadrícula de puestos del 5.º en adelante: columnas, alto y espacio configurables */
   #vista-ranking .rp-cuerpo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
@@ -98,6 +118,13 @@
   #hoja .rp-check { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-size: 15px; }
   #hoja .rp-check input { width: 20px; height: 20px; accent-color: var(--azul); }
   #hoja .rp-estado-ajustes { margin-top: 10px; font-size: 13px; color: var(--texto-2); min-height: 18px; }
+  #hoja:has(.rp-ajustes) { background: rgba(255, 255, 255, .72); border: 1px solid rgba(255, 255, 255, .7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+  #hoja:has(.rp-ajustes input:focus), #hoja:has(.rp-ajustes input:active) {
+    background: rgba(255, 255, 255, .4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  }
+  body.hoja-abierta:has(#hoja .rp-ajustes) #velo { background: rgba(32, 33, 36, .08); }
+  body.hoja-abierta:has(#hoja .rp-ajustes input:focus) #velo,
+  body.hoja-abierta:has(#hoja .rp-ajustes input:active) #velo { background: rgba(32, 33, 36, .02); }
 
   /* Modo oscuro de la pantalla: cambia los colores mientras la vista está abierta */
   body.pantalla-grande.pantalla-oscura {
@@ -109,6 +136,9 @@
   body.pantalla-grande.pantalla-oscura #vista-ranking .oro { --m-fondo: #3a2e10; --m-texto: #fdd663; --m-corona: #fbbc04; }
   body.pantalla-grande.pantalla-oscura #vista-ranking .plata { --m-fondo: #2a2f35; --m-texto: #e8eaed; --m-corona: #dadce0; --m-corona-borde: #9aa0a6; }
   body.pantalla-grande.pantalla-oscura #vista-ranking .bronce { --m-fondo: #3a2316; --m-texto: #f0a875; --m-corona: #d98e5a; }
+  body.pantalla-grande.pantalla-oscura #hoja:has(.rp-ajustes) { background: rgba(15, 20, 25, .76); border-color: rgba(255, 255, 255, .12); }
+  body.pantalla-grande.pantalla-oscura #hoja:has(.rp-ajustes input:focus),
+  body.pantalla-grande.pantalla-oscura #hoja:has(.rp-ajustes input:active) { background: rgba(15, 20, 25, .42); }
 
   /* Modo pantalla: sin barra de navegación, el ranking ocupa todo el alto */
   body.pantalla-grande.sin-menu #nav { display: none !important; }
@@ -126,6 +156,8 @@
     #vista-ranking .lugar .pts { font-size: calc(14px * var(--rp-escala)); }
   }
   @media (prefers-reduced-motion: reduce) {
-    #vista-ranking .fila.subio, #vista-ranking .delta { animation: none; }
+    #vista-ranking .fila.subio, #vista-ranking .delta,
+    #vista-ranking .lugar.l1 .avatar, #vista-ranking .lugar.l1 .avatar::before,
+    #vista-ranking .lugar.l1 .avatar::after { animation: none; }
   }
 </style>

@@ -37,16 +37,16 @@ const ICONO = {
 
 const CORONA = '<svg class="corona" viewBox="0 0 24 18" aria-hidden="true"><path d="M2 5l5 4 5-7 5 7 5-4-2 11H4L2 5z"/></svg>';
 
-/** "oro", "plata", "bronce" o "azul" para los cuatro primeros puestos (los cuatro premios); vacío para el resto. */
-const metalDe = puesto => ['oro', 'plata', 'bronce', 'azul'][puesto - 1] || '';
+/** "oro", "plata" o "bronce" para los tres primeros puestos (los tres premios); vacío para el resto. */
+const metalDe = puesto => ['oro', 'plata', 'bronce'][puesto - 1] || '';
 
-/** Círculo con el número de puesto. Los cuatro primeros llevan corona de su metal. */
+/** Círculo con el número de puesto. Los tres primeros llevan corona de su metal. */
 function medalla(puesto) {
   const metal = metalDe(puesto);
   return `<span class="medalla ${metal}">${metal ? CORONA : ''}${puesto}</span>`;
 }
 
-/** Avatar con las iniciales; en los cuatro primeros puestos toma el metal y la corona. */
+/** Avatar con las iniciales; en los tres primeros puestos toma el metal y la corona. */
 function avatarDePuesto(nombre, puesto) {
   const metal = metalDe(puesto);
   return `<span class="avatar ${metal}">${metal ? CORONA : ''}${esc(iniciales(nombre))}</span>`;

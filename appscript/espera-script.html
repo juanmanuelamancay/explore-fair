@@ -36,7 +36,7 @@
       ${datos.mensajePremios ? `<p class="premios-intro">${esc(datos.mensajePremios)}</p>` : ''}
       <ul class="lista">${datos.premios.map((p, i) => `
         <li class="fila premio">
-          ${metalDe(i + 1) ? medalla(i + 1) : `<span class="medalla azul">${CORONA}${i + 1}</span>`}
+          ${medalla(i + 1)}
 
           <span class="quien"><b>${esc(p.titulo)}</b>${p.descripcion ? `<span>${esc(p.descripcion)}</span>` : ''}</span>
         </li>`).join('')}

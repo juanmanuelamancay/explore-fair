@@ -170,10 +170,10 @@
   const subio = p => (comparando && comparando.has(p.nombre) ? Math.max(0, p.puntos - comparando.get(p.nombre)) : 0);
   const etiqueta = n => (n > 0 ? `<i class="delta">+${n}</i>` : '');
 
-  // El podio toma hasta cuatro personas, una por premio; la cuadrícula empieza en el 5.º.
-  const PUESTOS_DEL_PODIO = 4;
-  // De izquierda a derecha: el 2.º, el 1.º en el pico, y luego el 3.º y el 4.º bajando.
-  const ORDEN_DEL_PODIO = [1, 0, 2, 3];
+  // El podio toma hasta tres personas, una por premio; la cuadrícula empieza en el 4.º.
+  const PUESTOS_DEL_PODIO = 3;
+  // De izquierda a derecha: el 2.º, el 1.º en el pico, y luego el 3.º.
+  const ORDEN_DEL_PODIO = [1, 0, 2];
 
   /**
    * Cuántas personas se muestran: las que se definan en "Personas por pantalla", sin pasar de lo que cabe
@@ -218,7 +218,7 @@
       return;
     }
 
-    // El podio muestra a quienes haya, hasta cuatro: con una persona solo el 1.º, con dos el 1.º y el 2.º, y así.
+    // El podio muestra a quienes haya, hasta tres: con una persona solo el 1.º, con dos el 1.º y el 2.º, y así.
     const enPodio = Math.min(PUESTOS_DEL_PODIO, filas.length);
     const orden = ORDEN_DEL_PODIO.filter(n => n < enPodio);
     contenido.innerHTML = `

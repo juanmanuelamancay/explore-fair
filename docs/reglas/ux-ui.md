@@ -77,19 +77,18 @@ Los colores no están atados al nombre: salen de la lista `PALETA` de `comun-scr
 
 ### Medallas de puesto
 
-Los cuatro primeros puestos (uno por premio) se muestran siempre igual, en cualquier vista:
+Los tres primeros puestos (uno por premio) se muestran siempre igual, en cualquier vista:
 
 | Puesto | Metal | Fondo | Borde | Texto | Corona |
 |---|---|---|---|---|---|
 | 1 | Oro | `#fef7e0` | `#f9ab00` | `#b06000` | `#fbbc04` |
 | 2 | Plata | `#f1f3f4` | `#9aa0a6` | `#5f6368` | `#aab0b7` (contorno `#6f757c`) |
 | 3 | Bronce | `#fbe9e0` | `#c5733a` | `#8a4720` | `#d98e5a` |
-| 4 | Azul | `--azul-suave` | `--azul` | `--azul` | `#8ab4f8` |
 
 - **Forma:** el mismo círculo de siempre, con borde de 2 px del metal, un anillo blanco fino por dentro y una corona pequeña y plana encima, sin brillos ni degradados.
-- **Del quinto puesto en adelante:** círculo neutro, sin corona (en la lista de premios de la sala de espera, azul con corona).
+- **Del cuarto puesto en adelante:** círculo neutro, sin corona (también en la lista de premios de la sala de espera).
 - **Dónde se usa:** lista de premios de la sala de espera, y podio y cuadrícula del ranking.
-- **En el código:** clases `oro`, `plata`, `bronce` y `azul`, y las funciones `medalla` y `avatarDePuesto` de `comun-script.html`.
+- **En el código:** clases `oro`, `plata` y `bronce`, y las funciones `medalla` y `avatarDePuesto` de `comun-script.html`.
 
 ### Iconos
 
@@ -202,7 +201,7 @@ Es lo que ve un usuario antes del evento, mientras `espera_activa` está en TRUE
 - **Puntos:** sobre el carrusel (así se ven aunque la lámina sea larga) hay un punto por lámina, de 28 × 44 px de área táctil; el de la lámina a la vista se alarga y se pinta de azul. Tocar un punto lleva a esa lámina.
 - **Avance solo:** cambia de lámina cada 6 segundos y al llegar a la última vuelve a la primera. Se detiene 12 segundos cuando la persona lo toca, y no avanza con la app en segundo plano, con movimiento reducido activado, ni cuando la persona ya bajó y dejó el inicio del carrusel fuera de la pantalla.
 - **Alto variable:** el carrusel toma el alto de la lámina a la vista.
-- **Premios:** título, la frase "Participando y aprendiendo podrás ganar:" y la lista con la medalla de cada puesto (ver "Medallas de puesto"). La feria entrega cuatro premios; del cuarto puesto en adelante la medalla es azul, con corona azul (clase `azul` en `espera-style.html`). Es la última lámina. Si no hay premios cargados, no aparece y el carrusel termina en el último pabellón.
+- **Premios:** título, la frase "Participando y aprendiendo podrás ganar:" y la lista con la medalla de cada puesto (ver "Medallas de puesto"). La feria entrega tres premios; del cuarto puesto en adelante el círculo es neutro, sin corona. Es la última lámina. Si no hay premios cargados, no aparece y el carrusel termina en el último pabellón.
 - **Objetivo:** primera lámina, "Objetivo del evento": una frase ("Talleres en Meet y una feria en la sede central. Participa, suma puntos y gana grandes premios."), tres viñetas bajo "¿Qué encontrarás?" (demos y retos, casos y buenas prácticas, espacio para dudas y dinámicas) y, en un recuadro azul, la frase con la que se espera que cada persona termine: "Sé qué agente puede ayudarme y cómo empezar a utilizarlo en mi día a día." Es la lámina más alta y se queda 25 segundos antes de avanzar (`data-segundos`), el resto 6.
 - **Cómo sumar puntos:** titulada "Dos formas de sumar puntos", con dos bloques de dos pasos, cada uno con una línea de apoyo: En los talleres (asistir y recibir el código, que dura pocos minutos; responder su quiz, un intento) y En la feria (quiz de entrada; recorrer los pabellones con el código del líder, un intento por pabellón).
 - **Talleres:** lámina "Empieza con los talleres", sin texto de introducción. Un rótulo por día ("Lunes, 19 de octubre") y, debajo, una fila por taller con su hora (en un recuadro azul), el título y el ponente. Sale de la hoja `Charlas`; sin talleres activos no aparece.
@@ -279,10 +278,10 @@ Sincronización y reinicio:
 Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho de la pantalla, con el contenido centrado hasta 1.400 px.
 
 - **Cabecera:** título "Ranking", la hora de la última actualización, el botón de ajustes y el de actualizar.
-- **Podio** con los cuatro primeros, uno por premio, en oro, plata, bronce y azul: el avatar con las iniciales toma el metal y lleva una corona encima, y la base del podio se pinta del mismo metal. De izquierda a derecha van el 2.º, el 1.º (el más alto), el 3.º y el 4.º.
+- **Podio** con los tres primeros, uno por premio, en oro, plata y bronce: el avatar con las iniciales toma el metal y lleva una corona encima, y la base del podio se pinta del mismo metal. De izquierda a derecha van el 2.º, el 1.º (el más alto) y el 3.º.
 - **Cuadrícula** del quinto en adelante: cada celda lleva puesto, nombre y puntos. Muestra las personas que caben en pantalla, o menos si los ajustes fijan una cantidad.
 - **Pie:** hasta qué puesto se está mostrando, de cuántos, y la regla de desempate.
-- **Menos de cuatro personas:** el podio muestra solo a quienes hay: con una, el 1.º; con dos, el 2.º y el 1.º; con tres, el 2.º, el 1.º y el 3.º. Sin nadie con puntaje, "Esperando los primeros puntajes".
+- **Menos de tres personas:** el podio muestra solo a quienes hay: con una, el 1.º; con dos, el 2.º y el 1.º. Sin nadie con puntaje, "Esperando los primeros puntajes".
 - **Cambios:** quien sumó puntos desde la última actualización destella en verde y muestra un "+N" que se desvanece.
 - **Actualización:** se trae del servidor al entrar y luego sola cada `segundos_refresco_board` (mínimo 10 segundos). Se pausa con la app en segundo plano y, al volver, se actualiza de inmediato. El botón de actualizar recalcula el ranking en ese momento.
 - **Ajustes:** hoja con deslizadores para personas por pantalla, columnas, alto de fila, espacio entre filas, tamaño de nombres, tamaño de puntos, y tamaño y ancho del podio; dos interruptores, "Ocultar menú de navegación" y "Modo oscuro"; y "Restablecer valores". Cada cambio se ve al momento y se guarda en `Config` (claves `rp_*`); las demás pantallas abiertas lo toman en su siguiente actualización.

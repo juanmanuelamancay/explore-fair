@@ -156,7 +156,12 @@ Ya existentes y que usted decide: `minutos_para_responder` (hoy 5; con quizzes d
 
 ### 1.10 Lo que no se toca
 
-`Usuarios`, `Premios` y el resto de `Config`. No inserte ni borre filas de `Usuarios` ni de `Intentos`.
+`Usuarios` y el resto de `Config`. No inserte ni borre filas de `Usuarios` ni de `Intentos`.
+
+### 1.11 `Premios`: tres premios
+
+- [ ] Deje **tres** filas activas (`orden` 1, 2 y 3).
+- [ ] Si hay un cuarto premio, desactívelo (`activo = FALSE`): el podio del ranking tiene tres lugares y un cuarto premio aparecería en la sala de espera con un círculo neutro.
 
 ---
 
