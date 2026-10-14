@@ -12,11 +12,11 @@ function bancosParaPreguntas_(sesion, catalogo) {
   const todos = [];
   pabellonesDelMapa_(catalogo).forEach(p => {
     const unidad = unidadPorId_(catalogo, p.id);
-    unidad.bancos.forEach(b => todos.push({ id: b.id, nombre: b.nombre, pabellon: unidad.nombre, indice: p.indice, maximo: Math.max(b.minimo, b.cuantas) }));
+    unidad.bancos.forEach(b => todos.push({ id: b.id, nombre: b.nombre, pabellon: unidad.nombre, indice: p.indice, taller: false, maximo: Math.max(b.minimo, b.cuantas) }));
   });
   charlasDe_(catalogo).forEach((c, i) => {
     const b = c.bancos[0];
-    todos.push({ id: b.id, nombre: c.nombre, pabellon: 'Taller', indice: i, maximo: Math.max(b.minimo, b.cuantas) });
+    todos.push({ id: b.id, nombre: c.nombre, pabellon: 'Taller', indice: i, taller: true, maximo: Math.max(b.minimo, b.cuantas) });
   });
   if (sesion.rol === 'ADMIN' || sesion.rol === 'VALIDADOR') return todos;
   // Una persona puede tener varias filas (expositor y ponente a la vez): el alcance es la suma de los de cada fila.

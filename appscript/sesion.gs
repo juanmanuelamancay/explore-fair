@@ -10,6 +10,15 @@ const SEGUNDOS_CACHE_USUARIO = 21600;   // máximo que permite CacheService
 // Aunque Permisos le agregue otra, no la recibe.
 const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS'];
 
+// Por ahora solo personal interno: cuentas @bbva.com, sin las de contratistas (nombre.apellido.contractor@bbva.com).
+const DOMINIO_PERMITIDO = 'bbva.com';
+
+/** ¿El correo puede entrar a la app? Lo usan doGet y sesion_, así que ninguna función pública lo salta. */
+function correoPermitido_(email) {
+  const correo = texto_(email).toLowerCase();
+  return correo.endsWith('@' + DOMINIO_PERMITIDO) && correo.indexOf('.contractor@') < 0;
+}
+
 /**
  * Filas de Staff que valen para este correo. Una persona del staff puede tener varias filas activas (líder, expositor y
  * ponente a la vez), una por función. ADMIN y VALIDADOR van solos: si la primera fila es una de ellas, las demás se ignoran.
@@ -30,6 +39,7 @@ function filasDeStaff_(catalogo, email) {
 function sesion_() {
   const email = texto_(Session.getActiveUser().getEmail()).toLowerCase();
   if (!email) throw new Error('No pudimos identificar tu cuenta. Entra con tu cuenta de la empresa.');
+  if (!correoPermitido_(email)) throw new Error('Esta app es solo para personal interno con correo @bbva.com.');
   const catalogo = catalogo_();
   const staffFilas = filasDeStaff_(catalogo, email);
   const staff = staffFilas[0] || null;
@@ -77,6 +87,7 @@ function exigirAdmin_() {
  * porque las vistas de un rol se arman al cargar y no se pueden agregar después.
  */
 function obtenerAcceso() {
+  if (!correoPermitido_(Session.getActiveUser().getEmail())) throw new Error('Esta app es solo para personal interno con correo @bbva.com.');
   sincronizarRoles_();
   const sesion = sesion_();
   return {

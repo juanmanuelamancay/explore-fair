@@ -32,6 +32,7 @@ const ICONO = {
   mas: 'M12 5v14M5 12h14',
   buscar: 'M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35',
   subir: 'M12 16V4m0 0L7 9m5-5 5 5M5 20h14',
+  taller: 'M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5 11a7 7 0 0014 0M12 18v3',
 };
 
 const CORONA = '<svg class="corona" viewBox="0 0 24 18" aria-hidden="true"><path d="M2 5l5 4 5-7 5 7 5-4-2 11H4L2 5z"/></svg>';
@@ -201,7 +202,7 @@ const App = (() => {
   // vista de Permisos -> nombre de la vista en el navegador, en el orden de la barra inferior
   const NAVEGACION = [
     { vista: 'MAPA', nombre: 'mapa', texto: 'Mapa', icono: ICONO.mapa },
-    { vista: 'CHARLAS', nombre: 'charlas', texto: 'Talleres', icono: ICONO.megafono },
+    { vista: 'CHARLAS', nombre: 'charlas', texto: 'Talleres', icono: ICONO.taller },
     { vista: 'GENERAR_CODIGO', nombre: 'generar-codigo', texto: 'Código', icono: ICONO.llave },
     { vista: 'PREGUNTAS', nombre: 'preguntas', texto: 'Preguntas', icono: 'M5 4h14v16H5zM9 9h6M9 13h6M9 17h3' },
     { vista: 'PANEL_ADMIN', nombre: 'panel-admin', texto: 'Panel', icono: ICONO.escudo },
@@ -312,7 +313,9 @@ const App = (() => {
     // "Explore Fair · Rol" en la cabecera de cada vista del staff, para saber con qué rol se entró.
     // El usuario ve solo "Explore Fair": no necesita saber su rol.
     const ROLES = { LIDER: 'Líder', EXPOSITOR: 'Expositor', PONENTE: 'Ponente', ADMIN: 'Admin', VALIDADOR: 'Validador' };
-    const rol = INICIO.rol === 'USUARIO' ? '' : ROLES[INICIO.rol] || INICIO.rol.charAt(0) + INICIO.rol.slice(1).toLowerCase();
+    const etiquetas = (INICIO.roles || [INICIO.rol]).filter(r => r !== 'USUARIO')
+      .map(r => ROLES[r] || r.charAt(0) + r.slice(1).toLowerCase());
+    const rol = etiquetas.length > 1 ? etiquetas.slice(0, -1).join(', ') + ' y ' + etiquetas[etiquetas.length - 1] : etiquetas[0] || '';
     document.querySelectorAll('[data-marca]').forEach(p => { p.textContent = rol ? 'Explore Fair · ' + rol : 'Explore Fair'; });
     // El usuario no tiene botón de actualizar: la app se pone al día sola (ver ux-ui.md). Solo lo ven líder y admin.
     document.querySelectorAll('[data-refrescar]').forEach(b => {
@@ -329,6 +332,7 @@ const App = (() => {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
     activarCarriles();
     if (destinos.length) ir(destinos[0].nombre);
+    if (INICIO.rol === 'VALIDADOR') mostrarAviso('Modo solo vista', 'Estás como validador. Puedes ver el mapa, los talleres y las preguntas, pero no responder ni editar nada.');
     if (INICIO.registrar) registrarEnSegundoPlano(0);
   }
 

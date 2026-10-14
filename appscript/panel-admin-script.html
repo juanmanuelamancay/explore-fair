@@ -37,7 +37,7 @@
       { clave: 'orden', etiqueta: 'Orden', tipo: 'number' }, { clave: 'activo', etiqueta: 'Activo', tipo: 'check' },
     ] },
     stands: { titulo: 'Stands', singular: 'stand', icono: ICONO.trofeo, campos: [
-      { clave: 'stand_id', etiqueta: 'ID', readonlyNuevo: true }, { clave: 'pabellon_id', etiqueta: 'Pabellón', tipo: 'pabellon' },
+      { clave: 'stand_id', etiqueta: 'ID', readonlyNuevo: true }, { clave: 'pabellon_id', etiqueta: 'Pabellón', tipo: 'pabellon', soloNuevo: true },
       { clave: 'nombre', etiqueta: 'Nombre' }, { clave: 'descripcion', etiqueta: 'Descripción', tipo: 'textarea', ancho: true },
       // No es una columna de Stands: el servidor lo guarda en Staff como EXPOSITOR de este stand (edita sus preguntas).
       { clave: 'expositor_email', etiqueta: 'Correo del expositor', tipo: 'email', opcional: true, ancho: true, ayuda: ayudaResponsable('stands', 'el stand') },
@@ -255,7 +255,7 @@
       const detalle = esc(pabellon.pabellon_id) + ' · ' + stands.length + (stands.length === 1 ? ' stand' : ' stands') + (conCodigo ? (lider ? ' · Líder: ' + lider : sinResponsable('pabellones', pabellon.pabellon_id) ? ' · sin líder' : '') : ' · quiz de entrada, sin código');
       return `<article class="panel-arbol-pabellon ${abierto ? 'abierto' : ''} ${registroActivo(pabellon) ? '' : 'inactivo'}"><header class="panel-arbol-cabecera"><button class="panel-arbol-toggle" data-toggle-pab="${esc(pabellon.pabellon_id)}" aria-expanded="${abierto}"><span class="icono">${svg(ICONO.mapa, 19)}</span><span class="quien"><b>${esc(pabellon.nombre)}</b><span>${detalle}</span></span><span class="chevron">${svg(ICONO.flecha, 18)}</span></button><span class="acciones"><button class="btn-mini" data-entidad="pabellones" data-editar="${pabellon._fila}" aria-label="Editar ${esc(pabellon.nombre)}" title="Editar">${svg(ICONO.flecha, 19)}</button><button class="btn-mini peligro" data-entidad="pabellones" data-borrar="${pabellon._fila}" aria-label="Eliminar ${esc(pabellon.nombre)}" title="Eliminar">${svg(ICONO.equis, 18)}</button></span></header>${abierto ? `<div class="panel-arbol-hijos">${stands.length ? stands.map(stand => {
         const expositor = nombreDe('EXPOSITOR', 'stand_id', stand.stand_id);
-        return `<article class="panel-arbol-stand ${registroActivo(stand) ? '' : 'inactivo'}"><div class="panel-arbol-linea"><span class="icono">${svg(ICONO.trofeo, 17)}</span><span class="quien"><b>${esc(stand.nombre)}</b><span>${esc(stand.stand_id)} · ${avancePreguntas(stand.stand_id)}</span>${expositor ? `<span>Expositor: ${expositor}</span>` : sinResponsable('stands', stand.stand_id) ? '<span>Sin expositor</span>' : ''}</span><span class="acciones"><button class="btn-mini" data-entidad="stands" data-editar="${stand._fila}" aria-label="Editar ${esc(stand.nombre)}" title="Editar">${svg(ICONO.flecha, 18)}</button><button class="btn-mini peligro" data-entidad="stands" data-borrar="${stand._fila}" aria-label="Eliminar ${esc(stand.nombre)}" title="Eliminar">${svg(ICONO.equis, 17)}</button></span></div>${bloquePreguntas(stand.stand_id, stand.nombre, 'Este stand todavía no tiene preguntas.')}</article>`;
+        return `<article class="panel-arbol-stand ${registroActivo(stand) ? '' : 'inactivo'}"><div class="panel-arbol-linea"><span class="icono">${svg(ICONO.trofeo, 17)}</span><span class="quien"><b>${esc(stand.nombre)}</b><span>${esc(stand.stand_id)} · ${avancePreguntas(stand.stand_id)}</span>${expositor ? `<span>Expositor: ${expositor}</span>` : sinResponsable('stands', stand.stand_id) ? '<span>Sin expositor</span>' : ''}</span><span class="acciones"><button class="btn-mini" data-entidad="stands" data-editar="${stand._fila}" aria-label="Editar ${esc(stand.nombre)}" title="Editar">${svg(ICONO.flecha, 18)}</button><button class="btn-mini peligro" data-entidad="stands" data-borrar="${stand._fila}" aria-label="Eliminar ${esc(stand.nombre)}" title="Eliminar">${svg(ICONO.equis, 17)}</button></span></div>${bloquePreguntas(stand.stand_id, stand.nombre, 'Este stand todavía no tiene preguntas.')}<div class="panel-arbol-acciones"><button class="btn-arbol" data-mover-stand="${esc(stand.stand_id)}">${svg(ICONO.flecha, 16)} Mover hacia…</button></div></article>`;
       }).join('') : '<p class="panel-arbol-vacio">Este pabellón todavía no tiene stands.</p>'}<button class="btn-arbol" data-nuevo="stands" data-pabellon="${esc(pabellon.pabellon_id)}">${svg(ICONO.mas, 16)} Añadir stand</button></div>` : ''}</article>`;
     }).join('')}</div>`;
   }
@@ -337,6 +337,7 @@
   function inputCampo(campo, fila, nuevo) {
     const actual = valor(fila, campo.clave);
     if (campo.readonlyNuevo && nuevo) return `<p class="campo-generado ${campo.ancho ? 'ancho' : ''}">${campo.etiqueta}: se genera automáticamente al guardar.</p>`;
+    if (campo.soloNuevo && !nuevo) return `<label class="campo-admin"><span>${campo.etiqueta}</span><input value="${nombrePabellon(actual)}" readonly><input type="hidden" name="${campo.clave}" value="${esc(actual)}"><small>Para cambiarlo usa Mover hacia en la lista de stands.</small></label>`;
     if (campo.tipo === 'check') return `<label class="check-admin ${campo.ancho ? 'ancho' : ''}"><input type="checkbox" name="${campo.clave}" ${nuevo ? 'checked' : registroActivo({ activo: actual }) ? 'checked' : ''}><span>${campo.etiqueta}</span></label>`;
     if (campo.tipo === 'textarea') return `<label class="campo-admin ${campo.ancho ? 'ancho' : ''}"><span>${campo.etiqueta}</span><textarea name="${campo.clave}" rows="3">${esc(actual)}</textarea></label>`;
     if (campo.tipo === 'fecha') return `<label class="campo-admin"><span>${campo.etiqueta}${campo.opcional ? ' · opcional' : ''}</span><input type="datetime-local" name="${campo.clave}" value="${esc(String(actual).replace(' ', 'T'))}" ${campo.opcional ? '' : 'required'}></label>`;
@@ -420,6 +421,35 @@
     };
   }
 
+  /** Mueve un stand a otro pabellón con código: el servidor cambia su pabellón, el de su expositor y su orden. */
+  function abrirMoverStand(standId) {
+    const stand = (datos.stands || []).find(s => s.stand_id === standId);
+    if (!stand) return;
+    const conCodigo = p => String(p.requiere_codigo) === '' || registroActivo({ activo: p.requiere_codigo });
+    const destinos = (datos.pabellones || []).filter(p => registroActivo(p) && conCodigo(p) && p.pabellon_id !== stand.pabellon_id);
+    if (!destinos.length) return toast('No hay otro pabellón activo con código al que mover este stand.');
+    const preguntas = (datos.preguntas || []).filter(q => q.stand_id === standId);
+    const activas = preguntas.filter(registroActivo).length;
+    const expositor = nombreDe('EXPOSITOR', 'stand_id', standId) || 'sin expositor';
+    const opciones = destinos.map(p => `<option value="${esc(p.pabellon_id)}">${esc(p.nombre)} · ${esc(p.pabellon_id)}</option>`).join('');
+    App.abrirHoja(`<form class="formulario-admin" id="admin-mover-form"><h2>Mover stand</h2><p><b>${esc(stand.nombre)}</b> · ${esc(stand.stand_id)}</p><div class="resumen"><ul><li>Desde: ${nombrePabellon(stand.pabellon_id)}</li><li>Preguntas que viajan con el stand: ${preguntas.length} (${activas} activas)</li><li>Expositor: ${expositor}</li></ul></div><label class="campo-admin ancho"><span>Mover hacia</span><select name="pabellon_id" required>${opciones}</select></label><p class="chico">El ID del stand no cambia: sus preguntas y su expositor lo siguen. Los códigos y los intentos ya registrados no se modifican.</p><div class="acciones-form"><button class="btn" type="submit">Mover stand</button><button class="btn texto" type="button" data-cerrar>Cancelar</button></div></form>`);
+    const form = $('admin-mover-form');
+    form.onsubmit = e => {
+      e.preventDefault();
+      const destino = form.elements.pabellon_id.value;
+      const boton = form.querySelector('button[type=submit]');
+      boton.disabled = true;
+      boton.innerHTML = '<i class="giro"></i>Moviendo…';
+      servidor('moverAdminStand', standId, destino).then(r => {
+        datos = r.datos;
+        pabellonesAbiertos.add(destino);
+        App.cerrarHoja();
+        toast('Stand movido: ' + r.movido.preguntas + (r.movido.preguntas === 1 ? ' pregunta viajó' : ' preguntas viajaron') + ' con él.');
+        pintar();
+      }).catch(error => { toast(error && error.message ? error.message : 'No se pudo mover el stand.'); boton.disabled = false; boton.textContent = 'Mover stand'; });
+    };
+  }
+
   /** Cambia en un toque Permisos.activo o un valor TRUE/FALSE de Config, sin abrir el formulario. */
   function alternarRegistro(boton) {
     const tipo = boton.dataset.alternar;
@@ -449,7 +479,7 @@
   }
 
   $('panel-tabs').addEventListener('click', e => { const boton = e.target.closest('[data-entidad]'); if (!boton) return; entidadActual = boton.dataset.entidad; busqueda = ''; $('panel-buscar').value = ''; pintarTabs(); pintarEditor(); });
-  $('panel-editor').addEventListener('click', e => { const toggle = e.target.closest('[data-toggle-pab]'); if (toggle) { const id = toggle.dataset.togglePab; if (pabellonesAbiertos.has(id)) pabellonesAbiertos.delete(id); else pabellonesAbiertos.add(id); return pintarEditor(); } const toggleRol = e.target.closest('[data-toggle-rol]'); if (toggleRol) { const rol = toggleRol.dataset.toggleRol; if (rolesAbiertos.has(rol)) rolesAbiertos.delete(rol); else rolesAbiertos.add(rol); return pintarEditor(); } const boton = e.target.closest('button'); if (!boton) return; if (boton.dataset.alternar) return alternarRegistro(boton); if (boton.dataset.importarPreguntas) return abrirImportacionPreguntas(boton.dataset.importarPreguntas, boton.dataset.nombre || ''); if (boton.dataset.nuevo) return abrirFormulario(null, boton.dataset.nuevo, { pabellon_id: boton.dataset.pabellon || '', stand_id: boton.dataset.stand || '', ...(boton.dataset.rol ? { rol: boton.dataset.rol } : {}) }); const tipo = boton.dataset.entidad || entidadActual; const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.editar || boton.dataset.borrar)); if (!fila) return; if (boton.dataset.editar) abrirFormulario(fila, tipo); else abrirBorrado(fila, tipo); });
+  $('panel-editor').addEventListener('click', e => { const toggle = e.target.closest('[data-toggle-pab]'); if (toggle) { const id = toggle.dataset.togglePab; if (pabellonesAbiertos.has(id)) pabellonesAbiertos.delete(id); else pabellonesAbiertos.add(id); return pintarEditor(); } const toggleRol = e.target.closest('[data-toggle-rol]'); if (toggleRol) { const rol = toggleRol.dataset.toggleRol; if (rolesAbiertos.has(rol)) rolesAbiertos.delete(rol); else rolesAbiertos.add(rol); return pintarEditor(); } const boton = e.target.closest('button'); if (!boton) return; if (boton.dataset.alternar) return alternarRegistro(boton); if (boton.dataset.importarPreguntas) return abrirImportacionPreguntas(boton.dataset.importarPreguntas, boton.dataset.nombre || ''); if (boton.dataset.moverStand) return abrirMoverStand(boton.dataset.moverStand); if (boton.dataset.nuevo) return abrirFormulario(null, boton.dataset.nuevo, { pabellon_id: boton.dataset.pabellon || '', stand_id: boton.dataset.stand || '', ...(boton.dataset.rol ? { rol: boton.dataset.rol } : {}) }); const tipo = boton.dataset.entidad || entidadActual; const fila = (datos[tipo] || []).find(f => f._fila === Number(boton.dataset.editar || boton.dataset.borrar)); if (!fila) return; if (boton.dataset.editar) abrirFormulario(fila, tipo); else abrirBorrado(fila, tipo); });
   $('panel-nuevo').addEventListener('click', () => abrirFormulario(null));
   $('panel-buscar').addEventListener('input', e => { busqueda = e.target.value; pintarEditor(); });
   $('panel-solo-activos').addEventListener('change', e => { soloActivos = e.target.checked; pintarEditor(); });

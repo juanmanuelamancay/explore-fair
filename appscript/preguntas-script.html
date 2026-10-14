@@ -53,7 +53,7 @@
     const chips = datos.stands.length > 1
       ? `<div class="carril pg-chips" role="tablist" aria-label="Stands">${datos.stands.map(s => {
           const t = paleta(s.indice);
-          return `<button class="pg-chip ${s.id === standId ? 'activo' : ''}" role="tab" aria-selected="${s.id === standId}" data-stand="${esc(s.id)}" style="--c:${t.color};--t:${t.tinte}">${esc(s.nombre)}</button>`;
+          return `<button class="pg-chip ${s.id === standId ? 'activo' : ''} ${s.taller ? 'taller' : ''}" role="tab" aria-selected="${s.id === standId}" data-stand="${esc(s.id)}" style="--c:${t.color};--t:${t.tinte}">${svg(s.taller ? ICONO.taller : t.icono, 18)}${esc(s.nombre)}</button>`;
         }).join('')}</div>`
       : `<div class="pg-stand"><span class="etiqueta-pab">${esc(stand.pabellon)}</span><b>${esc(stand.nombre)}</b></div>`;
 

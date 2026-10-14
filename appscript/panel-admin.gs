@@ -584,6 +584,7 @@ function guardarAdminRegistro(entidad, entrada) {
   if (ADMIN_HOJAS_OPCIONALES[entidad] && !hojaSiExiste_(def.hoja)) throw new Error('Crea primero la hoja ' + ADMIN_HOJAS_OPCIONALES[entidad] + ' con sus encabezados.');
   const original = entrada && entrada._fila ? adminFilas_(entidad).find(f => f._fila === Number(entrada._fila)) : null;
   const registro = adminNormalizar_(entidad, entrada || {});
+  if (entidad === 'stands' && original && id_(registro.pabellon_id) !== id_(original.pabellon_id)) throw new Error('Para cambiar de pabellón usa Mover hacia.');
   // Sin la columna, actualizarFila_ y agregarFila_ descartan el valor en silencio: avisa antes de guardar.
   if (entidad === 'pabellones' && registro.nombre_corto && encabezados_(def.hoja).indexOf('nombre_corto') < 0) {
     throw new Error('Agrega la columna nombre_corto en la hoja Pabellones para guardar un nombre corto.');
@@ -731,4 +732,46 @@ function eliminarAdminPabellon(numeroDeFila) {
     datos: obtenerAdminCatalogo(),
     borrado: { pabellones: 1, stands: stands.length, preguntas: preguntas.length, codigos: codigos.length },
   };
+}
+
+/**
+ * Mueve un stand a otro pabellón con código. Su ID no cambia: sus preguntas (Preguntas.stand_id) y su expositor
+ * (Staff.stand_id) lo siguen. Cambian Stands.pabellon_id, el pabellón de sus filas de Staff y su orden en el destino.
+ * Codigos e Intentos no se tocan: son por pabellón y guardan el historial.
+ */
+function moverAdminStand(standId, pabellonDestinoId) {
+  const sesion = exigirVista_('PANEL_ADMIN');
+  if (sesion.rol !== 'ADMIN') throw new Error('Solo un administrador puede mover stands.');
+  const idStand = id_(standId);
+  const idDestino = id_(pabellonDestinoId);
+  const conCodigo = p => texto_(p.requiere_codigo) === '' || adminBooleano_(p, 'requiere_codigo');
+
+  const bloqueo = LockService.getScriptLock();
+  bloqueo.waitLock(SEGUNDOS_BLOQUEO);
+  let movido;
+  try {
+    const stand = adminFilas_('stands').find(s => id_(s.stand_id) === idStand && adminBooleano_(s, 'activo'));
+    if (!stand) throw new Error('El stand ya no existe o está inactivo. Actualiza la lista.');
+    if (id_(stand.pabellon_id) === idDestino) throw new Error('El stand ya está en ese pabellón.');
+    const pabellones = adminFilas_('pabellones');
+    const destino = pabellones.find(p => id_(p.pabellon_id) === idDestino && adminBooleano_(p, 'activo'));
+    if (!destino) throw new Error('El pabellón de destino no existe o está inactivo.');
+    if (!conCodigo(destino)) throw new Error('Solo se puede mover un stand a un pabellón con código.');
+    const origen = pabellones.find(p => id_(p.pabellon_id) === id_(stand.pabellon_id));
+    if (origen && !conCodigo(origen)) throw new Error('El quiz de entrada no cambia: su stand no se mueve.');
+
+    const orden = adminFilas_('stands').filter(s => id_(s.pabellon_id) === idDestino)
+      .reduce((mayor, s) => Math.max(mayor, Number(s.orden) || 0), 0) + 1;
+    const expositores = adminFilas_('staff').filter(f => id_(f.stand_id) === idStand);
+    const preguntas = adminFilas_('preguntas').filter(p => id_(p.stand_id) === idStand).length;
+
+    actualizarFila_(HOJA.STANDS, stand._fila, { pabellon_id: idDestino, orden: orden });
+    expositores.forEach(f => actualizarFila_(HOJA.STAFF, f._fila, { pabellon_id: idDestino }));
+    SpreadsheetApp.flush();
+    limpiarCache_();
+    movido = { stand: idStand, de: id_(stand.pabellon_id), a: idDestino, preguntas: preguntas, expositores: expositores.length };
+  } finally {
+    bloqueo.releaseLock();
+  }
+  return { datos: obtenerAdminCatalogo(), movido: movido };
 }

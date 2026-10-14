@@ -155,6 +155,28 @@ function ordenDeFila_(fila) {
   return Math.floor((fila - 2) / FILAS_POR_PERSONA) + 1;
 }
 
+/** Para ejecutar a mano desde el editor: comprueba que las unidades activas caben en el bloque de filas de cada persona. */
+function validarUnidadesPorPersona() {
+  exigirAdmin_();
+  refrescarCatalogo_();
+  const unidades = catalogo_().unidades;
+  const quizDeEntrada = unidades.filter(u => u.tipo === 'PABELLON' && !u.requiereCodigo).length;
+  const pabellonesConCodigo = unidades.filter(u => u.tipo === 'PABELLON' && u.requiereCodigo).length;
+  const charlas = unidades.filter(u => u.tipo === 'CHARLA').length;
+  const total = quizDeEntrada + pabellonesConCodigo + charlas;
+  const resultado = {
+    quizDeEntrada: quizDeEntrada,
+    pabellonesConCodigo: pabellonesConCodigo,
+    charlas: charlas,
+    total: total,
+    limite: FILAS_POR_PERSONA,
+    margen: FILAS_POR_PERSONA - total,
+    cabe: total <= FILAS_POR_PERSONA,
+  };
+  console.log('Unidades: ' + total + ' de ' + FILAS_POR_PERSONA + ' (' + (resultado.cabe ? 'caben' : 'NO caben') + ', margen ' + resultado.margen + ')');
+  return resultado;
+}
+
 /** Guarda en el índice de la persona la copia de su número de orden. */
 function guardarOrden_(orden) {
   PropertiesService.getUserProperties().setProperty('orden', String(orden));

@@ -5,7 +5,7 @@
 
 // Se muestra en la página de error y en el diagnóstico, para saber qué código está corriendo de verdad.
 // Cambiarla en cada entrega: si la app publicada muestra otra, falta crear una nueva versión de la implementación.
-const VERSION_DEL_CODIGO = '2026-10-13.1';
+const VERSION_DEL_CODIGO = '2026-10-13.2';
 
 // Vista de la hoja Permisos -> prefijo de sus archivos. Una vista que no esté aquí aún no está programada.
 const ARCHIVO_DE_VISTA = {
@@ -21,6 +21,8 @@ const ARCHIVO_DE_VISTA = {
 
 function doGet() {
   try {
+    const correo = texto_(Session.getActiveUser().getEmail()).toLowerCase();
+    if (!correoPermitido_(correo)) return paginaDeAccesoRestringido_();
     sincronizarRoles_();
     let sesion = sesion_();
     let vistas = sesion.vistas.filter(v => ARCHIVO_DE_VISTA[v]);
@@ -41,6 +43,7 @@ function doGet() {
     plantilla.inicio = JSON.stringify({
       nombre: nombre,
       rol: sesion.rol,
+      roles: filasDeSesion_(sesion).map(f => f.rol).filter((r, i, todos) => todos.indexOf(r) === i),
       vistas: vistas,
       minutosParaResponder: config.minutos_para_responder,
       minutosVigenciaCodigo: config.minutos_vigencia_codigo,
@@ -58,6 +61,16 @@ function doGet() {
     try { CATALOGO_ = leerCatalogo_(); } catch (ignorado) { /* sin acceso al Sheet: se muestra lo que se pueda */ }
     return paginaDeError_(error.message, quienEntra_());
   }
+}
+
+/** Vista amable para quien no es personal interno con correo @bbva.com. */
+function paginaDeAccesoRestringido_() {
+  return HtmlService.createHtmlOutput(
+    '<div style="font:16px/1.5 Roboto,system-ui,sans-serif;max-width:440px;margin:10vh auto;padding:0 24px;text-align:center;color:#1f1f1f">' +
+    '<h1 style="font-size:22px;font-weight:400">Gracias por tu interés en Explore Fair</h1>' +
+    '<p style="color:#5f6368">Por ahora la app está disponible solo para personal interno de BBVA</p>' +
+    '</div>'
+  ).setTitle('Explore Fair').addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**

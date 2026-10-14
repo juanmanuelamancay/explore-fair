@@ -163,8 +163,8 @@
         ${p.opciones.map((texto, i) => `
           <div class="opcion" style="--i:${i}" role="listitem"><span class="letra">${LETRAS[i]}</span><span>${esc(texto)}</span></div>`).join('')}
       </div>
-      ${primera ? '' : '<button class="btn secundario" data-anterior>Anterior</button>'}
-      ${ultima ? '' : '<button class="btn" data-siguiente>Siguiente</button>'}
+      <button class="btn" data-siguiente style="${ultima ? 'visibility:hidden' : ''}">Siguiente</button>
+      <button class="btn secundario" data-anterior style="${primera ? 'visibility:hidden' : ''}">Anterior</button>
       <button class="btn ${ultima ? '' : 'texto'}" data-ir="${q.volver}">${textoVolver()}</button>
       </div>`;
     window.scrollTo(0, 0);

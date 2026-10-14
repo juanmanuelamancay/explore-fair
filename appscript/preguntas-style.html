@@ -9,10 +9,12 @@
   }
   .pg-chips { padding-bottom: 2px; }
   .pg-chip {
+    display: inline-flex; align-items: center; gap: 6px;
     flex: none; min-height: 40px; padding: 0 14px; border-radius: 20px;
     border: 1px solid var(--borde); font-size: 14px; font-weight: 500; color: var(--texto-2);
   }
   .pg-chip.activo { background: var(--t); border-color: var(--c); color: var(--c); }
+  .pg-chip.taller { border-style: dashed; }
   .pg-stand { display: flex; flex-direction: column; }
   .pg-stand b { font-size: 17px; }
 

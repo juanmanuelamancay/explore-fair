@@ -7,7 +7,7 @@
  * Para entrar como otra persona: http://localhost:8123/?como=expositor.apx@demo.com
  * Cuentas de ejemplo: ana.torres@demo.com (usuario), expositor.apx@demo.com (expositor de un stand),
  * lider.backend@demo.com (líder de pabellón), ponente.uno@demo.com (ponente de una charla),
- * validador@demo.com (validador) y admin@demo.com (admin),
+ * validador@demo.com (validador), admin@demo.com (admin), juanmanuel.amancay@bbva.com (líder, expositor y ponente) y validador.prueba@bbva.com (validador, dominio válido),
  * y sin.vistas@demo.com (rol sin permisos, para ver la página de error).
  * CHARLAS=1 deja al usuario solo con la ruta de charlas (semana previa al evento); sin esa variable ve el mapa del evento.
  * Variables de entorno: PORT, ESPERA=1 o ESPERA=0 (sala de espera), DESORDEN=1 (datos escritos a mano),
@@ -103,7 +103,7 @@ class Libro {
 
 function datosDeEjemplo() {
   const hoy = new Date();
-  const pabellones = [['PAB-000', 'General'], ['PAB-001', 'Backend'], ['PAB-002', 'Frontend'], ['PAB-003', 'Quality'], ['PAB-004', 'Seguridad'], ['PAB-005', 'Data'], ['PAB-006', 'Host']];
+  const pabellones = [['PAB-000', 'General'], ['PAB-001', 'Backend'], ['PAB-002', 'Frontend'], ['PAB-003', 'Quality'], ['PAB-004', 'Seguridad'], ['PAB-005', 'Data'], ['PAB-006', 'Host'], ['PAB-007', 'Prueba doble rol']];
   const stands = [
     ['STD-000', 'PAB-000', 'Quiz de entrada', false],
     ['STD-001', 'PAB-001', 'APX'], ['STD-002', 'PAB-001', 'ASO / APIs'], ['STD-003', 'PAB-001', 'LRA / LRBA'],
@@ -111,7 +111,7 @@ function datosDeEjemplo() {
     ['STD-007', 'PAB-003', 'Testing'], ['STD-008', 'PAB-003', 'QE'], ['STD-009', 'PAB-003', 'Code Review'],
     ['STD-010', 'PAB-004', 'SAST'], ['STD-011', 'PAB-004', 'Security'], ['STD-012', 'PAB-004', 'Gobierno'], ['STD-013', 'PAB-004', 'Quality'],
     ['STD-014', 'PAB-005', 'ADA'], ['STD-015', 'PAB-005', 'Data & Analytics'], ['STD-016', 'PAB-005', 'Gobierno de Datos'],
-    ['STD-017', 'PAB-006', 'Synapse'], ['STD-018', 'PAB-006', 'Katalyst'], ['STD-019', 'PAB-006', 'Control-M'],
+    ['STD-017', 'PAB-006', 'Synapse'], ['STD-018', 'PAB-006', 'Katalyst'], ['STD-019', 'PAB-007', 'Control-M'],
   ];
   const preguntas = [];
   // Con la sala de espera encendida las charlas aún no empiezan: la primera cae dentro de 2 días y 3 horas.
@@ -153,6 +153,10 @@ function datosDeEjemplo() {
       ['expositor.apx@demo.com', 'Carlos Mendoza', 'EXPOSITOR', 'PAB-001', 'STD-001', '', true],
       ['ponente.uno@demo.com', 'Rosa Quiroz', 'PONENTE', '', '', 'CHA-001', true],
       ['validador@demo.com', 'Valeria Ortiz', 'VALIDADOR', '', '', '', true],
+      ['juanmanuel.amancay@bbva.com', 'JUAN MANUEL AMANCAY', 'LIDER', 'PAB-007', '', '', true],
+      ['juanmanuel.amancay@bbva.com', 'JUAN MANUEL AMANCAY', 'EXPOSITOR', 'PAB-007', 'STD-019', '', true],
+      ['juanmanuel.amancay@bbva.com', 'JUAN MANUEL AMANCAY', 'PONENTE', '', '', 'CHA-003', true],
+      ['validador.prueba@bbva.com', 'Validador De Prueba', 'VALIDADOR', '', '', '', true],
       // Rol que no existe en Permisos, para ver la página de error.
       ['sin.vistas@demo.com', 'Invitado De Prueba', 'INVITADO', '', '', '', true]],
     // CHARLAS=1: semana de charlas (el usuario solo ve la ruta); sin esa variable, el evento (el usuario ve el mapa).

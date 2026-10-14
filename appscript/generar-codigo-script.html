@@ -59,9 +59,9 @@
       : `<div class="carril chips" role="tablist" aria-label="Pabellones y talleres">
            ${stands.map(x => {
              const t = paleta(x.indice);
-             return `<button class="chip-stand ${x.id === s.id ? 'activo' : ''}" role="tab" aria-selected="${x.id === s.id}"
+             return `<button class="chip-stand ${x.id === s.id ? 'activo' : ''} ${x.grupo === 'Taller' ? 'taller' : ''}" role="tab" aria-selected="${x.id === s.id}"
                        data-elegir="${esc(x.id)}" style="--c:${t.color};--t:${t.tinte}">
-                       ${esc(x.nombre)}${x.activo ? '<i title="Código activo"></i>' : ''}</button>`;
+                       ${svg(x.grupo === 'Taller' ? ICONO.taller : t.icono, 18)}${esc(x.nombre)}${x.activo ? '<i title="Código activo"></i>' : ''}</button>`;
            }).join('')}
          </div>`;
     restaurarCarril();
