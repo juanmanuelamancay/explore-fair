@@ -8,17 +8,17 @@ Pasos del sheet que faltan por hacer a mano: ver "Edición de los Sheets" al fin
 
 | Antes | Ahora |
 |---|---|
-| Un quiz por stand: banco de 16, se responden 4 | Un quiz por **pabellón**: cada stand aporta 2 preguntas de su banco de 12. Pabellón de 4 stands = 8 preguntas |
+| Un quiz por stand: banco de 16, se responden 4 | Un quiz por **pabellón**: cada stand aporta 2 preguntas de su banco de 10. Pabellón de 4 stands = 8 preguntas |
 | Un código por stand | Un código por **pabellón** |
 | Un intento por persona y stand | Un intento por persona y **pabellón** |
-| Rol `LIDER` genera códigos y edita preguntas de su stand | `LIDER` = líder de pabellón: solo genera el código del pabellón. `EXPOSITOR`: solo edita las preguntas de su stand (máximo 12) |
+| Rol `LIDER` genera códigos y edita preguntas de su stand | `LIDER` = líder de pabellón: solo genera el código del pabellón. `EXPOSITOR`: solo edita las preguntas de su stand (máximo 10) |
 | Un rol por persona en `Staff` | Varios roles en la celda `rol`, por ejemplo `LIDER\|EXPOSITOR` |
 
 Lo que **no** exige código (lo gestiona el admin desde el panel y la `Config`):
 
 - Puntaje: cada pregunta ya tiene `puntos`; `puntos_por_defecto` está en `Config`. Un pabellón con más stands vale más y es decisión del admin.
 - Tiempo: `minutos_para_responder` ya está en `Config`.
-- Que cada stand tenga sus 12 preguntas: lo asegura el admin antes de abrir. El servidor conserva un rechazo claro ("el stand X tiene n de 12") por si algo falla, pero no hay lógica de espera ni vista de avance para el líder.
+- Que cada stand tenga sus 10 preguntas: lo asegura el admin antes de abrir. El servidor conserva un rechazo claro ("el stand X tiene n de 10") por si algo falla, pero no hay lógica de espera ni vista de avance para el líder.
 
 ## Varias filas por correo (implementado 2026-10-13)
 
@@ -64,8 +64,8 @@ Líder de un pabellón y expositor en otro no cabe en una fila. Se resolvería p
 | `Intentos` | Un intento por persona y pabellón. `pabellon_id` es la clave. `stand_id` queda vacío. `preguntas_json` lleva IDs de varios stands. Reinicio de datos obligatorio |
 | `Pabellones` | Columnas nuevas (ver decisiones pendientes): `requiere_codigo` y `preguntas_por_stand` |
 | `Stands` | `requiere_codigo` y `num_preguntas` dejan de usarse (se pueden dejar en la hoja sin efecto) |
-| `Preguntas` | Sin cambio de estructura. El banco de cada stand baja de 16 a 12 |
-| `Config` | Claves nuevas: `preguntas_por_stand` (2) y `preguntas_banco_stand` (12), para no dejarlas fijas en el código |
+| `Preguntas` | Sin cambio de estructura. El banco de cada stand baja de 16 a 10 |
+| `Config` | Clave nueva: `preguntas_por_stand` (2). El tamaño del banco (10) quedó fijo en el código (`PREGUNTAS_BANCO_STAND`, `datos.gs`), no en `Config` |
 | `Usuarios` | Sin cambio |
 
 ## Filas reservadas por persona en `Intentos`
@@ -74,7 +74,8 @@ El bloque de cada persona (`2 + (orden − 1) × FILAS_POR_PERSONA`) y el `orden
 
 - La clave del índice por persona pasa de `i:STD-xxx` a `i:PAB-xxx`, y `reconstruirIndice_` lee `pabellon_id` de la fila en lugar de `stand_id`.
 - Un intento por persona y pabellón sale de esa clave: `iniciarQuiz` ya busca el intento existente antes de crear otro.
-- `FILAS_POR_PERSONA` (hoy 25, pensado para un intento por stand) baja a **10** (confirmado: la feria tiene 6 pabellones; el peor caso son 7 intentos con la entrada aparte, y quedan 3 filas de margen). Con 2.500 personas, `Intentos` pasa de unas 65.000 filas a unas 26.000.
+- `FILAS_POR_PERSONA` (antes 25, pensado para un intento por stand) quedó en **16** (`datos.gs:55`). La primera propuesta era 10 (6 pabellones + la entrada = 7 intentos), pero al sumar las 5 charlas el máximo por persona es 12 y 10 no alcanza (ver "Charlas previas"). Cada quiz (entrada, pabellón o charla) usa **una sola fila** del bloque: las preguntas sorteadas van dentro de esa fila, en `preguntas_json`. Con 2.500 personas, `Intentos` pasa de unas 65.000 filas a unas 40.000.
+- El código **no valida** que el número de unidades activas (entrada + pabellones + charlas) quepa en `FILAS_POR_PERSONA`. Hoy quedan 4 filas libres (12 de 16). Si se pasa, el error aparece a la persona que agota el bloque ("Ya usaste las 16 filas reservadas para ti").
 - Cambiar ese valor exige `Intentos` vacía (`prepararFeria`); el reinicio ya es obligatorio por este plan.
 - Si una persona agota el bloque no puede abrir más quizzes, así que el valor no debe quedarse corto.
 - En la fase 4 se revisan `auditarPuntajes` y los contadores de filas de `registro.gs` y `datos-test.gs` por si leen `stand_id`.
@@ -91,7 +92,7 @@ Antes de la feria hay **5 charlas o talleres** a lo largo de una semana. Quienes
 - **`unidad_id`** reemplaza a `stand_id`/`pabellon_id` como clave en `Intentos` y `Codigos`. Vale `PAB-xxx` o `CHA-xxx`. La clave del índice por persona es `i:<unidad_id>`. El motor del quiz es genérico: una unidad tiene una lista de bancos y cuántas preguntas sortear de cada uno (pabellón: 2 por stand; charla: 5 de 15).
 - `Preguntas` sigue igual: para una charla, `stand_id` lleva el id de la charla.
 - Sin quiz de entrada para las charlas.
-- **Filas:** máximo por persona = entrada 1 + pabellones 6 + charlas 5 = **12**. `FILAS_POR_PERSONA` pasa a **16** (propuesta). `Intentos` para 2.500 personas: unas 40.000 filas.
+- **Filas:** máximo por persona = entrada 1 + pabellones 6 + charlas 5 = **12**. `FILAS_POR_PERSONA` pasa a **16** (implementado, `datos.gs:55`). `Intentos` para 2.500 personas: unas 40.000 filas.
 - **Congelar datos:** apenas entre la primera persona a una charla, `prepararFeria` ya no se puede usar sin perder esos puntos. Antes de la primera charla deben quedar fijos `unidad_id`, `FILAS_POR_PERSONA` y el motor genérico. Lo específico de pabellones (`EXPOSITOR`, panel, mapa) no toca `Intentos` ni `Usuarios` y puede ir después.
 - **Pruebas de carga:** las simulaciones escriben usuarios falsos; con datos reales se corren en una **copia del Sheet** (`SPREADSHEET_ID` del script).
 
@@ -103,8 +104,8 @@ Confirmado: las fechas y horas de cada charla, los puntos de cada pregunta y la 
 
 Planteaba cada charla como un pabellón de un solo stand.
 
-- **Modelo (v1):** cada charla es un pabellón de un solo stand, como el quiz de entrada: banco de 12, `preguntas_por_stand`, código generado por quien la dicta (`LIDER` de ese pabellón).
-- **Filas:** máximo por persona = entrada 1 + pabellones 6 + charlas 5 = **12**. Con 10 filas no alcanza: `FILAS_POR_PERSONA` pasa a **16** (propuesta, sin confirmar). `Intentos` para 2.500 personas: unas 40.000 filas.
+- **Modelo (v1):** cada charla es un pabellón de un solo stand, como el quiz de entrada: banco de 10, `preguntas_por_stand`, código generado por quien la dicta (`LIDER` de ese pabellón).
+- **Filas:** máximo por persona = entrada 1 + pabellones 6 + charlas 5 = **12**. Con 10 filas no alcanza: `FILAS_POR_PERSONA` pasa a **16** (implementado, `datos.gs:55`). `Intentos` para 2.500 personas: unas 40.000 filas.
 - **Disponibilidad por pabellón:** `feria_abierta` y `espera_activa` son globales y con la sala de espera activa el usuario no puede abrir quizzes. Hace falta una columna en `Pabellones` (propuesta: `abierto`, controlada por el admin) para tener charlas abiertas y pabellones cerrados al mismo tiempo.
 - **Congelar datos:** una vez que empiece la primera charla no se puede reiniciar (`prepararFeria` exige `Intentos` vacía y renumera a todos). El cambio de modelo y las pruebas de carga deben estar terminados **antes de la primera charla**, y después el código no puede cambiar la forma de `Intentos` ni del índice.
 
@@ -127,7 +128,7 @@ Charlas: lunes 19 a miércoles 21. Feria: jueves 22.
 
 Plan B: el paso 4 puede desplegarse el martes 20 por la noche, porque no toca `Intentos` ni `Usuarios`.
 
-Antes del reinicio: comprobar cuántas filas tiene `Usuarios` (la sala de espera ya registra gente), revisar `timeZone` en `appsscript.json`, y tener cargadas las preguntas (5 charlas × 15; pabellones × stands × 12).
+Antes del reinicio: comprobar cuántas filas tiene `Usuarios` (la sala de espera ya registra gente), revisar `timeZone` en `appsscript.json`, y tener cargadas las preguntas (5 charlas × 15; pabellones × stands × 10).
 
 ## Fases
 
@@ -147,7 +148,7 @@ Solo se crea el rol `EXPOSITOR` y se separan los alcances. Lo que sigue de esta 
 
 - `generar-codigo.gs`: `standsALiderar_` se divide en `pabellonesALiderar_(sesion)`, que exige `LIDER` y usa `pabellon_id`.
 - `preguntas.gs`: `standsDelExpositor_(sesion)`, que exige `EXPOSITOR` y usa `stand_id`. Admin y validador ven todo.
-- Tope de 12 activas: una pregunta nueva que pasa de 12 se **rechaza con mensaje**, en lugar de crearse inactiva sin aviso.
+- Tope de 10 activas: una pregunta nueva que pasa de 10 se **rechaza con mensaje**, en lugar de crearse inactiva sin aviso.
 - Panel admin: el formulario del stand asigna un **expositor**. El pabellón pasa a tener un campo de líder (regla 19 reescrita, sin degradar a un `ADMIN` ni quitar un rol que ya tiene).
 
 ### Fase 3: código por pabellón
@@ -161,7 +162,7 @@ Solo se crea el rol `EXPOSITOR` y se separan los alcances. Lo que sigue de esta 
 
 - `datos.gs`: `catalogo_` agrega a cada pabellón sus stands activos y su `preguntas_por_stand`. `pabellonesDelMapa_` filtra por el `requiere_codigo` del pabellón.
 - `quiz.gs`:
-  - `iniciarQuiz(pabellonId, codigo)`: carga el banco de cada stand, exige `preguntas_banco_stand` en cada uno, sortea `preguntas_por_stand` de cada uno y arma el intento.
+  - `iniciarQuiz(pabellonId, codigo)`: carga el banco de cada stand, exige `PREGUNTAS_BANCO_STAND` (10) en cada uno, sortea `preguntas_por_stand` de cada uno y arma el intento.
   - `enviarQuiz`: corrige con el banco de cada stand del intento.
   - `retomarIndice_`: busca cada pregunta en los bancos del pabellón.
 - `indice.gs`: clave `i:PAB-xxx`. `reconstruirIndice_` lee `pabellon_id`. `filaLibreDe_` sin cambio.
@@ -169,13 +170,13 @@ Solo se crea el rol `EXPOSITOR` y se separan los alcances. Lo que sigue de esta 
 - `quiz-script.html`, `mapa-script.html`: tarjeta de pabellón; los stands pasan a ser informativos.
 - `ranking.gs`: clave de duplicados `email|pabellon_id`.
 - `quiz.gs` `verQuiz`: el validador recorre el pabellón o el stand; se actualiza el aviso de las "4 al azar".
-- Panel admin: en la pestaña Pabellones, cada pabellón muestra cuántas preguntas activas tiene cada stand (por ejemplo `8/12`). Así el admin ve qué falta sin que el líder tenga que intervenir.
+- Panel admin: en la pestaña Pabellones, cada pabellón muestra cuántas preguntas activas tiene cada stand (por ejemplo `8/10`). Así el admin ve qué falta sin que el líder tenga que intervenir.
 
 ### Fase 5: datos, pruebas y documentación
 
-- `preguntas_demo_stands.tsv`: 12 preguntas activas por stand. `intentos_demo.tsv`: una fila por pabellón.
+- `preguntas_demo_stands.tsv`: 10 preguntas activas por stand. `intentos_demo.tsv`: una fila por pabellón.
 - `prueba-feria.gs`, `simulacion.gs`, `simulacion-puntajes.gs`, `datos-test.gs`, `simulador/servidor.js`: modelo nuevo.
-- Documentos: `modelo-de-datos.md` (reglas 1, 6 a 11, 19 y las tablas `Staff`, `Permisos`, `Codigos`, `Intentos`), `producto-funcional.md`, `ux-ui.md`, `apps-script.md`, `formato-preguntas-json.md` (12 en lugar de 16), `README.md`. `VERSION_DEL_CODIGO` sube.
+- Documentos: `modelo-de-datos.md` (reglas 1, 6 a 11, 19 y las tablas `Staff`, `Permisos`, `Codigos`, `Intentos`), `producto-funcional.md`, `ux-ui.md`, `apps-script.md`, `formato-preguntas-json.md` (10 en lugar de 16), `README.md`. `VERSION_DEL_CODIGO` sube.
 - Reinicio con `prepararFeria`, con `Intentos` vacía. Después, `iniciarPruebaCarga` y `revisarPruebaCarga` otra vez; las conclusiones de capacidad salen de esos registros.
 
 ## Orden y plazo
@@ -186,7 +187,7 @@ Las fases 1 a 3 son relativamente pequeñas (roles, alcance y códigos). La 4 es
 
 1. **Quiz de entrada.** Sigue siendo un pabellón con un stand (`PAB-000`, `STD-000`), sin código y con 4 preguntas: `Pabellones.preguntas_por_stand = 4`.
 2. **`requiere_codigo` vive en `Pabellones`.** El código desbloquea el pabellón completo; el usuario ya no elige stands sueltos.
-3. **Las 12 preguntas** son el tope para el expositor y el mínimo por stand para que el pabellón abra su quiz.
+3. **Las 10 preguntas** son el tope para el expositor y el mínimo por stand para que el pabellón abra su quiz.
 
 ## Pendiente
 
@@ -207,7 +208,7 @@ Antes de subir el código y de ejecutar `prepararFeria`:
 4. **`Staff`**: agregar la columna `charla_id`. Las filas `LIDER` que tienen `stand_id` pasan a `EXPOSITOR` (con su `pabellon_id` y su `stand_id`). Cada pabellón con código necesita un `LIDER` (con `pabellon_id` y `stand_id` vacío): se puede asignar desde el panel.
 5. **`Permisos`**: `LIDER` solo con `GENERAR_CODIGO`; agregar `EXPOSITOR` → `PREGUNTAS`, `PONENTE` → `GENERAR_CODIGO` y `PREGUNTAS`, `CHARLAS` para `VALIDADOR` y `ADMIN`, y para `USUARIO` según la fecha (`CHARLAS` y `QUIZ` en la semana de charlas; `MAPA` y `QUIZ` en el evento).
 6. **`Charlas`** (hoja nueva): pegar `charlas_demo.tsv` y corregir títulos, ponentes y horarios.
-7. **`Preguntas`**: cada stand con 12 preguntas activas y cada charla con 15 (`stand_id` lleva `CHA-001`, etc.). `preguntas_demo_stands.tsv` ya trae 12 activas por stand.
-8. **Config** (opcional): las claves nuevas (`preguntas_por_stand`, `preguntas_banco_stand`, `preguntas_quiz_charla`, `preguntas_banco_charla`) ya tienen valor por defecto.
+7. **`Preguntas`**: cada stand con 10 preguntas activas y cada charla con 15 (`stand_id` lleva `CHA-001`, etc.). `preguntas_demo_stands.tsv` ya trae 10 activas por stand.
+8. **Config** (opcional): las claves nuevas (`preguntas_por_stand`, `preguntas_quiz_charla`, `preguntas_banco_charla`) ya tienen valor por defecto.
 
 Después: subir el código con `clasp push` (reemplaza el proyecto remoto completo), ejecutar `probarTodo` y revisar que todo salga OK, ejecutar `prepararFeria` con `Intentos` vacía y, en la copia, las pruebas de carga (`iniciarPruebaCarga`, `iniciarPruebaLideres`).

@@ -4,26 +4,125 @@
   const contenido = $('pg-contenido');
   // El validador ve las preguntas y la respuesta correcta, pero no puede crear ni editar.
   const soloLectura = INICIO.rol === 'VALIDADOR';
-  let datos = null;    // { stands, preguntas } tal como lo devuelve el servidor; cada banco (stand o charla) trae su "maximo"
+  const TIEMPO_MAX_ENVIO_MS = 25000;   // sin respuesta en este tiempo, el envío queda "pendiente de confirmar"
+  const LLAVE_LOCAL = 'explore-fair:preguntas-borrador:' + (INICIO.correo || 'anonimo');
+  const MARCA_NO_GUARDADO = 'NO_GUARDADO|';
+
+  let datos = null;     // { stands, preguntas } tal como lo devuelve el servidor; cada banco (stand o charla) trae su "maximo"
   let standId = null;   // stand que se está viendo
-  let recien = null;    // pregunta que se acaba de guardar: su tarjeta destella una vez
-  let guardando = false; // mientras el servidor guarda, la hoja no se puede cerrar
+  let recien = [];      // IDs de las preguntas que se acaban de guardar: su tarjeta destella una vez
+  let contadorNuevas = 0;
+  let confirmarDescartar = false; // primer toque de "Descartar": el segundo lo hace
+  let enVista = false;
+  let avisoBarra = null;  // { texto } mensaje de error dentro de la barra; null si no hay
+  let restaurado = false; // hubo cambios recuperados de la sesión anterior: se avisa una vez al abrir la vista
 
-  // Con la hoja guardando, ni la X, ni Cancelar, ni el fondo, ni Escape pueden cerrarla.
-  const bloquearCierre = e => {
-    if (guardando && (e.type === 'keydown' ? e.key === 'Escape' : e.target.closest('[data-cerrar]'))) {
-      e.preventDefault();
-      e.stopPropagation();
+  /*
+   * Borrador: los cambios se anotan aquí y no se mandan al servidor hasta "Actualizar todo".
+   * Clave: el ID de la pregunta si es existente, o "nueva-N" si es nueva. Valor: { key, id, nueva, standId, texto, opciones, correcta }.
+   * Se guarda también en localStorage (ver guardarLocal): si la página se recarga o se cierra, no se pierde.
+   */
+  const borrador = new Map();
+
+  /*
+   * Envío en curso o pendiente de confirmar; null si no hay ninguno. Mientras exista, el borrador no cambia:
+   * así el reintento manda exactamente lo mismo, con el mismo id, y el servidor no lo escribe dos veces.
+   *  - estado "enviando": esperando respuesta.
+   *  - estado "incierto": no sabemos si el servidor llegó a guardar (se agotó el tiempo, se cortó la red o se cerró la página).
+   * Un fallo que el servidor reporta como "no se guardó nada" no deja envío: el borrador vuelve a ser editable.
+   */
+  let envio = null;
+
+  // La barra vive en el body y no dentro de la vista: la vista tiene un transform (su animación de entrada) y un
+  // elemento fijo dentro de un transform se posiciona respecto a ese bloque, no a la pantalla.
+  const barraEl = document.createElement('div');
+  barraEl.className = 'pg-barra';
+  barraEl.hidden = true;
+  barraEl.setAttribute('role', 'region');
+  barraEl.setAttribute('aria-label', 'Cambios sin guardar');
+  document.body.appendChild(barraEl);
+  barraEl.addEventListener('click', e => {
+    if (envio && envio.estado === 'enviando') return;
+    if (e.target.closest('[data-actualizar]')) return actualizarTodo();
+    if (e.target.closest('[data-descartar]')) return descartar();
+  });
+
+  /* ---------- Almacenamiento local (solo para no perder el borrador; el servidor sigue siendo la fuente) ---------- */
+
+  function guardarLocal() {
+    try {
+      if (!borrador.size && !envio) localStorage.removeItem(LLAVE_LOCAL);
+      else localStorage.setItem(LLAVE_LOCAL, JSON.stringify({ borrador: [...borrador], envio: envio, contadorNuevas: contadorNuevas }));
+    } catch (error) { /* sin almacenamiento (ventana privada, cuota llena): el borrador sigue en memoria */ }
+  }
+
+  function leerLocal() {
+    try { return JSON.parse(localStorage.getItem(LLAVE_LOCAL) || 'null'); } catch (error) { return null; }
+  }
+
+  // Al abrir la página, se recupera lo que quedó de la sesión anterior.
+  (function recuperar() {
+    const guardado = leerLocal();
+    if (!guardado || !Array.isArray(guardado.borrador)) return;
+    guardado.borrador.forEach(([clave, cambio]) => borrador.set(clave, cambio));
+    contadorNuevas = Number(guardado.contadorNuevas) || 0;
+    if (guardado.envio) {
+      // La página se cerró mientras se enviaba: no sabemos si llegó. Se trata como un envío incierto.
+      envio = Object.assign({ idsAntes: [] }, guardado.envio, { estado: 'incierto' });
+      avisoBarra = { texto: 'Quedó un guardado sin confirmar. Toca Reintentar: no se duplica nada.' };
     }
-  };
-  document.addEventListener('click', bloquearCierre, true);
-  document.addEventListener('keydown', bloquearCierre, true);
+    restaurado = borrador.size > 0;
+  })();
 
-  const delStand = () => datos.preguntas.filter(p => p.standId === standId);
-  const activas = () => delStand().filter(p => p.activo).length;
+  /* ---------- Llamadas al servidor ---------- */
+
+  /** Como servidor(), pero si no hay respuesta a tiempo rechaza. El servidor puede seguir trabajando: por eso el reintento usa el mismo id. */
+  function llamarConTiempo(nombre, argumentos, ms) {
+    return new Promise((bien, mal) => {
+      const reloj = setTimeout(() => mal(new Error('Tiempo agotado')), ms);
+      servidor(nombre, ...argumentos).then(
+        r => { clearTimeout(reloj); bien(r); },
+        e => { clearTimeout(reloj); mal(e); });
+    });
+  }
+
+  function nuevoIdLote() {
+    return 'lote' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  }
+
+  const paraServidor = c => ({ id: c.id, standId: c.standId, texto: c.texto, opciones: c.opciones, correcta: c.correcta });
+  const sonIguales = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+  /* ---------- Vista ---------- */
+
+  /** Pregunta tal como se ve ahora: la del servidor, con el cambio pendiente encima si lo hay. */
+  function vistaDe(clave) {
+    const cambio = borrador.get(clave);
+    if (cambio && cambio.nueva) return cambio;
+    const original = datos.preguntas.find(p => p.id === clave);
+    return cambio && original ? Object.assign({}, original, cambio) : original;
+  }
+
+  /** Preguntas del stand que se ve, con sus cambios pendientes y las nuevas al final. */
+  function tarjetasDelStand() {
+    const existentes = datos.preguntas
+      .filter(p => p.standId === standId)
+      .map(p => (borrador.has(p.id) ? Object.assign({}, p, borrador.get(p.id), { pendiente: true }) : p));
+    const nuevas = [...borrador.values()]
+      .filter(c => c.nueva && c.standId === standId)
+      .map(c => Object.assign({ activo: true }, c, { pendiente: true }));
+    return existentes.concat(nuevas);
+  }
+
+  const activas = () => tarjetasDelStand().filter(p => p.activo).length;
 
   function mostrar() {
+    enVista = true;
     if (!datos) App.cargando(contenido);
+    if (restaurado) {
+      restaurado = false;
+      if (borrador.size) toast('Recuperamos tus cambios sin guardar.');
+    }
     cargar();
     // El validador no edita: se le avisa quién mantiene las preguntas.
     if (soloLectura) mostrarAviso('Sobre estas preguntas', 'Estas preguntas serán actualizadas por los expositores de cada stand y los ponentes de cada taller según su presentación.');
@@ -33,23 +132,54 @@
     return servidor('obtenerBancoPreguntas').then(r => {
       datos = r;
       if (!datos.stands.some(s => s.id === standId)) standId = datos.stands.length ? datos.stands[0].id : null;
+      if (envio && envio.estado === 'incierto') comprobarEnvioPendiente();
+      else limpiarBorradorHuerfano();
       pintar();
     }).catch(() => { if (!datos) App.error(contenido, cargar); else toast('No pudimos actualizar las preguntas.'); });
+  }
+
+  /** Quita del borrador lo que ya no existe en el banco (por ejemplo, un stand que dejó de ser de esta persona). */
+  function limpiarBorradorHuerfano() {
+    let cambio = false;
+    [...borrador].forEach(([clave, c]) => {
+      const sigue = c.nueva ? datos.stands.some(s => s.id === c.standId) : datos.preguntas.some(p => p.id === c.id);
+      if (!sigue) { borrador.delete(clave); cambio = true; }
+    });
+    if (cambio) guardarLocal();
+  }
+
+  /**
+   * Tras un envío incierto, se mira el banco: si lo que se envió ya está ahí, el servidor había guardado y no hace
+   * falta reintentar. Las nuevas se reconocen porque no estaban antes del envío y tienen el mismo texto y opciones.
+   */
+  function comprobarEnvioPendiente() {
+    const yaGuardado = envio.cambios.every(c => {
+      if (c.id) {
+        const p = datos.preguntas.find(q => q.id === c.id);
+        return !!p && p.texto === c.texto && p.correcta === c.correcta && sonIguales(p.opciones, c.opciones);
+      }
+      return datos.preguntas.some(p => !envio.idsAntes.includes(p.id) && p.standId === c.standId &&
+        p.texto === c.texto && p.correcta === c.correcta && sonIguales(p.opciones, c.opciones));
+    });
+    if (!yaGuardado) return;
+    terminarEnvio('Tus cambios ya estaban guardados.');
   }
 
   function pintar() {
     if (!datos.stands.length) {
       contenido.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.llave, 32)}</div><h2>No tienes nada asignado</h2>
         <p>Pide a un administrador que te asigne tu stand o tu taller.</p></div>`;
+      pintarBarra();
       return;
     }
     const stand = datos.stands.find(s => s.id === standId);
     const tono = paleta(stand.indice);
-    const n = activas();
+    const lista = tarjetasDelStand();
+    const n = lista.filter(p => p.activo).length;
     // El admin puede pasar del tope; el expositor y el ponente no: con el banco lleno solo editan lo que ya hay.
     const lleno = n >= stand.maximo && INICIO.rol !== 'ADMIN';
     const animar = recien;
-    recien = null;
+    recien = [];
     const chips = datos.stands.length > 1
       ? `<div class="carril pg-chips" role="tablist" aria-label="Stands">${datos.stands.map(s => {
           const t = paleta(s.indice);
@@ -57,6 +187,8 @@
         }).join('')}</div>`
       : `<div class="pg-stand"><span class="etiqueta-pab">${esc(stand.pabellon)}</span><b>${esc(stand.nombre)}</b></div>`;
 
+    const bloqueado = !!envio;   // con un envío en curso o sin confirmar, el borrador no cambia
+    const hayCambios = borrador.size > 0;
     const restaurarCarril = recordarCarril(contenido);
     contenido.innerHTML = `
       <div class="pg-cab" style="--c:${tono.color};--t:${tono.tinte}">
@@ -64,23 +196,51 @@
         <div class="pg-resumen">
           <div class="pg-puntitos" aria-hidden="true">${Array.from({ length: Math.max(stand.maximo, n) }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>
           <span class="tnum"><b>${n}</b> de ${stand.maximo} activas</span>
-          ${soloLectura || lleno ? '' : `<button class="pg-nueva" data-nueva>${svg(ICONO.mas, 16)} Nueva</button>`}
+          ${soloLectura || lleno || bloqueado ? '' : `<button class="pg-nueva" data-nueva>${svg(ICONO.mas, 16)} Nueva</button>`}
         </div>
       </div>
-      <p class="pg-ayuda">${soloLectura ? 'Toca una pregunta para verla completa.' : lleno ? 'Ya están las ' + stand.maximo + ' preguntas: toca una para editarla. No se pueden agregar más.' : 'Toca una pregunta para editarla.'}</p>
-      <ol class="pg-lista">${delStand().map((p, i) => tarjeta(p, i, animar)).join('') || '<li class="pg-vacio">Todavía no hay preguntas aquí.</li>'}</ol>`;
+      <p class="pg-ayuda">${soloLectura ? 'Toca una pregunta para verla completa.' : lleno ? 'Ya están las ' + stand.maximo + ' preguntas: toca una para editarla. No se pueden agregar más.' : 'Toca una pregunta para editarla. Los cambios se guardan todos juntos con «Actualizar todo».'}</p>
+      <ol class="pg-lista ${hayCambios ? 'con-barra' : ''} ${bloqueado ? 'congelada' : ''}">${lista.map((p, i) => tarjeta(p, i, animar)).join('') || '<li class="pg-vacio">Todavía no hay preguntas aquí.</li>'}</ol>`;
     restaurarCarril();
+    pintarBarra();
   }
 
   function tarjeta(p, i, animar) {
+    const clave = p.id || p.key;
     return `
-      <li class="pg-pregunta ${p.activo ? '' : 'inactiva'} ${animar === p.id ? 'recien' : ''}">
-        <button class="pg-cabeza" data-editar="${esc(p.id)}">
+      <li class="pg-pregunta ${p.activo ? '' : 'inactiva'} ${p.pendiente ? 'pendiente' : ''} ${animar.indexOf(clave) >= 0 ? 'recien' : ''}">
+        <button class="pg-cabeza" data-editar="${esc(clave)}">
           <span class="pg-num">${i + 1}</span>
           <span class="pg-texto">${esc(p.texto)}</span>
+          ${p.pendiente ? `<span class="pg-marca">${p.id ? 'Editada' : 'Nueva'}</span>` : ''}
           <span class="pg-flecha" aria-hidden="true">${svg(ICONO.flecha, 18)}</span>
         </button>
       </li>`;
+  }
+
+  /** Barra fija: cuenta los cambios, y muestra "Actualizar todo", "Reintentar" o el error de un envío. */
+  function pintarBarra() {
+    const total = borrador.size;
+    const visible = (total || envio) && enVista && !soloLectura;
+    barraEl.hidden = !visible;
+    if (!visible) return;
+    const enviando = !!envio && envio.estado === 'enviando';
+    const incierto = !!envio && envio.estado === 'incierto';
+    const nuevas = [...borrador.values()].filter(c => c.nueva).length;
+    const editadas = total - nuevas;
+    const partes = [editadas ? editadas + (editadas === 1 ? ' editada' : ' editadas') : '', nuevas ? nuevas + (nuevas === 1 ? ' nueva' : ' nuevas') : ''].filter(Boolean);
+    const titulo = incierto ? 'Sin confirmar' : total + (total === 1 ? ' cambio' : ' cambios');
+    const detalle = enviando ? 'Guardando…' : incierto ? 'Tus cambios siguen aquí' : partes.join(' · ');
+    const principal = enviando ? 'Guardando…' : incierto ? 'Reintentar' : 'Actualizar todo';
+    barraEl.classList.toggle('guardando', enviando);
+    barraEl.classList.toggle('incierto', incierto);
+    barraEl.innerHTML = `
+      <div class="pg-barra-fila">
+        <p><b>${titulo}</b><span>${esc(detalle)}</span></p>
+        <button class="btn secundario" type="button" data-descartar ${enviando ? 'disabled' : ''}>${confirmarDescartar ? '¿Seguro?' : 'Descartar'}</button>
+        <button class="btn" type="button" data-actualizar ${enviando ? 'disabled' : ''}>${principal}</button>
+      </div>
+      ${avisoBarra ? `<p class="pg-barra-aviso" role="alert">${esc(avisoBarra.texto)}</p>` : ''}`;
   }
 
   /** Pregunta completa para el validador: enunciado, opciones y la correcta marcada. No hay nada que guardar. */
@@ -97,10 +257,13 @@
       </div>`);
   }
 
-  /** Editor del enunciado, las opciones y la correcta de una pregunta, o de una nueva. */
-  function abrirEditor(p) {
-    const nueva = !p;
-    const base = p || { id: '', standId: standId, texto: '', opciones: ['', '', '', ''], correcta: 'A' };
+  /** Editor del enunciado, las opciones y la correcta de una pregunta, o de una nueva. Guarda en el borrador. */
+  function abrirEditor(clave) {
+    const actual = clave ? vistaDe(clave) : null;
+    const base = actual
+      ? { key: clave, id: actual.id || null, standId: actual.standId, texto: actual.texto, opciones: actual.opciones, correcta: actual.correcta }
+      : { key: null, id: null, standId: standId, texto: '', opciones: ['', '', '', ''], correcta: 'A' };
+    const nueva = !base.id;
     const hoja = App.abrirHoja(`
       <form class="pg-form" id="pg-form">
         <h2>${nueva ? 'Nueva pregunta' : 'Editar pregunta'}</h2>
@@ -112,7 +275,7 @@
         </fieldset>
         <p class="pg-aviso-form" id="pg-error" role="alert"></p>
         <div class="pg-acciones">
-          <button class="btn" type="submit">Guardar</button>
+          <button class="btn" type="submit">Anotar cambio</button>
           <button class="btn texto" type="button" data-cerrar>Cancelar</button>
         </div>
       </form>`);
@@ -121,36 +284,102 @@
     form.onsubmit = e => {
       e.preventDefault();
       const f = form.elements;
-      const entrada = {
-        id: base.id,
-        standId: base.standId,
-        texto: f.texto.value,
-        opciones: [0, 1, 2, 3].map(i => f['op' + i].value),
-        correcta: form.querySelector('input[name="correcta"]:checked').value,
-      };
-      // Mientras se guarda, la animación ocupa el lugar de los botones y los campos se bloquean.
-      const acciones = form.querySelector('.pg-acciones');
-      const botones = acciones.innerHTML;
-      guardando = true;
-      form.classList.add('guardando');
-      form.querySelectorAll('input, textarea, fieldset').forEach(el => { el.disabled = true; });
-      acciones.innerHTML = '<div class="pg-guardando" role="status" aria-live="polite"><i class="giro"></i><span>Guardando…</span></div>';
+      const texto = f.texto.value.trim();
+      const opciones = [0, 1, 2, 3].map(i => f['op' + i].value.trim());
+      const correcta = form.querySelector('input[name="correcta"]:checked').value;
+      const error = form.querySelector('#pg-error');
+      if (!texto || opciones.some(o => !o)) { error.textContent = 'Completa el enunciado y las cuatro opciones.'; return; }
+      // Una pregunta nueva no puede pasar del tope: el servidor lo vuelve a comprobar al actualizar.
+      if (nueva && INICIO.rol !== 'ADMIN' && !base.key && activas() >= datos.stands.find(s => s.id === standId).maximo) {
+        error.textContent = 'Este banco ya tiene sus preguntas activas. Edita una de las que ya hay: no se pueden agregar más.';
+        return;
+      }
 
-      servidor('guardarPreguntaLider', entrada).then(r => {
-        guardando = false;
-        datos = r;
-        if (base.id) recien = base.id;
-        App.cerrarHoja();
-        toast('Pregunta guardada.');
-        pintar();
-      }).catch(error => {
-        guardando = false;
-        form.classList.remove('guardando');
-        form.querySelectorAll('input, textarea, fieldset').forEach(el => { el.disabled = false; });
-        acciones.innerHTML = botones;
-        form.querySelector('#pg-error').textContent = error && error.message ? error.message : 'No se pudo guardar.';
-      });
+      const claveNueva = base.key || 'nueva-' + (++contadorNuevas);
+      const cambio = { key: claveNueva, id: base.id, nueva: nueva, standId: base.standId || standId, texto, opciones, correcta };
+      const original = base.id ? datos.preguntas.find(p => p.id === base.id) : null;
+      // Si al final quedó igual que el servidor, no es un cambio: se quita del borrador.
+      const igual = original && original.texto === texto && original.correcta === correcta && sonIguales(original.opciones, opciones);
+      if (igual) borrador.delete(claveNueva);
+      else borrador.set(claveNueva, cambio);
+      avisoBarra = null;
+      confirmarDescartar = false;
+      guardarLocal();
+
+      App.cerrarHoja();
+      toast(igual ? 'Sin cambios.' : 'Cambio anotado. Se guarda al final.');
+      pintar();
     };
+  }
+
+  /**
+   * Manda el borrador al servidor en una sola llamada. Tres resultados:
+   *  - guardado: el borrador se vacía y las tarjetas destellan.
+   *  - "no se guardó nada" (validación, permiso, turno ocupado): el borrador sigue editable y el motivo queda en la barra.
+   *  - incierto (sin respuesta, red cortada): el envío se conserva con su id y el borrador queda congelado hasta
+   *    confirmarlo con "Reintentar". Reintentar manda lo mismo con el mismo id: el servidor no lo escribe dos veces.
+   */
+  function actualizarTodo() {
+    if (envio && envio.estado === 'enviando') return;
+    if (!envio) {
+      if (!borrador.size) return;
+      envio = {
+        id: nuevoIdLote(),
+        cambios: [...borrador.values()].map(paraServidor),
+        idsAntes: datos.preguntas.map(p => p.id),
+        estado: 'enviando',
+      };
+    }
+    envio.estado = 'enviando';
+    avisoBarra = null;
+    guardarLocal();
+    pintar();
+
+    const este = envio;
+    llamarConTiempo('guardarPreguntasLider', [este.cambios, este.id], TIEMPO_MAX_ENVIO_MS).then(r => {
+      if (envio !== este) return;   // ya se descartó o se confirmó por otra vía
+      const editadas = este.cambios.filter(c => c.id).map(c => c.id);
+      datos = r.banco;
+      recien = r.creadas.concat(editadas);
+      terminarEnvio(r.repetido ? 'Ese guardado ya estaba hecho.' : este.cambios.length === 1 ? 'Pregunta guardada.' : este.cambios.length + ' preguntas guardadas.');
+      pintar();
+    }, error => {
+      if (envio !== este) return;
+      const mensaje = String(error && error.message || '');
+      const marca = mensaje.indexOf(MARCA_NO_GUARDADO);
+      if (marca >= 0) {
+        envio = null;
+        avisoBarra = { texto: mensaje.slice(marca + MARCA_NO_GUARDADO.length) };
+      } else {
+        este.estado = 'incierto';
+        avisoBarra = { texto: navigator.onLine === false
+          ? 'Sin conexión. Tus cambios siguen aquí: toca Reintentar cuando vuelva la red.'
+          : 'No pudimos confirmar el guardado. Tus cambios siguen aquí: toca Reintentar, no se duplica nada.' };
+      }
+      guardarLocal();
+      pintar();
+    });
+  }
+
+  /** Cierra el envío: el borrador ya está en el servidor (o descartado). */
+  function terminarEnvio(mensaje) {
+    borrador.clear();
+    envio = null;
+    avisoBarra = null;
+    confirmarDescartar = false;
+    guardarLocal();
+    if (mensaje) toast(mensaje);
+  }
+
+  function descartar() {
+    if (!confirmarDescartar) {
+      confirmarDescartar = true;
+      pintarBarra();
+      setTimeout(() => { confirmarDescartar = false; if (borrador.size) pintarBarra(); }, 3000);
+      return;
+    }
+    terminarEnvio('Cambios descartados.');
+    pintar();
   }
 
   contenido.addEventListener('click', e => {
@@ -162,11 +391,34 @@
       if (ver) abrirDetalle(datos.preguntas.find(p => p.id === ver.dataset.editar));
       return;
     }
+    if (envio) {
+      if (e.target.closest('[data-nueva],[data-editar]')) {
+        toast(envio.estado === 'enviando' ? 'Guardando…' : 'Confirma el guardado pendiente: toca Reintentar.');
+      }
+      return;
+    }
     if (e.target.closest('[data-nueva]')) return abrirEditor(null);
     const editar = e.target.closest('[data-editar]');
-    if (editar) abrirEditor(datos.preguntas.find(p => p.id === editar.dataset.editar));
+    if (editar) abrirEditor(editar.dataset.editar);
   });
 
-  App.registrar('preguntas', { alMostrar: mostrar, alRefrescar: cargar });
+  // Con cambios sin guardar, el navegador pregunta antes de cerrar la pestaña.
+  window.addEventListener('beforeunload', e => {
+    if (borrador.size) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  // Si vuelve la red y hay un envío sin confirmar, se avisa para que se reintente.
+  window.addEventListener('online', () => {
+    if (envio && envio.estado === 'incierto') {
+      avisoBarra = { texto: 'Ya hay conexión. Toca Reintentar para confirmar el guardado.' };
+      pintarBarra();
+    }
+  });
+
+  App.registrar('preguntas', {
+    alMostrar: mostrar,
+    alOcultar: () => { enVista = false; barraEl.hidden = true; },
+    alRefrescar: cargar,
+  });
 })();
 </script>

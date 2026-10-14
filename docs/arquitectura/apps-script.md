@@ -22,7 +22,7 @@ Cada vista tiene cuatro archivos con el mismo prefijo:
 | `QUIZ` | `quiz` | `iniciarQuiz`, `enviarQuiz`, `verQuiz` (el validador) |
 | `RANKING` | `ranking` | `obtenerRanking`, `guardarAjustesPantalla` |
 | `GENERAR_CODIGO` | `generar-codigo` | `obtenerCodigos`, `generarCodigo` (líder de pabellón y ponente) |
-| `PREGUNTAS` | `preguntas` | `obtenerBancoPreguntas`, `guardarPreguntaLider` (expositor y ponente, con tope de preguntas activas) |
+| `PREGUNTAS` | `preguntas` | `obtenerBancoPreguntas`, `guardarPreguntasLider(entradas, idLote)` (expositor y ponente: guarda el borrador completo de una vez, todo o nada, con tope de preguntas activas; con `idLote` un reintento no duplica nada, y los errores previos a la escritura salen con la marca `NO_GUARDADO|`; `guardarPreguntaLider` queda para una sola pregunta) |
 | `PANEL_ADMIN` | `panel-admin` | `obtenerPanel`, `obtenerAdminCatalogo`, `guardarAdminRegistro`, `importarPreguntasAdmin`, `borrarAdminRegistro`, `eliminarAdminPabellon`, `actualizarCatalogo`, `registrarPendientes`, `reiniciarDatos`, `borrarRespaldos` |
 | `ESPERA` (no va en `Permisos`) | `espera` | `obtenerEspera` |
 
