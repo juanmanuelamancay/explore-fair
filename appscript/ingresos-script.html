@@ -1,0 +1,63 @@
+<script>
+(() => {
+  const lista = $('ingresos-lista');
+  const total = $('ingresos-total');
+  $('ingresos-guia-icono').innerHTML = svg(ICONO.gente, 18);
+  const DOS = n => String(n).padStart(2, '0');
+  const claveDia = ms => { const d = new Date(ms); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+  const fechaCorta = ms => { const d = new Date(ms); return DOS(d.getDate()) + ' - ' + DOS(d.getMonth() + 1) + ' - ' + d.getFullYear(); };
+  const horaCorta = ms => new Date(ms).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const cuantos = n => n + (n === 1 ? ' ingreso' : ' ingresos');
+  let datos = null;
+
+  function mostrar() {
+    if (!datos) App.cargando(lista);
+    cargar();
+  }
+
+  function cargar() {
+    return servidor('obtenerIngresos').then(r => {
+      datos = r;
+      pintar();
+    }).catch(() => {
+      if (datos) toast('No pudimos actualizar los ingresos.');
+      else App.error(lista, cargar);
+    });
+  }
+
+  /** Un desplegable por día, de la más reciente a la más antigua. Cada uno dice cuántos entraron ese día; al abrirlo, nombre y hora. */
+  function pintar() {
+    total.textContent = datos.total;
+    if (!datos.personas.length) {
+      lista.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.gente, 32)}</div>
+        <h2>Todavía nadie ha entrado</h2><p>Aparecerán aquí en cuanto abran la app.</p></div>`;
+      return;
+    }
+    // Al refrescar, cada día conserva si estaba abierto. Sin nada guardado, se abre solo el día más reciente.
+    const estaba = {};
+    lista.querySelectorAll('details[data-clave]').forEach(d => { estaba[d.dataset.clave] = d.open; });
+    const primera = !Object.keys(estaba).length;
+
+    const dias = [];
+    datos.personas.forEach(p => {
+      const ultimo = dias[dias.length - 1];
+      const clave = p.ms ? claveDia(p.ms) : 'sin-fecha';
+      if (ultimo && ultimo.clave === clave) ultimo.personas.push(p);
+      else dias.push({ clave: clave, ms: p.ms, personas: [p] });
+    });
+    lista.innerHTML = dias.map((d, i) => `
+      <details class="dia-ingresos" data-clave="${d.clave}" ${(d.clave in estaba ? estaba[d.clave] : (primera && i === 0)) ? 'open' : ''}>
+        <summary>
+          <span class="dia-fecha">${d.ms ? fechaCorta(d.ms) : 'Sin fecha'}</span>
+          <span class="dia-cuenta tnum">${cuantos(d.personas.length)}</span>
+        </summary>
+        <ul class="lista filas">${d.personas.map(p => `
+          <li class="fila"><span class="quien"><b>${esc(p.nombre)}</b></span><span class="hora tnum">${p.ms ? horaCorta(p.ms) : '–'}</span></li>`).join('')}
+        </ul>
+      </details>`).join('');
+  }
+
+  // Sin botón de actualizar: cada vez que se abre la pestaña, la lista se vuelve a leer.
+  App.registrar('ingresos', { alMostrar: mostrar });
+})();
+</script>

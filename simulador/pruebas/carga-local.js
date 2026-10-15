@@ -10,7 +10,7 @@ const original = sim.contexto.console;
 sim.contexto.console = { log: (...a) => lineas.push(a.join(' ')), warn: (...a) => lineas.push('WARN ' + a.join(' ')), error: (...a) => lineas.push('ERROR ' + a.join(' ')), info: () => {} };
 
 const correr = codigo => vm.runInContext(codigo, sim.contexto);
-const admin = 'admin@demo.com';
+const admin = 'admin@bbva.com';
 sim.ejecutar(admin, 'prepararFeria', []);
 sim.ejecutar(admin, 'iniciarPruebaCarga5', []);
 // Ahora mismo y durante 4 segundos: sin pausas reales, caben muchas personas.

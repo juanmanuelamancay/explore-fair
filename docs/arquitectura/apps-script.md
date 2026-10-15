@@ -376,13 +376,13 @@ Para entrar con otro rol se agrega `?como=` con una de las cuentas de ejemplo:
 
 | Cuenta | Qué es |
 |---|---|
-| `ana.torres@demo.com` | Usuario. Es la cuenta por defecto; cualquier correo que no esté en `Staff` también lo es |
-| `expositor.apx@demo.com` | Expositor de un stand |
-| `lider.backend@demo.com` | Líder de un pabellón |
-| `ponente.uno@demo.com` | Ponente de una charla |
-| `validador@demo.com` | Validador: solo lectura de Mapa, Quiz y Preguntas |
-| `admin@demo.com` | Admin |
-| `sin.vistas@demo.com` | Rol sin filas en `Permisos`, para ver la página de error |
+| `ana.torres@bbva.com` | Usuario. Es la cuenta por defecto; cualquier correo que no esté en `Staff` también lo es |
+| `expositor.apx@bbva.com` | Expositor de un stand |
+| `lider.backend@bbva.com` | Líder de un pabellón |
+| `ponente.uno@bbva.com` | Ponente de una charla |
+| `validador@bbva.com` | Validador: solo lectura de Mapa, Quiz y Preguntas |
+| `admin@bbva.com` | Admin |
+| `sin.vistas@bbva.com` | Rol sin filas en `Permisos`, para ver la página de error |
 
 Variables de entorno:
 

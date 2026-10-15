@@ -312,7 +312,8 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
   | `LIDER` | Solo Código: sin barra |
   | `EXPOSITOR` | Solo Preguntas: sin barra |
   | `PONENTE` | Código y Preguntas |
-  | `VALIDADOR` | Mapa, Charlas y Preguntas (y Espera mientras la sala está activa) |
+  | `VALIDADOR` | Mapa, Charlas, Preguntas e Ingresos (y Espera mientras la sala está activa) |
+  | `ADMIN` | Además de lo anterior, Ingresos (solo `ADMIN` y `VALIDADOR` la reciben) |
   | `ADMIN` | Mapa, Charlas, Código, Panel y Ranking |
 
 - **La barra se oculta** en todo el quiz (código, preguntas, resultado y tiempo agotado), para no ofrecer salidas a mitad, y en la pantalla de ranking cuando se activa "Ocultar menú de navegación".

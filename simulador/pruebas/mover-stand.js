@@ -12,7 +12,7 @@ async function llamar(email, funcion, ...argumentos) {
 const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } catch (e) { return { error: e.message }; } };
 
 (async () => {
-  const admin = 'admin@demo.com', lider = 'lider.backend@demo.com', ana = 'ana.torres@demo.com', expo = 'expositor.apx@demo.com';
+  const admin = 'admin@bbva.com', lider = 'lider.backend@bbva.com', ana = 'ana.torres@bbva.com', expo = 'expositor.apx@bbva.com';
 
   // Pabellón nuevo, con código
   let x = await intenta(admin, 'guardarAdminRegistro', 'pabellones', { nombre: 'Nuevo', requiere_codigo: true, orden: 10, activo: true });
@@ -47,7 +47,7 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
   const filaExpo = despues.staff.find(f => f.email === expo);
   ok(filaExpo && filaExpo.pabellon_id === nuevo && filaExpo.stand_id === 'STD-001', 'su expositor sigue el stand al pabellón nuevo', filaExpo);
   ok(despues.stands.filter(s => s.pabellon_id === 'PAB-001').map(s => s.stand_id).join(',') === 'STD-002,STD-003', 'PAB-001 queda con sus otros stands');
-  ok(despues.staff.find(f => f.email === 'lider.backend@demo.com').pabellon_id === 'PAB-001', 'el líder de PAB-001 no cambia');
+  ok(despues.staff.find(f => f.email === 'lider.backend@bbva.com').pabellon_id === 'PAB-001', 'el líder de PAB-001 no cambia');
 
   // Lo que ve cada uno
   const banco = await llamar(expo, 'obtenerBancoPreguntas');
@@ -66,7 +66,7 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
   ok(quizOrigen.ok && quizOrigen.preguntas.length === 4, 'PAB-001 sigue abriendo, con dos stands', quizOrigen);
 
   // Editar el stand sin cambiar de pabellón sigue funcionando
-  x = await intenta(admin, 'guardarAdminRegistro', 'stands', Object.assign({}, stand, { _fila: stand._fila, nombre: 'APX v2', pabellon_id: nuevo, expositor_email: 'expositor.apx@demo.com' }));
+  x = await intenta(admin, 'guardarAdminRegistro', 'stands', Object.assign({}, stand, { _fila: stand._fila, nombre: 'APX v2', pabellon_id: nuevo, expositor_email: 'expositor.apx@bbva.com' }));
   ok(x.valor && x.valor.stands.find(s => s.stand_id === 'STD-001').nombre === 'APX v2', 'editar el nombre del stand sigue funcionando', x.error);
 
   console.log(fallos ? '\n' + fallos + ' FALLAS' : '\nTODO BIEN');

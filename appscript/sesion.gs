@@ -8,7 +8,11 @@ const SEGUNDOS_CACHE_USUARIO = 21600;   // máximo que permite CacheService
 
 // El VALIDADOR revisa la feria sin tocarla: solo estas vistas, y en cada una el servidor lo deja leer, no escribir.
 // Aunque Permisos le agregue otra, no la recibe.
-const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS'];
+const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS', 'INGRESOS'];
+
+// Vistas que solo pueden tener el ADMIN y el VALIDADOR, aunque Permisos o la hoja digan otra cosa.
+// Se revisa aquí y no solo en el panel, porque quien responde puede editar el Sheet a mano.
+const VISTAS_SOLO_ADMIN_Y_VALIDADOR = ['INGRESOS'];
 
 // Por ahora solo personal interno: cuentas @bbva.com, sin las de contratistas (nombre.apellido.contractor@bbva.com).
 const DOMINIO_PERMITIDO = 'bbva.com';
@@ -48,6 +52,7 @@ function sesion_() {
   let vistas = catalogo.permisos.filter(p => roles.indexOf(p.rol) >= 0).map(p => p.vista)
     .filter((v, i, todas) => todas.indexOf(v) === i);
   if (rol === 'VALIDADOR') vistas = vistas.filter(v => VISTAS_DEL_VALIDADOR.indexOf(v) >= 0);
+  if (rol !== 'ADMIN' && rol !== 'VALIDADOR') vistas = vistas.filter(v => VISTAS_SOLO_ADMIN_Y_VALIDADOR.indexOf(v) < 0);
   // Sala de espera: mientras está activa, quien tiene rol USUARIO solo ve esa vista y no puede
   // llamar a nada más. Da igual si no está en Staff o si está ahí con rol USUARIO.
   // Líderes y admins (roles de Staff) entran normal.

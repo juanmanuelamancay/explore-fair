@@ -443,6 +443,7 @@ function adminValidarRelaciones_(entidad, registro, fila) {
   if (entidad === 'permisos') {
     if (!registro.rol || !registro.vista || registro.vista === 'ESPERA' || !Object.prototype.hasOwnProperty.call(ARCHIVO_DE_VISTA, registro.vista)) throw new Error('El rol o la vista no son válidos.');
     if (registro.rol === 'VALIDADOR' && VISTAS_DEL_VALIDADOR.indexOf(registro.vista) < 0) throw new Error('El validador solo puede tener las vistas ' + VISTAS_DEL_VALIDADOR.join(', ') + '.');
+    if (VISTAS_SOLO_ADMIN_Y_VALIDADOR.indexOf(registro.vista) >= 0 && registro.rol !== 'ADMIN' && registro.rol !== 'VALIDADOR') throw new Error('Esa vista solo puede tenerla el admin o el validador.');
     if (registro.activo && registro.vista === 'QUIZ' && !permisos.some(p => p._fila !== (fila && fila._fila) && p.rol === registro.rol && (p.vista === 'MAPA' || p.vista === 'CHARLAS') && adminBooleano_(p, 'activo'))) throw new Error('QUIZ necesita también el permiso MAPA o CHARLAS para ese rol.');
   }
   if (entidad === 'config') {

@@ -13,7 +13,7 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
 const ids = lista => lista.map(x => x.id).sort().join(',');
 
 (async () => {
-  const admin = 'admin@demo.com', joan = 'joan@demo.com', validador = 'validador@demo.com', expo = 'expositor.apx@demo.com';
+  const admin = 'admin@bbva.com', joan = 'joan@bbva.com', validador = 'validador@bbva.com', expo = 'expositor.apx@bbva.com';
   const staff = (email, rol, extra) => intenta(admin, 'guardarAdminRegistro', 'staff', Object.assign({ email, nombre: 'Joan', rol, activo: true }, extra));
 
   // Antes de darle filas, Joan es un usuario normal

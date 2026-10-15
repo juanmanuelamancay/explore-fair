@@ -12,7 +12,7 @@ async function llamar(email, funcion, ...argumentos) {
 const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } catch (e) { return { error: e.message }; } };
 
 (async () => {
-  const ana = 'ana.torres@demo.com', lider = 'lider.backend@demo.com', admin = 'admin@demo.com', expo = 'expositor.apx@demo.com';
+  const ana = 'ana.torres@bbva.com', lider = 'lider.backend@bbva.com', admin = 'admin@bbva.com', expo = 'expositor.apx@bbva.com';
   // Entrada
   let r = await llamar(ana, 'iniciarQuiz', 'PAB-000', '');
   const resp = {}; r.preguntas.forEach(p => { resp[p.id] = 'A'; });
@@ -24,7 +24,7 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
   for (const p of delStand.slice(0, 3)) {
     await llamar(admin, 'guardarAdminRegistro', 'preguntas', Object.assign({}, p, { activo: false }));
   }
-  const g = await llamar('lider.backend@demo.com', 'obtenerCodigos');
+  const g = await llamar('lider.backend@bbva.com', 'obtenerCodigos');
   // El líder de demo es de PAB-001: el admin genera el de PAB-002
   const codigo = (await llamar(admin, 'generarCodigo', 'PAB-002')).codigo;
   r = await llamar(ana, 'iniciarQuiz', 'PAB-002', codigo);
@@ -47,7 +47,7 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
   ok(x.valor, 'el admin sí puede agregar desde la vista Preguntas', x.error);
 
   // Roles que no responden
-  for (const quien of [lider, expo, admin, 'ponente.uno@demo.com']) {
+  for (const quien of [lider, expo, admin, 'ponente.uno@bbva.com']) {
     const y = await intenta(quien, 'iniciarQuiz', 'PAB-001', 'ZZZZ');
     ok((y.valor && !y.valor.ok) || y.error, quien + ' no responde quizzes', y);
   }
@@ -62,11 +62,11 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
   ok(x.error && /sin código/.test(x.error), 'no deja un segundo pabellón sin código');
 
   // Charla creada con ponente existente rechazada; staff con rol y charla
-  x = await intenta(admin, 'guardarAdminRegistro', 'staff', { email: 'nuevo@demo.com', nombre: 'Nuevo', rol: 'PONENTE', charla_id: 'CHA-002', activo: true });
-  ok(x.valor && x.valor.staff.some(s => s.email === 'nuevo@demo.com' && s.charla_id === 'CHA-002'), 'staff PONENTE con su charla', x.error);
-  x = await intenta(admin, 'guardarAdminRegistro', 'staff', { email: 'otro@demo.com', nombre: 'Otro', rol: 'EXPOSITOR', pabellon_id: 'PAB-002', stand_id: 'STD-001', activo: true });
+  x = await intenta(admin, 'guardarAdminRegistro', 'staff', { email: 'nuevo@bbva.com', nombre: 'Nuevo', rol: 'PONENTE', charla_id: 'CHA-002', activo: true });
+  ok(x.valor && x.valor.staff.some(s => s.email === 'nuevo@bbva.com' && s.charla_id === 'CHA-002'), 'staff PONENTE con su charla', x.error);
+  x = await intenta(admin, 'guardarAdminRegistro', 'staff', { email: 'otro@bbva.com', nombre: 'Otro', rol: 'EXPOSITOR', pabellon_id: 'PAB-002', stand_id: 'STD-001', activo: true });
   ok(x.error && /no pertenece/.test(x.error), 'staff EXPOSITOR con un stand de otro pabellón se rechaza', x);
-  x = await intenta(admin, 'guardarAdminRegistro', 'staff', { email: 'otro@demo.com', nombre: 'Otro', rol: 'LIDER', activo: true });
+  x = await intenta(admin, 'guardarAdminRegistro', 'staff', { email: 'otro@bbva.com', nombre: 'Otro', rol: 'LIDER', activo: true });
   ok(x.error && /pabellón/.test(x.error), 'staff LIDER sin pabellón se rechaza', x);
 
   // Respaldos: un reinicio los crea y el admin puede borrarlos, con palabra de confirmación y solo siendo admin

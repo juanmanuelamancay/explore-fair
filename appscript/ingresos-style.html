@@ -1,0 +1,27 @@
+<style>
+  /* Vista INGRESOS: un desplegable por día, con cuántos entraron, y dentro el nombre y la hora de cada persona. */
+  /* En 375 px el título, el recuadro de total y el botón de actualizar no caben con la separación normal: el título cede espacio. */
+  #vista-ingresos .cab { gap: 8px; }
+  #vista-ingresos .cab > div:first-child { flex: 1; min-width: 0; }
+  .ingresos-lista { margin-top: 14px; }
+  .ingresos-lista .dia-ingresos { border: 1px solid var(--borde); border-radius: 20px; margin-bottom: 10px; overflow: hidden; }
+  .ingresos-lista .dia-ingresos summary {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 56px; padding: 0 16px; cursor: pointer; list-style: none; user-select: none;
+  }
+  .ingresos-lista .dia-ingresos summary::-webkit-details-marker { display: none; }
+  .ingresos-lista .dia-ingresos summary:focus-visible { outline: 2px solid var(--azul); outline-offset: -2px; }
+  .ingresos-lista .dia-fecha { font-size: 16px; font-weight: 500; }
+  .ingresos-lista .dia-cuenta { margin-left: auto; font-size: 14px; color: var(--texto-2); white-space: nowrap; }
+  .ingresos-lista .dia-ingresos summary::after {
+    content: ''; width: 8px; height: 8px; flex: none; margin-left: 4px;
+    border-right: 2px solid var(--texto-2); border-bottom: 2px solid var(--texto-2);
+    transform: translateY(-3px) rotate(45deg); transition: transform .2s;
+  }
+  .ingresos-lista .dia-ingresos[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+  /* Las filas van dentro del desplegable: sin borde propio, con el mismo margen que el rótulo del día */
+  .ingresos-lista .dia-ingresos .filas { border: 0; border-radius: 0; border-top: 1px solid var(--borde-suave); overflow: visible; }
+  .ingresos-lista .dia-ingresos .fila { padding-left: 16px; padding-right: 16px; }
+  .ingresos-lista .fila .quien b { font-weight: 400; font-size: 16px; }
+  .ingresos-lista .hora { flex: none; font-size: 14px; color: var(--texto-2); }
+</style>

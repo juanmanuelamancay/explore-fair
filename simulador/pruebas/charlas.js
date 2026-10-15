@@ -13,7 +13,7 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
 const hoja = async nombre => (await (await fetch(base + '/hoja?nombre=' + nombre)).json());
 
 (async () => {
-  const ana = 'ana.torres@demo.com', pon = 'ponente.uno@demo.com', admin = 'admin@demo.com', val = 'validador@demo.com';
+  const ana = 'ana.torres@bbva.com', pon = 'ponente.uno@bbva.com', admin = 'admin@bbva.com', val = 'validador@bbva.com';
 
   const acceso = await llamar(ana, 'obtenerAcceso');
   ok(acceso.vistas.includes('CHARLAS') && acceso.vistas.includes('QUIZ') && !acceso.vistas.includes('MAPA'), 'usuario en semana de charlas: CHARLAS y QUIZ, sin MAPA', acceso.vistas);
@@ -69,23 +69,23 @@ const hoja = async nombre => (await (await fetch(base + '/hoja?nombre=' + nombre
 
   // Panel: crear una charla con ponente, un stand con expositor y un pabellón con líder
   let cat = await llamar(admin, 'obtenerAdminCatalogo');
-  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Charla nueva', ponente: 'Pepe', inicio: '2026-10-21 18:00', fin: '2026-10-21 19:00', orden: 9, activo: true, ponente_email: 'nuevo.ponente@demo.com' });
+  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Charla nueva', ponente: 'Pepe', inicio: '2026-10-21 18:00', fin: '2026-10-21 19:00', orden: 9, activo: true, ponente_email: 'nuevo.ponente@bbva.com' });
   ok(x.valor && x.valor.charlas.some(c => c.titulo === 'Charla nueva' && c.charla_id === 'CHA-006'), 'panel: crea la charla CHA-006', x.error || x.valor.charlas.length);
   const staff = await hoja('Staff');
-  const fp = staff.find(f => f && f[0] === 'nuevo.ponente@demo.com');
+  const fp = staff.find(f => f && f[0] === 'nuevo.ponente@bbva.com');
   ok(fp && fp[2] === 'PONENTE' && fp[5] === 'CHA-006', 'panel: el ponente queda en Staff con su charla', fp);
   x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Sin hora', inicio: 'mañana', orden: 1, activo: true });
   ok(x.error && /fecha/.test(x.error), 'panel: rechaza una fecha inválida', x);
-  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Otra', inicio: '2026-10-21 20:00', orden: 1, activo: true, ponente_email: 'ponente.uno@demo.com' });
+  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Otra', inicio: '2026-10-21 20:00', orden: 1, activo: true, ponente_email: 'ponente.uno@bbva.com' });
   ok(x.error && /ya es ponente/.test(x.error), 'panel: un ponente no puede tener dos charlas', x);
-  x = await intenta(admin, 'guardarAdminRegistro', 'stands', { pabellon_id: 'PAB-002', nombre: 'Stand nuevo', orden: 99, activo: true, expositor_email: 'nuevo.expositor@demo.com' });
+  x = await intenta(admin, 'guardarAdminRegistro', 'stands', { pabellon_id: 'PAB-002', nombre: 'Stand nuevo', orden: 99, activo: true, expositor_email: 'nuevo.expositor@bbva.com' });
   const stNuevo = x.valor && x.valor.stands.find(s => s.nombre === 'Stand nuevo');
   const staff2 = await hoja('Staff');
-  const fe = staff2.find(f => f && f[0] === 'nuevo.expositor@demo.com');
+  const fe = staff2.find(f => f && f[0] === 'nuevo.expositor@bbva.com');
   ok(stNuevo && fe && fe[2] === 'EXPOSITOR' && fe[3] === 'PAB-002' && fe[4] === stNuevo.stand_id && fe[5] === '', 'panel: el expositor queda con pabellón y stand', fe);
-  x = await intenta(admin, 'guardarAdminRegistro', 'pabellones', { nombre: 'Pab nuevo', requiere_codigo: true, orden: 99, activo: true, lider_email: 'nuevo.lider@demo.com' });
+  x = await intenta(admin, 'guardarAdminRegistro', 'pabellones', { nombre: 'Pab nuevo', requiere_codigo: true, orden: 99, activo: true, lider_email: 'nuevo.lider@bbva.com' });
   const pbNuevo = x.valor && x.valor.pabellones.find(p => p.nombre === 'Pab nuevo');
-  const fl = (await hoja('Staff')).find(f => f && f[0] === 'nuevo.lider@demo.com');
+  const fl = (await hoja('Staff')).find(f => f && f[0] === 'nuevo.lider@bbva.com');
   ok(pbNuevo && fl && fl[2] === 'LIDER' && fl[3] === pbNuevo.pabellon_id && fl[4] === '', 'panel: el líder queda con su pabellón', fl);
   x = await intenta(admin, 'guardarAdminRegistro', 'pabellones', { nombre: 'Otro sin código', requiere_codigo: false, orden: 100, activo: true });
   ok(x.error && /sin código/.test(x.error), 'panel: solo un pabellón sin código', x);
@@ -98,10 +98,10 @@ const hoja = async nombre => (await (await fetch(base + '/hoja?nombre=' + nombre
   ok(x.error && /preguntas activas/.test(x.error), 'panel: no desactiva una charla con preguntas activas', x);
 
   // ---- Cierre de la charla: hora límite para empezar el quiz y para que el ponente genere códigos ----
-  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Ya cerrada', ponente: 'X', inicio: '2020-01-01 10:00', fin: '2020-01-01 11:00', cierre: '2020-01-01 11:30', orden: 8, activo: true, ponente_email: 'cerrada.ponente@demo.com' });
+  x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Ya cerrada', ponente: 'X', inicio: '2020-01-01 10:00', fin: '2020-01-01 11:00', cierre: '2020-01-01 11:30', orden: 8, activo: true, ponente_email: 'cerrada.ponente@bbva.com' });
   const cerrada = x.valor && x.valor.charlas.find(c => c.titulo === 'Ya cerrada');
   ok(cerrada && cerrada.cierre, 'panel: crea una charla con hora de cierre', x.error);
-  const poncerrado = 'cerrada.ponente@demo.com';
+  const poncerrado = 'cerrada.ponente@bbva.com';
   x = await intenta(admin, 'guardarAdminRegistro', 'charlas', { titulo: 'Mal cierre', inicio: '2026-10-21 18:00', cierre: '2026-10-21 17:00', orden: 9, activo: true });
   ok(x.error && /posterior/.test(x.error), 'panel: el cierre debe ser posterior al inicio', x);
 

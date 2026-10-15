@@ -14,7 +14,7 @@ const intenta = async (...a) => { try { return { valor: await llamar(...a) }; } 
 const hoja = async nombre => (await (await fetch(base + '/hoja?nombre=' + nombre)).json());
 
 (async () => {
-  const ana = 'ana.torres@demo.com', lider = 'lider.backend@demo.com', expo = 'expositor.apx@demo.com', val = 'validador@demo.com', admin = 'admin@demo.com';
+  const ana = 'ana.torres@bbva.com', lider = 'lider.backend@bbva.com', expo = 'expositor.apx@bbva.com', val = 'validador@bbva.com', admin = 'admin@bbva.com';
 
   const acceso = await llamar(ana, 'obtenerAcceso');
   ok(acceso.rol === 'USUARIO' && acceso.vistas.includes('MAPA') && acceso.vistas.includes('QUIZ'), 'usuario: vistas MAPA y QUIZ', acceso);
