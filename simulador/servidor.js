@@ -103,15 +103,26 @@ class Libro {
 
 function datosDeEjemplo() {
   const hoy = new Date();
-  const pabellones = [['PAB-000', 'General'], ['PAB-001', 'Backend'], ['PAB-002', 'Frontend'], ['PAB-003', 'Quality'], ['PAB-004', 'Seguridad'], ['PAB-005', 'Data'], ['PAB-006', 'Host'], ['PAB-007', 'Prueba doble rol']];
+  const pabellones = [
+    ['PAB-000', 'General', '', 'Quiz de entrada a la feria'],
+    ['PAB-001', 'Backend', 'Backend', 'APX - ASO - LRA - LRBA'],
+    ['PAB-002', 'Frontend', 'Frontend', 'APX - ASO - LRA - LRBA'],
+    ['PAB-003', 'Quality', 'Quality', 'Testing Multitecnología - Simulación QE y evidencia - JAM ATM: desarrollo y validación'],
+    ['PAB-004', 'Security', 'Security', 'SAST Remediation - Reglas y conocimiento gobernado - Diseño técnico y arquitectura'],
+    ['PAB-005', 'Data', 'Data', 'ADA y datos gobernados'],
+    ['PAB-006', 'Mainframe', 'Mainframe', 'Synapse IA HOST - Katalyst para el core bancario - ChangeMan y operación z/OS - HOST Accounting'],
+    ['PAB-007', 'Transversales', 'Transversales', 'Codegraph'],
+  ];
+  // El cuarto valor false marca un stand inactivo: no aparece en el catálogo ni aporta preguntas.
   const stands = [
-    ['STD-000', 'PAB-000', 'Quiz de entrada', false],
-    ['STD-001', 'PAB-001', 'APX'], ['STD-002', 'PAB-001', 'ASO / APIs'], ['STD-003', 'PAB-001', 'LRA / LRBA'],
-    ['STD-004', 'PAB-002', 'Cells'], ['STD-005', 'PAB-002', 'Glomo'], ['STD-006', 'PAB-002', 'Emailing'],
-    ['STD-007', 'PAB-003', 'Testing'], ['STD-008', 'PAB-003', 'QE'], ['STD-009', 'PAB-003', 'Code Review'],
-    ['STD-010', 'PAB-004', 'SAST'], ['STD-011', 'PAB-004', 'Security'], ['STD-012', 'PAB-004', 'Gobierno'], ['STD-013', 'PAB-004', 'Quality'],
-    ['STD-014', 'PAB-005', 'ADA'], ['STD-015', 'PAB-005', 'Data & Analytics'], ['STD-016', 'PAB-005', 'Gobierno de Datos'],
-    ['STD-017', 'PAB-006', 'Synapse'], ['STD-018', 'PAB-006', 'Katalyst'], ['STD-019', 'PAB-007', 'Control-M'],
+    ['STD-000', 'PAB-000', 'Quiz de entrada'],
+    ['STD-001', 'PAB-001', 'APX'], ['STD-002', 'PAB-001', 'ASO'], ['STD-003', 'PAB-001', 'LRA'], ['STD-004', 'PAB-001', 'LRBA'],
+    ['STD-005', 'PAB-002', 'Cells', false], ['STD-006', 'PAB-002', 'Glomo'], ['STD-007', 'PAB-002', 'Emailing'],
+    ['STD-008', 'PAB-003', 'Automatizador Test'], ['STD-009', 'PAB-003', 'Simulacrum'], ['STD-010', 'PAB-003', 'JAM ATM'],
+    ['STD-011', 'PAB-004', 'SAST y Security'], ['STD-020', 'PAB-004', 'SCA'],
+    ['STD-012', 'PAB-007', 'Clear rules'], ['STD-013', 'PAB-007', 'Code design'], ['STD-019', 'PAB-007', 'Codegraph'],
+    ['STD-014', 'PAB-005', 'ADA y Datos gobernados'], ['STD-021', 'PAB-005', 'DataSquadAI'], ['STD-022', 'PAB-005', 'DaIA'],
+    ['STD-015', 'PAB-006', 'Synapse IA HOST', false], ['STD-016', 'PAB-006', 'Katalyst'], ['STD-017', 'PAB-006', 'Changeman'], ['STD-018', 'PAB-006', 'Host accounting'],
   ];
   const preguntas = [];
   // Con la sala de espera encendida las charlas aún no empiezan: la primera cae dentro de 2 días y 3 horas.
@@ -128,7 +139,7 @@ function datosDeEjemplo() {
       ['CHA-007', 'Uso responsable de la IA', 'César Mariluz', -4 * 3600000],
     ] : []),
   ].map(c => [c[0], c[1], c[2], c[3] + corrimientoEspera]);
-  const bancos = stands.map(([id, , nombre]) => [id, nombre, 10]).concat(charlas.map(([id, titulo]) => [id, titulo, 15]));
+  const bancos = stands.filter(s => s[3] !== false).map(([id, , nombre]) => [id, nombre, 10]).concat(charlas.map(([id, titulo]) => [id, titulo, 15]));
   bancos.forEach(([id, nombre, cuantas]) => {
     for (let n = 1; n <= cuantas; n++) {
       const correcta = 'ABCD'[(n - 1) % 4];
@@ -139,9 +150,9 @@ function datosDeEjemplo() {
   return {
     // El quiz de entrada (PAB-000) va sin código y con 4 preguntas por stand; los demás pabellones piden código y sortean 2 por stand.
     Pabellones: [['pabellon_id', 'nombre', 'nombre_corto', 'descripcion', 'requiere_codigo', 'preguntas_por_stand', 'orden', 'activo', 'creado_en'],
-      ...pabellones.map(([id, nombre], i) => [id, nombre, '', 'Descubre agentes de IA para aumentar tu productividad', id !== 'PAB-000', id === 'PAB-000' ? 4 : '', i, true, hoy])],
+      ...pabellones.map(([id, nombre, corto, descripcion], i) => [id, nombre, corto, descripcion, id !== 'PAB-000', id === 'PAB-000' ? 4 : '', i, true, hoy])],
     Stands: [['stand_id', 'pabellon_id', 'nombre', 'descripcion', 'orden', 'activo', 'creado_en'],
-      ...stands.map(([id, pab, nombre], i) => [id, pab, nombre, '', i, true, hoy])],
+      ...stands.map(([id, pab, nombre, activo], i) => [id, pab, nombre, '', i, activo !== false, hoy])],
     Charlas: [['charla_id', 'titulo', 'ponente', 'descripcion', 'inicio', 'fin', 'cierre', 'preguntas_banco', 'preguntas_quiz', 'orden', 'activo', 'creado_en'],
       ...charlas.map(([id, titulo, ponente, desfase], i) => [id, titulo, ponente, 'Taller de ejemplo para la semana previa al evento.',
         // Cierra 2 horas después de empezar, pero nunca antes de una hora a partir de ahora (la primera ya empezó hace 2 horas).

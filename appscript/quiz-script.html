@@ -70,6 +70,9 @@
       <div class="tarjeta centro" style="--c:${q.color};--t:${q.tinte}">
         <div class="disco-grande">${svg(s.requiereCodigo ? ICONO.llave : ICONO.play, 32)}</div>
         <h2>${s.requiereCodigo ? 'Ingresa el código' : 'Listo para empezar'}</h2>
+        ${s.stands && s.stands.length ? `
+          <p class="sec chico">Las preguntas serán sobre estos stands:</p>
+          <div class="datos">${s.stands.map(st => `<span class="chip">${esc(st.nombre)}</span>`).join('')}</div>` : ''}
         <div class="datos">
           <span class="chip">${s.numPreguntas} preguntas</span>
           <span class="chip">${INICIO.minutosParaResponder} minutos</span>
