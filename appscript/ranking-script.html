@@ -4,22 +4,38 @@
   const RETRASO_DE_GUARDADO_MS = 700;   // espera a que terminen los movimientos del deslizador antes de escribir en Config
   // Preset de la pantalla. Se guarda en la hoja Config (claves rp_*); si no hay nada, se usan estos valores.
   // El top (escala y ancho) tiene sus propios ajustes: las columnas y las filas no lo afectan.
-  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 88, tiempo: 13, nombreTop: 16, ocultarMenu: false };
+  // Los mismos valores que CONFIG_DEFECTO (datos.gs): se usan mientras no llega el preset de la hoja Config.
+  const AJUSTES_DEFECTO = {
+    personas: 0, columnas: 5, filas: 0, alto: 64, espacio: 10, fuente: 16, puntos: 22, tiempo: 13,
+    escala: 100, anchoTop: 52, nombreTop: 16, ptsTop: 18, anchoContenido: 100, margen: 5, resumen: 20,
+    ocultarMenu: false, achicarTop: true,
+  };
   // Interruptores del panel (sí o no).
   const INTERRUPTORES = [
     { clave: 'ocultarMenu', etiqueta: 'Ocultar menú de navegación (queda solo el ranking)' },
+    { clave: 'achicarTop', etiqueta: 'Achicar el top si no entran 3 filas de la lista' },
   ];
+  // Los mismos topes que RANGOS_PANTALLA_ (ranking.gs): amplios a propósito, cada pantalla se ajusta a su gusto.
+  // El deslizador recorre todo el rango; para un valor exacto se escribe en la casilla.
   const CONTROLES = [
-    { clave: 'personas', etiqueta: 'Personas por pantalla (0 = lo que quepa)', min: 0, max: 300, paso: 1 },
-    { clave: 'columnas', etiqueta: 'Columnas', min: 1, max: 8, paso: 1 },
-    { clave: 'alto', etiqueta: 'Alto de cada fila (px)', min: 40, max: 120, paso: 2 },
-    { clave: 'espacio', etiqueta: 'Espacio entre filas (px)', min: 4, max: 24, paso: 1 },
-    { clave: 'fuente', etiqueta: 'Tamaño de nombres de la lista (px)', min: 12, max: 30, paso: 1 },
-    { clave: 'puntos', etiqueta: 'Tamaño de puntos (px)', min: 14, max: 40, paso: 1 },
-    { clave: 'escala', etiqueta: 'Tamaño del top (%)', min: 60, max: 160, paso: 5 },
-    { clave: 'anchoTop', etiqueta: 'Ancho del top (% de la pantalla)', min: 40, max: 100, paso: 2 },
-    { clave: 'nombreTop', etiqueta: 'Tamaño de nombres del top (px; el 1.º, un 25 % más)', min: 12, max: 40, paso: 1 },
-    { clave: 'tiempo', etiqueta: 'Tamaño del tiempo de desempate (px)', min: 10, max: 24, paso: 1 },
+    { grupo: 'Lista' },
+    { clave: 'columnas', etiqueta: 'Columnas', min: 1, max: 20, paso: 1 },
+    { clave: 'filas', etiqueta: 'Filas (0 = las que quepan)', min: 0, max: 100, paso: 1 },
+    { clave: 'personas', etiqueta: 'Personas por pantalla (0 = lo que quepa)', min: 0, max: 2000, paso: 1 },
+    { clave: 'alto', etiqueta: 'Alto de cada fila (px)', min: 20, max: 400, paso: 1 },
+    { clave: 'espacio', etiqueta: 'Espacio entre filas (px)', min: 0, max: 120, paso: 1 },
+    { clave: 'fuente', etiqueta: 'Tamaño de nombres (px)', min: 6, max: 120, paso: 1 },
+    { clave: 'puntos', etiqueta: 'Tamaño de puntos (px)', min: 6, max: 200, paso: 1 },
+    { clave: 'tiempo', etiqueta: 'Tamaño del tiempo de desempate (px)', min: 6, max: 80, paso: 1 },
+    { grupo: 'Top' },
+    { clave: 'escala', etiqueta: 'Tamaño del top (%)', min: 10, max: 500, paso: 5 },
+    { clave: 'anchoTop', etiqueta: 'Ancho del top (% del contenido)', min: 10, max: 100, paso: 1 },
+    { clave: 'nombreTop', etiqueta: 'Tamaño de nombres (px; el 1.º, un 25 % más)', min: 6, max: 160, paso: 1 },
+    { clave: 'ptsTop', etiqueta: 'Tamaño de puntos (px; el 1.º, un 25 % más)', min: 6, max: 200, paso: 1 },
+    { grupo: 'Pantalla' },
+    { clave: 'anchoContenido', etiqueta: 'Ancho del contenido (% de la pantalla)', min: 20, max: 100, paso: 1 },
+    { clave: 'margen', etiqueta: 'Margen de seguridad en los bordes (%; súbelo si la pantalla recorta)', min: 0, max: 30, paso: 1 },
+    { clave: 'resumen', etiqueta: 'Tamaño del contador de participantes (px; 0 lo oculta)', min: 0, max: 120, paso: 1 },
   ];
   const contenido = $('rp-contenido');
   const vista = $('vista-ranking');
@@ -27,6 +43,7 @@
   let ajustesPendientes = false;        // hay cambios que todavía no llegaron a Config: no se pisan con lo del servidor
   let temporizadorGuardado = null;
   let filas = null;
+  let resumen = null;                  // { participantes, quizzes } para el pie
   let intervalo = null;
   let anteriores = null;               // nombre -> puntos de la última vez que se pintó
   let comparando = null;               // solo mientras se pinta: sirve para destacar lo que subió
@@ -46,6 +63,15 @@
     estilo.setProperty('--rp-ancho-top', ajustes.anchoTop + '%');
     estilo.setProperty('--rp-tiempo', ajustes.tiempo + 'px');
     estilo.setProperty('--rp-nombre-top', ajustes.nombreTop + 'px');
+    estilo.setProperty('--rp-pts-top', ajustes.ptsTop + 'px');
+    estilo.setProperty('--rp-ancho-contenido', ajustes.anchoContenido + '%');
+    estilo.setProperty('--rp-resumen', ajustes.resumen + 'px');
+    vista.classList.toggle('sin-resumen', !ajustes.resumen);
+    // El margen de seguridad va en el body porque lo usa #app, que envuelve a la vista. Se quita al salir.
+    if (enPantalla) {
+      document.body.style.setProperty('--rp-mv', ajustes.margen + 'vh');
+      document.body.style.setProperty('--rp-mh', ajustes.margen + 'vw');
+    }
     // La barra de navegación solo se oculta mientras esta vista está abierta.
     document.body.classList.toggle('sin-menu', enPantalla && !!ajustes.ocultarMenu);
   }
@@ -80,12 +106,12 @@
       <div class="hoja-texto rp-ajustes">
         <h2>Ajustes de pantalla</h2>
         <p>Los cambios se ven al momento y se guardan en la hoja Config. Cada pantalla los toma al actualizarse.</p>
-        ${CONTROLES.map(c => `
+        ${CONTROLES.map(c => c.grupo ? `<h3 class="rp-grupo">${c.grupo}</h3>` : `
           <label class="rp-campo">
             <span>${c.etiqueta}</span>
             <div class="rp-ctl">
-              <input type="range" data-clave="${c.clave}" min="${c.min}" max="${c.max}" step="${c.paso}" value="${ajustes[c.clave]}">
-              <output>${ajustes[c.clave]}</output>
+              <input type="range" data-clave="${c.clave}" min="${c.min}" max="${c.max}" step="${c.paso}" value="${ajustes[c.clave]}" aria-label="${c.etiqueta}">
+              <input type="number" min="${c.min}" max="${c.max}" step="1" value="${ajustes[c.clave]}" inputmode="numeric" aria-label="${c.etiqueta} (valor exacto)">
             </div>
           </label>`).join('')}
         ${INTERRUPTORES.map(i => `
@@ -98,10 +124,19 @@
         <button class="btn" type="button" data-cerrar>Listo</button>
       </div>`);
 
+    // Deslizador y casilla van juntos: mover uno actualiza el otro. La casilla acepta cualquier valor del rango
+    // (el deslizador redondea al paso) y lo corrige al salir si se escribió algo fuera.
     hoja.querySelectorAll('input[data-clave]').forEach(entrada => {
+      const casilla = entrada.nextElementSibling;
       entrada.addEventListener('input', () => {
-        entrada.nextElementSibling.textContent = entrada.value;
+        casilla.value = entrada.value;
         cambiarAjuste(entrada.dataset.clave, Number(entrada.value));
+      });
+      casilla.addEventListener('change', () => {
+        const valor = Math.round(Math.min(Number(casilla.max), Math.max(Number(casilla.min), Number(casilla.value) || 0)));
+        casilla.value = valor;
+        entrada.value = valor;
+        cambiarAjuste(entrada.dataset.clave, valor);
       });
     });
     hoja.querySelectorAll('input[data-flag]').forEach(entrada => {
@@ -133,6 +168,8 @@
     clearInterval(intervalo);
     window.removeEventListener('resize', alCambiarTamano);
     document.body.classList.remove('pantalla-grande', 'sin-menu');
+    document.body.style.removeProperty('--rp-mv');
+    document.body.style.removeProperty('--rp-mh');
   }
 
   function programar() {
@@ -163,6 +200,7 @@
       }
       comparando = anteriores;
       filas = r.filas;
+      resumen = r.resumen || null;
       pintar();
       comparando = null;
       anteriores = new Map(filas.map(p => [p.nombre, p.puntos]));
@@ -191,7 +229,9 @@
    */
   function cuantasMostrar() {
     const rejilla = $('rp-rejilla');
-    const filasVisibles = Math.max(1, Math.floor((rejilla.clientHeight + ajustes.espacio) / (ajustes.alto + ajustes.espacio)));
+    const caben = Math.max(1, Math.floor((rejilla.clientHeight + ajustes.espacio) / (ajustes.alto + ajustes.espacio)));
+    // "Filas" pone un tope a las que caben; nunca muestra más de las que entran (quedarían cortadas).
+    const filasVisibles = ajustes.filas > 0 ? Math.min(caben, ajustes.filas) : caben;
     // Las columnas que de verdad pinta la rejilla: por debajo de 900 px es una sola, aunque el ajuste diga otra cosa.
     const columnas = getComputedStyle(rejilla).gridTemplateColumns.split(' ').length || ajustes.columnas;
     const cabe = columnas * filasVisibles;
@@ -210,6 +250,7 @@
   function ajustarPodioAlAlto() {
     const base = ajustes.escala / 100;
     vista.style.setProperty('--rp-escala', base);
+    if (!ajustes.achicarTop) return;   // el top se queda con su tamaño aunque la lista quede con menos filas
     const rejilla = $('rp-rejilla');
     const podio = contenido.querySelector('.podio');
     const necesita = FILAS_MINIMAS * ajustes.alto + (FILAS_MINIMAS - 1) * ajustes.espacio;
@@ -275,6 +316,16 @@
       </div>`;
   };
 
+  /** 1240 -> "1.240": a distancia, el separador de miles se lee mejor. */
+  const miles = n => String(n).replace(/B(?=(d{3})+(?!d))/g, '.');
+
+  /** "347 participantes · 1.240 quizzes completados", en singular cuando toca. */
+  function textoResumen() {
+    if (!resumen) return '';
+    const { participantes: p, quizzes: q } = resumen;
+    return `<b>${miles(p)}</b> ${p === 1 ? 'participante' : 'participantes'} · <b>${miles(q)}</b> ${q === 1 ? 'quiz completado' : 'quizzes completados'}`;
+  }
+
   function pintar() {
     if (!filas.length) {
       contenido.innerHTML = `<div class="tarjeta estado"><div class="icono">${svg(ICONO.trofeo, 32)}</div>
@@ -289,21 +340,15 @@
     contenido.innerHTML = `
       <div class="podio" style="--rp-podio: ${enPodio}">${orden.map(n => lugar(filas[n], n)).join('')}</div>
       <div class="rp-cuerpo"><div class="rp-rejilla" id="rp-rejilla"></div></div>
-      <p class="rp-pie" id="rp-pie"></p>`;
+      <div class="rp-pie-zona"><p class="rp-resumen tnum">${textoResumen()}</p></div>`;
 
     // Primero se dibuja la rejilla vacía para medir cuánto cabe, y luego se llena con esa cantidad.
-    // El pie se escribe antes de medir, con el número más largo posible: si se llenara después, al ocupar
-    // una o dos líneas empujaría la rejilla y la última fila quedaría cortada.
+    // El pie (el resumen) ya está escrito al medir: así no empuja la rejilla ni corta la última fila.
     const inicio = PUESTOS_DEL_PODIO;
-    const textoPie = hasta => (filas.length > inicio
-      ? `Puestos 1 a ${hasta} de ${filas.length} · En empate, va primero quien respondió más rápido en total (el reloj con el tiempo total).`
-      : `${filas.length} ${filas.length === 1 ? 'persona' : 'personas'} en el ranking`);
-    $('rp-pie').textContent = textoPie(filas.length);
     if (filas.length > inicio) ajustarPodioAlAlto();
     const cuantas = cuantasMostrar();
     const visibles = filas.slice(inicio, inicio + cuantas);
     $('rp-rejilla').innerHTML = visibles.map((p, k) => celda(p, inicio + k + 1, inicio + k)).join('');
-    $('rp-pie').textContent = textoPie(inicio + visibles.length);
   }
 
   // Montserrat llega después del primer pintado y agranda el podio: se vuelve a medir para que la última fila no quede cortada.

@@ -6,13 +6,16 @@
      El tema escénico (colores, medallas y fondo) está al final del archivo. */
   /* La vista ocupa justo el alto de la pantalla (ni sobra ni falta): arriba 12 px de margen, abajo la barra de
      navegación y 16 px. No lleva cabecera (marca, título): en la pantalla gigante ese alto es para el ranking. */
-  body.pantalla-grande #app { max-width: none; padding: 12px 32px calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); }
+  /* Margen de seguridad (--rp-mv alto, --rp-mh ancho; ajuste "margen", 5 % por defecto): muchos televisores y
+     proyectores recortan los bordes (overscan). El fondo sí llega al borde; el contenido queda dentro. */
+  body.pantalla-grande { --rp-mv: 5vh; --rp-mh: 5vw; --rp-borde-arriba: max(12px, var(--rp-mv)); --rp-borde-abajo: max(16px, var(--rp-mv)); }
+  body.pantalla-grande #app { max-width: none; padding: var(--rp-borde-arriba) max(32px, var(--rp-mh)) calc(var(--nav-h) + var(--rp-borde-abajo) + env(safe-area-inset-bottom)); }
   #vista-ranking {
-    --rp-cols: 6; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%; --rp-tiempo: 13px; --rp-nombre-top: 16px; --rp-celda-min: 280px;
-    height: calc(100dvh - 28px - var(--nav-h) - env(safe-area-inset-bottom)); display: flex; flex-direction: column; position: relative;
+    --rp-cols: 6; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%; --rp-tiempo: 13px; --rp-nombre-top: 16px; --rp-pts-top: 18px; --rp-ancho-contenido: 100%; --rp-resumen: 20px;
+    height: calc(100dvh - var(--rp-borde-arriba, 12px) - var(--rp-borde-abajo, 16px) - var(--nav-h) - env(safe-area-inset-bottom)); display: flex; flex-direction: column; position: relative;
     overflow-x: clip;   /* el halo del podio sale por los lados: no debe abrir una barra horizontal */
   }
-  body.pantalla-grande.sin-menu #vista-ranking { height: calc(100dvh - 24px); }
+  body.pantalla-grande.sin-menu #vista-ranking { height: calc(100dvh - 2 * var(--rp-borde-arriba)); }
   /* El título queda solo para lectores de pantalla */
   #vista-ranking .rp-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* Controles flotantes en la esquina superior derecha (hora, ajustes, actualizar): no ocupan alto y casi no se
@@ -28,8 +31,8 @@
     display: grid; place-items: center; border: 1px solid var(--borde); color: var(--texto-2);
   }
   #vista-ranking .rp-ajustes-btn:active { background: var(--superficie); }
-  /* El contenido va centrado con un ancho máximo: en una pantalla grande no se estira de borde a borde */
-  #vista-ranking #rp-contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 1680px; margin: 0 auto; }
+  /* El contenido va centrado; su ancho es el ajuste "Ancho del contenido" (% del espacio dentro del margen) */
+  #vista-ranking #rp-contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; width: var(--rp-ancho-contenido); margin: 0 auto; }
 
   /* Podio: su ancho y su escala (--rp-ancho-top, --rp-escala) son propios; no dependen de las columnas ni de las filas.
      Cada pedestal mide como mucho 340 px × escala de ancho: así ancho y alto crecen juntos y el podio no se
@@ -80,7 +83,18 @@
   #vista-ranking .rp-desempate { font-size: var(--rp-tiempo); }
   #vista-ranking .lugar .rp-desempate { margin-top: calc(6px * var(--rp-escala)); }
   /* En la cuadrícula el chip va debajo del nombre: en la misma línea dejaba nombres como "G…" con 6 columnas */
-  #vista-ranking .rp-rejilla .fila .quien .rp-desempate { margin-top: 3px; }
+  #vista-ranking .rp-rejilla .fila .quien .rp-desempate { margin-top: 3px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Con muchas columnas la tarjeta se angosta: el nombre y los puntos mandan. Primero se va el tiempo de
+     desempate (sigue en el top y en el title), luego se achican el círculo de posición y la etiqueta "pts".
+     La tarjeta es el contenedor de la consulta, así que estas reglas solo tocan lo que lleva adentro. */
+  #vista-ranking .rp-rejilla .fila { container-type: inline-size; }
+  @container (max-width: 240px) {
+    #vista-ranking .rp-rejilla .fila .quien .rp-desempate { display: none; }
+  }
+  @container (max-width: 170px) {
+    #vista-ranking .rp-rejilla .fila .pos { width: calc(var(--rp-alto) * .4); height: calc(var(--rp-alto) * .4); margin-right: -4px; }
+    #vista-ranking .rp-puntos small { display: none; }
+  }
 
   #vista-ranking .lugar.l1 .base { height: calc(150px * var(--rp-escala)); font-size: calc(52px * var(--rp-escala)); }
   #vista-ranking .lugar.l2 .base { height: calc(110px * var(--rp-escala)); }
@@ -99,7 +113,8 @@
   #vista-ranking .rp-cuerpo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
   #vista-ranking .rp-rejilla {
     flex: 1 1 0; min-height: 0; overflow: hidden;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(max(var(--rp-celda-min), calc((100% - (var(--rp-cols) - 1) * var(--rp-espacio)) / var(--rp-cols))), 1fr));
+    /* Exactamente las columnas del ajuste, sin ancho mínimo por tarjeta: con muchas, los nombres largos se cortan con "…" */
+    display: grid; grid-template-columns: repeat(var(--rp-cols), minmax(0, 1fr));
     grid-auto-rows: var(--rp-alto); gap: var(--rp-espacio); align-content: start;
   }
   /* Cada tarjeta separa sus datos: posición en círculo, nombre, y puntos a la derecha */
@@ -143,14 +158,21 @@
     100% { opacity: 0; transform: translateY(-6px); }
   }
 
-  #vista-ranking .rp-pie { margin-top: 12px; text-align: center; color: var(--texto-2); font-size: 14px; }
-
+  /* Pie: el resumen (participantes y quizzes) da escala y se lee de lejos. */
+  #vista-ranking .rp-pie-zona { margin-top: 12px; text-align: center; }
+  #vista-ranking .rp-resumen { margin: 0; font-family: Montserrat, Inter, sans-serif; font-weight: 700; font-size: var(--rp-resumen); color: var(--texto-2); letter-spacing: .01em; }
+  #vista-ranking .rp-resumen:empty, #vista-ranking.sin-resumen .rp-pie-zona { display: none; }
+  #vista-ranking .rp-resumen b { color: var(--azul); font-weight: 900; }
   /* Panel de ajustes (vive en #hoja, fuera de la vista) */
   #hoja .rp-ajustes .rp-campo { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
   #hoja .rp-ajustes .rp-campo > span { font-size: 14px; color: var(--texto-2); }
   #hoja .rp-ctl { display: flex; align-items: center; gap: 12px; }
   #hoja .rp-ctl input[type="range"] { flex: 1; accent-color: var(--azul); }
-  #hoja .rp-ctl output { min-width: 56px; text-align: right; font-size: 16px; font-variant-numeric: tabular-nums; }
+  #hoja .rp-ctl input[type="number"] {
+    width: 76px; padding: 6px 8px; border: 1px solid var(--borde); border-radius: 8px; background: transparent; color: inherit;
+    text-align: right; font-size: 16px; font-variant-numeric: tabular-nums;
+  }
+  #hoja .rp-ajustes .rp-grupo { margin: 22px 0 0; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--texto-2); }
   #hoja .rp-ajustes .btn { margin-top: 14px; }
   #hoja .rp-check { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-size: 15px; }
   #hoja .rp-check input { width: 20px; height: 20px; accent-color: var(--azul); }
@@ -300,7 +322,7 @@
     height: 1.5em; width: .72em; filter: drop-shadow(0 1px 0 var(--m-canto)) drop-shadow(0 0 3px var(--m-glow));
   }
   body.pantalla-grande #vista-ranking .lugar .pts {
-    font-family: Montserrat, sans-serif; font-size: max(16px, calc(18px * var(--rp-escala))); font-weight: 800; color: #FFFFFF;
+    font-family: Montserrat, sans-serif; font-size: calc(var(--rp-pts-top) * var(--rp-escala)); font-weight: 800; color: #FFFFFF;
     margin-top: calc(8px * var(--rp-escala)); line-height: 1.1;
   }
   /* Ritmo del puesto, igual en los tres: píldora · 8 · puntos · 6 · tiempo · 14 · pedestal */
@@ -308,7 +330,7 @@
   body.pantalla-grande #vista-ranking .lugar .rp-desempate {
     background: rgba(7, 33, 70, .7); border-color: rgba(184, 216, 248, .25); color: #B8D8F8;
   }
-  body.pantalla-grande #vista-ranking .lugar.l1 .pts { font-size: max(18px, calc(22px * var(--rp-escala))); }
+  body.pantalla-grande #vista-ranking .lugar.l1 .pts { font-size: calc(var(--rp-pts-top) * 1.25 * var(--rp-escala)); }
   /* Zócalo del pedestal, de la misma familia de azules que el cuerpo (no cian): una franja más profunda con un
      filo de luz azul clara arriba, como el borde iluminado de la tarima de la referencia */
   body.pantalla-grande #vista-ranking .lugar .base::after {
@@ -361,14 +383,18 @@
 
   /* Modo pantalla: sin barra de navegación, el ranking ocupa todo el alto */
   body.pantalla-grande.sin-menu #nav { display: none !important; }
-  body.pantalla-grande.sin-menu #app { padding-bottom: 12px; }
+  body.pantalla-grande.sin-menu #app { padding-bottom: var(--rp-borde-arriba); }
 
   @media (max-width: 899px) {
+    /* En el celular no hay overscan: sin margen de seguridad */
+    body.pantalla-grande { --rp-borde-arriba: 12px; --rp-borde-abajo: 16px; }
     body.pantalla-grande #app { padding: 12px 16px calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); }
     #vista-ranking { height: calc(100dvh - 28px - var(--nav-h) - env(safe-area-inset-bottom)); }
     body.pantalla-grande.sin-menu #vista-ranking { height: calc(100dvh - 24px); }
     /* En pantallas angostas la hora caía sobre el avatar del 1.º: quedan solo los dos botones */
     #vista-ranking .rp-hora { display: none; }
+    #vista-ranking .rp-resumen { font-size: min(15px, var(--rp-resumen)); }
+    #vista-ranking #rp-contenido { width: 100%; }
     #vista-ranking .rp-rejilla { grid-template-columns: 1fr; }
     #vista-ranking .podio { width: 100%; gap: 4px; }
     #vista-ranking .lugar .avatar { width: calc(60px * var(--rp-escala)); height: calc(60px * var(--rp-escala)); font-size: calc(20px * var(--rp-escala)); }

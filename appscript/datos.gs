@@ -38,15 +38,21 @@ const CONFIG_DEFECTO = {
   premios_mensaje: 'Participando y aprendiendo podrás ganar:',
   // Preset de la pantalla de ranking (vista RANKING). Se edita desde su panel de ajustes.
   rp_personas: 0,        // personas por pantalla; 0 = lo que quepa
-  rp_columnas: 6,
+  rp_columnas: 5,
   rp_alto: 64,           // px por fila
   rp_espacio: 10,        // px entre filas
   rp_fuente: 16,         // px de los nombres
   rp_puntos: 22,         // px de los puntos
   rp_escala: 100,        // % del top (podio)
-  rp_ancho_top: 88,      // % del ancho de la pantalla que ocupa el top
+  rp_ancho_top: 52,      // % del ancho del contenido que ocupa el top
+  rp_ancho_contenido: 100, // % del ancho disponible que usa el contenido (podio y cuadrícula)
+  rp_filas: 0,           // filas de la cuadrícula; 0 = las que quepan
+  rp_pts_top: 18,        // px de los puntos del top (el 1.º, un 25 % más)
+  rp_resumen: 20,        // px del contador "N participantes · N quizzes"; 0 lo oculta
+  rp_achicar_top: true,  // TRUE achica el top si con su tamaño no entran 3 filas de la cuadrícula
   rp_nombre_top: 16,     // px de los nombres del top (el 1.º, un 25 % más)
   rp_tiempo: 13,         // px del tiempo de desempate
+  rp_margen: 5,          // % de margen en los bordes, por si la pantalla o el proyector recorta (overscan)
   rp_ocultar_menu: false, // TRUE oculta la barra de navegación en la vista de ranking
 };
 

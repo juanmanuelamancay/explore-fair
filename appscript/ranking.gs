@@ -46,19 +46,26 @@ function obtenerRanking(forzar) {
   return { ...filasDelRanking_(), ajustes: ajustesPantalla_(catalogo_().config) };
 }
 
-/** Rangos permitidos para cada clave del preset: lo que llegue fuera de aquí se corrige al guardar. */
+/**
+ * Rangos de cada clave del preset. Son amplios a propósito: quien proyecta ajusta la pantalla a su gusto.
+ * Solo evitan valores que rompen la vista (negativos, cero columnas) o un número absurdo escrito por error.
+ */
 const RANGOS_PANTALLA_ = {
-  rp_personas: [0, 300], rp_columnas: [1, 8], rp_alto: [40, 120], rp_espacio: [4, 24],
-  rp_fuente: [12, 30], rp_puntos: [14, 40], rp_escala: [60, 160], rp_ancho_top: [40, 100], rp_tiempo: [10, 24], rp_nombre_top: [12, 40],
+  rp_personas: [0, 2000], rp_columnas: [1, 20], rp_filas: [0, 100], rp_alto: [20, 400], rp_espacio: [0, 120],
+  rp_fuente: [6, 120], rp_puntos: [6, 200], rp_escala: [10, 500], rp_ancho_top: [10, 100], rp_ancho_contenido: [20, 100],
+  rp_tiempo: [6, 80], rp_nombre_top: [6, 160], rp_pts_top: [6, 200], rp_resumen: [0, 120], rp_margen: [0, 30],
 };
+/** Interruptores del preset: campo de la pantalla -> clave en Config. */
+const INTERRUPTORES_PANTALLA_ = { ocultarMenu: 'rp_ocultar_menu', achicarTop: 'rp_achicar_top' };
 
 /** Preset en el formato que usa la pantalla (los valores de Config, o los de CONFIG_DEFECTO si no hay nada guardado). */
 function ajustesPantalla_(config) {
   return {
     personas: config.rp_personas, columnas: config.rp_columnas, alto: config.rp_alto, espacio: config.rp_espacio,
     fuente: config.rp_fuente, puntos: config.rp_puntos, escala: config.rp_escala, anchoTop: config.rp_ancho_top,
-    tiempo: config.rp_tiempo, nombreTop: config.rp_nombre_top,
-    ocultarMenu: config.rp_ocultar_menu === true,
+    tiempo: config.rp_tiempo, nombreTop: config.rp_nombre_top, margen: config.rp_margen,
+    filas: config.rp_filas, ptsTop: config.rp_pts_top, resumen: config.rp_resumen, anchoContenido: config.rp_ancho_contenido,
+    ocultarMenu: config.rp_ocultar_menu === true, achicarTop: config.rp_achicar_top !== false,
   };
 }
 
@@ -67,11 +74,14 @@ function guardarAjustesPantalla(ajustes) {
   exigirVista_('RANKING');
   const entrada = ajustes || {};
   const campos = { personas: 'rp_personas', columnas: 'rp_columnas', alto: 'rp_alto', espacio: 'rp_espacio',
-    fuente: 'rp_fuente', puntos: 'rp_puntos', escala: 'rp_escala', anchoTop: 'rp_ancho_top', tiempo: 'rp_tiempo', nombreTop: 'rp_nombre_top' };
+    fuente: 'rp_fuente', puntos: 'rp_puntos', escala: 'rp_escala', anchoTop: 'rp_ancho_top', tiempo: 'rp_tiempo', nombreTop: 'rp_nombre_top', margen: 'rp_margen',
+    filas: 'rp_filas', ptsTop: 'rp_pts_top', resumen: 'rp_resumen', anchoContenido: 'rp_ancho_contenido' };
   const bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(SEGUNDOS_BLOQUEO);
   try {
-    if (typeof entrada.ocultarMenu === 'boolean') configPonerRanking_('rp_ocultar_menu', entrada.ocultarMenu);
+    Object.keys(INTERRUPTORES_PANTALLA_).forEach(campo => {
+      if (typeof entrada[campo] === 'boolean') configPonerRanking_(INTERRUPTORES_PANTALLA_[campo], entrada[campo]);
+    });
     Object.keys(campos).forEach(campo => {
       const clave = campos[campo];
       const valor = Number(entrada[campo]);
@@ -93,7 +103,14 @@ function configPonerRanking_(clave, valor) {
   else agregarFila_(HOJA.CONFIG, { clave: clave, valor: valor, descripcion: 'Preset de la pantalla de ranking' });
 }
 
-/** Las filas que ve la pantalla: nombre, puntos y el segundo por pregunta (para explicar un empate), sin el email. */
+/**
+ * Las filas que ve la pantalla: nombre, puntos y el segundo por pregunta (para explicar un empate), sin el email.
+ * El resumen da escala en el pie: cuánta gente participa (quien tiene al menos un quiz) y cuántos quizzes se completaron.
+ */
 function filasDelRanking_() {
-  return { filas: rankingCompleto_().map(f => ({ nombre: f.nombre, puntos: f.puntos, seg: f.seg })) };
+  const ranking = rankingCompleto_();
+  return {
+    filas: ranking.map(f => ({ nombre: f.nombre, puntos: f.puntos, seg: f.seg })),
+    resumen: { participantes: ranking.length, quizzes: ranking.reduce((suma, f) => suma + (f.unidades || 0), 0) },
+  };
 }
