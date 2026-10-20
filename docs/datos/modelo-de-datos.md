@@ -361,14 +361,14 @@ Claves que la app reconoce, con el valor que usa si la fila no existe o su valor
 | `espera_mensaje` | (vacío) | Texto bajo la fecha |
 | `premios_mensaje` | Participando y aprendiendo podrás ganar: | Frase bajo el título "Premios" de la sala de espera. Con la fila vacía, no se muestra |
 | `rp_personas` | 0 | Pantalla de ranking: personas por pantalla; 0 = lo que quepa. De 0 a 300 |
-| `rp_columnas` | 6 | Pantalla de ranking: columnas. De 1 a 8 |
+| `rp_columnas` | 3 | Pantalla de ranking: columnas. De 1 a 8 |
 | `rp_alto` | 64 | Pantalla de ranking: alto de cada fila en px. De 40 a 120 |
 | `rp_espacio` | 10 | Pantalla de ranking: espacio entre filas en px. De 4 a 24 |
 | `rp_fuente` | 16 | Pantalla de ranking: tamaño de los nombres de la lista (4.º en adelante) en px. De 12 a 30 |
 | `rp_puntos` | 22 | Pantalla de ranking: tamaño de los puntos en px. De 14 a 40 |
 | `rp_escala` | 100 | Pantalla de ranking: tamaño del podio en %. De 60 a 160 |
 | `rp_ancho_top` | 88 | Pantalla de ranking: ancho del podio en % de la pantalla. De 40 a 100 |
-| `rp_nombre_top` | 16 | Pantalla de ranking: tamaño de los nombres del podio en px (el 1.º, un 25 % más). De 12 a 40 |
+| `rp_nombre_top` | 16 | Pantalla de ranking: tamaño de los nombres del podio en px (los tres puestos iguales). De 12 a 40 |
 | `rp_tiempo` | 13 | Pantalla de ranking: tamaño del tiempo de desempate en px. De 10 a 24 |
 | `rp_ocultar_menu` | FALSE | Pantalla de ranking: oculta la barra de navegación |
 

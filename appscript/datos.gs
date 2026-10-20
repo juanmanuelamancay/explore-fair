@@ -38,7 +38,7 @@ const CONFIG_DEFECTO = {
   premios_mensaje: 'Participando y aprendiendo podrás ganar:',
   // Preset de la pantalla de ranking (vista RANKING). Se edita desde su panel de ajustes.
   rp_personas: 0,        // personas por pantalla; 0 = lo que quepa
-  rp_columnas: 5,
+  rp_columnas: 3,
   rp_alto: 64,           // px por fila
   rp_espacio: 10,        // px entre filas
   rp_fuente: 16,         // px de los nombres

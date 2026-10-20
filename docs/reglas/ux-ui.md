@@ -278,8 +278,8 @@ Sincronización y reinicio:
 Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho de la pantalla, con el contenido centrado hasta 1.680 px.
 
 - **Sin cabecera:** no lleva marca ni título visibles, para dejarle todo el alto al ranking. La hora de la última actualización, el botón de ajustes y el de actualizar flotan casi transparentes en la esquina superior derecha y se encienden al pasar el mouse.
-- **Podio** con los tres primeros, uno por premio, en oro, plata y bronce: el avatar con las iniciales toma el metal y lleva una corona encima, y la base del podio se pinta del mismo metal. De izquierda a derecha van el 2.º, el 1.º (el más alto) y el 3.º.
-- **Cuadrícula** del cuarto en adelante: cada celda lleva puesto, nombre, el reloj con sus segundos totales debajo del nombre y los puntos. El podio también muestra los segundos de cada uno. Muestra las personas que caben en pantalla, o menos si los ajustes fijan una cantidad.
+- **Podio** con los tres primeros, uno por premio, en oro, plata y bronce: el avatar con las iniciales toma el metal, y solo el 1.º lleva una corona dorada encima. La base del podio se pinta del mismo metal. De izquierda a derecha van el 2.º, el 1.º (el más alto) y el 3.º.
+- **Cuadrícula** del cuarto en adelante, que se llena columna por columna, de arriba hacia abajo: cada celda lleva puesto, nombre, el reloj con sus segundos totales debajo del nombre y los puntos. El podio también muestra los segundos de cada uno. Muestra las personas que caben en pantalla, o menos si los ajustes fijan una cantidad.
 - **Pie:** "Puestos 1 a N de T" y la regla de desempate.
 - **Menos de tres personas:** el podio muestra solo a quienes hay: con una, el 1.º; con dos, el 2.º y el 1.º. Sin nadie con puntaje, "Esperando los primeros puntajes".
 - **Cambios:** quien sumó puntos desde la última actualización destella en verde y muestra un "+N" que se desvanece.

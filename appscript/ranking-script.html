@@ -6,7 +6,7 @@
   // El top (escala y ancho) tiene sus propios ajustes: las columnas y las filas no lo afectan.
   // Los mismos valores que CONFIG_DEFECTO (datos.gs): se usan mientras no llega el preset de la hoja Config.
   const AJUSTES_DEFECTO = {
-    personas: 0, columnas: 5, filas: 0, alto: 64, espacio: 10, fuente: 16, puntos: 22, tiempo: 13,
+    personas: 0, columnas: 3, filas: 0, alto: 64, espacio: 10, fuente: 16, puntos: 22, tiempo: 13,
     escala: 100, anchoTop: 52, nombreTop: 16, ptsTop: 18, anchoContenido: 100, margen: 5, resumen: 20,
     ocultarMenu: false, achicarTop: true,
   };
@@ -43,11 +43,12 @@
   let ajustesPendientes = false;        // hay cambios que todavía no llegaron a Config: no se pisan con lo del servidor
   let temporizadorGuardado = null;
   let filas = null;
-  let resumen = null;                  // { participantes, quizzes } para el pie
   let intervalo = null;
   let anteriores = null;               // nombre -> puntos de la última vez que se pintó
   let comparando = null;               // solo mientras se pinta: sirve para destacar lo que subió
   let enPantalla = false;
+  let animarPodio = false;             // la entrada en resorte corre solo al mostrar la pantalla
+  let finEntrada = null;
 
   /** Lleva los ajustes a las variables CSS de la vista: los tamaños cambian al instante. */
   function aplicarEstilos() {
@@ -155,6 +156,9 @@
   /** Pantalla grande: quita el ancho de celular mientras esta vista está abierta. */
   function mostrar() {
     enPantalla = true;
+    animarPodio = true;
+    clearTimeout(finEntrada);
+    finEntrada = null;
     document.body.classList.add('pantalla-grande');
     aplicarEstilos();
     if (!filas) App.cargando(contenido);
@@ -200,7 +204,6 @@
       }
       comparando = anteriores;
       filas = r.filas;
-      resumen = r.resumen || null;
       pintar();
       comparando = null;
       anteriores = new Map(filas.map(p => [p.nombre, p.puntos]));
@@ -214,8 +217,12 @@
 
   // Todos muestran sus segundos, también el top: así cada puesto tiene la misma estructura (nombre, puntos y
   // tiempo) y las filas quedan alineadas. Además deja ver el desempate antes de que ocurra.
+  const formatoTiempo = s => {
+    const total = Math.round(s);
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  };
   const chipTiempo = p => (typeof p.seg === 'number')
-    ? `<span class="rp-desempate" title="Tiempo total en sus quizzes: en empate de puntos va primero quien tardó menos">${svg(ICONO.reloj, 13)}${formatoSeg(p.seg)}</span>`
+    ? `<span class="rp-desempate" title="Tiempo total en sus quizzes (minutos:segundos): en empate de puntos va primero quien tardó menos">${svg(ICONO.reloj, 13)}${formatoTiempo(p.seg)}</span>`
     : '';
 
   // El podio toma hasta tres personas, una por premio; la cuadrícula empieza en el 4.º.
@@ -223,11 +230,8 @@
   // De izquierda a derecha: el 2.º, el 1.º en el pico, y luego el 3.º.
   const ORDEN_DEL_PODIO = [1, 0, 2];
 
-  /**
-   * Cuántas personas se muestran: las que se definan en "Personas por pantalla", sin pasar de lo que cabe
-   * en la pantalla con las columnas, el alto y el espacio de los ajustes. Con 0 se muestra lo que quepa.
-   */
-  function cuantasMostrar() {
+  // Llena columna por columna, de arriba hacia abajo: devuelve cuántas personas se muestran y cuántas filas usa.
+  function distribucion() {
     const rejilla = $('rp-rejilla');
     const caben = Math.max(1, Math.floor((rejilla.clientHeight + ajustes.espacio) / (ajustes.alto + ajustes.espacio)));
     // "Filas" pone un tope a las que caben; nunca muestra más de las que entran (quedarían cortadas).
@@ -235,7 +239,8 @@
     // Las columnas que de verdad pinta la rejilla: por debajo de 900 px es una sola, aunque el ajuste diga otra cosa.
     const columnas = getComputedStyle(rejilla).gridTemplateColumns.split(' ').length || ajustes.columnas;
     const cabe = columnas * filasVisibles;
-    return ajustes.personas > 0 ? Math.min(cabe, ajustes.personas) : cabe;
+    const cuantas = ajustes.personas > 0 ? Math.min(cabe, ajustes.personas) : cabe;
+    return { cuantas, filas: Math.max(1, Math.min(filasVisibles, Math.ceil(cuantas / columnas))) };
   }
 
   // El podio nunca deja a la cuadrícula con menos de estas filas: si no caben, se achica en proporción.
@@ -297,34 +302,36 @@
     const delta = subio(p);
     return `
       <div class="lugar l${n + 1} ${metalDe(n + 1)} ${delta ? 'subio' : ''}">
-        ${avatarDePuesto(p.nombre, n + 1)}
-        <div class="nombre">${RAMA}<span class="rp-nombre">${esc(p.nombre)}</span>${RAMA}</div>
-        <div class="pts tnum">${etiqueta(delta)}${p.puntos} pts</div>
-        ${chipTiempo(p)}
-        <div class="base"><span class="rp-placa">${RAMA}<span class="rp-num">${n + 1}</span>${RAMA}</span></div>
+        <div class="ficha">
+          <div class="flota">${avatarDePuesto(p.nombre, n + 1)}</div>
+          <div class="info">
+            <div class="nombre"><span class="rp-nombre">${esc(p.nombre)}</span></div>
+          </div>
+          <div class="sombra"></div>
+        </div>
+        <div class="cuerpo">
+          <div class="base">
+            <span class="rp-placa">${RAMA}<span class="rp-num">${n + 1}</span>${RAMA}</span>
+            <div class="metricas">
+              <div class="pts tnum">${etiqueta(delta)}${p.puntos} pts</div>
+              ${chipTiempo(p)}
+            </div>
+          </div>
+        </div>
       </div>`;
   };
 
-  /** Una fila de la cuadrícula: posición, nombre y puntos. El tiempo solo aparece si hay empate con el vecino. */
-  const celda = (p, puesto, i) => {
+  /** Una fila de la cuadrícula: posición, nombre y puntos. */
+  const celda = (p, puesto) => {
     const delta = subio(p);
+    const clasePuesto = puesto <= 10 ? 'top10' : (puesto <= 20 ? 'top20' : 'resto');
     return `
-      <div class="fila ${delta ? 'subio' : ''}">
+      <div class="fila ${clasePuesto} ${delta ? 'subio' : ''}">
         <span class="pos tnum">${puesto}</span>
-        <span class="quien"><b>${esc(p.nombre)}</b>${chipTiempo(p)}</span>
-        <span class="rp-puntos tnum">${etiqueta(delta)}<b>${p.puntos}</b><small>pts</small></span>
+        <span class="quien"><b>${esc(p.nombre)}</b></span>
+        <span class="rp-puntos tnum"><span class="rp-pts-linea">${etiqueta(delta)}<b>${p.puntos}</b><small>pts</small></span>${chipTiempo(p)}</span>
       </div>`;
   };
-
-  /** 1240 -> "1.240": a distancia, el separador de miles se lee mejor. */
-  const miles = n => String(n).replace(/B(?=(d{3})+(?!d))/g, '.');
-
-  /** "347 participantes · 1.240 quizzes completados", en singular cuando toca. */
-  function textoResumen() {
-    if (!resumen) return '';
-    const { participantes: p, quizzes: q } = resumen;
-    return `<b>${miles(p)}</b> ${p === 1 ? 'participante' : 'participantes'} · <b>${miles(q)}</b> ${q === 1 ? 'quiz completado' : 'quizzes completados'}`;
-  }
 
   function pintar() {
     if (!filas.length) {
@@ -337,18 +344,21 @@
     // El podio muestra a quienes haya, hasta tres: con una persona solo el 1.º, con dos el 1.º y el 2.º, y así.
     const enPodio = Math.min(PUESTOS_DEL_PODIO, filas.length);
     const orden = ORDEN_DEL_PODIO.filter(n => n < enPodio);
+    // Los tipos de letra llegan después del primer pintado y repintan el podio: la ventana de entrada los cubre.
+    const entrada = animarPodio ? ' entrar' : '';
+    if (entrada && !finEntrada) finEntrada = setTimeout(() => { animarPodio = false; }, 1500);
     contenido.innerHTML = `
-      <div class="podio" style="--rp-podio: ${enPodio}">${orden.map(n => lugar(filas[n], n)).join('')}</div>
-      <div class="rp-cuerpo"><div class="rp-rejilla" id="rp-rejilla"></div></div>
-      <div class="rp-pie-zona"><p class="rp-resumen tnum">${textoResumen()}</p></div>`;
+      <div class="podio${entrada}" style="--rp-podio: ${enPodio}">${orden.map(n => lugar(filas[n], n)).join('')}</div>
+      <div class="rp-cuerpo"><div class="rp-rejilla" id="rp-rejilla"></div></div>`;
 
     // Primero se dibuja la rejilla vacía para medir cuánto cabe, y luego se llena con esa cantidad.
-    // El pie (el resumen) ya está escrito al medir: así no empuja la rejilla ni corta la última fila.
     const inicio = PUESTOS_DEL_PODIO;
     if (filas.length > inicio) ajustarPodioAlAlto();
-    const cuantas = cuantasMostrar();
+    const { cuantas, filas: filasUsadas } = distribucion();
     const visibles = filas.slice(inicio, inicio + cuantas);
-    $('rp-rejilla').innerHTML = visibles.map((p, k) => celda(p, inicio + k + 1, inicio + k)).join('');
+    const rejilla = $('rp-rejilla');
+    rejilla.style.setProperty('--rp-filas', filasUsadas);
+    rejilla.innerHTML = visibles.map((p, k) => celda(p, inicio + k + 1, inicio + k)).join('');
   }
 
   // Montserrat llega después del primer pintado y agranda el podio: se vuelve a medir para que la última fila no quede cortada.
