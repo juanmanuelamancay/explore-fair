@@ -5,7 +5,7 @@
   .rank-cab { margin-bottom: 20px; }
   body.pantalla-grande #app { max-width: none; padding: 20px 32px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
   #vista-ranking {
-    --rp-cols: 6; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%;
+    --rp-cols: 6; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%; --rp-tiempo: 13px;
     min-height: calc(100vh - var(--nav-h) - 110px); display: flex; flex-direction: column;
   }
   #vista-ranking .rank-titulo { font-size: 32px; }
@@ -51,6 +51,20 @@
     margin-top: calc(10px * var(--rp-escala)); border-radius: 12px 12px 0 0; background: var(--m-fondo, var(--superficie));
     font-size: calc(36px * var(--rp-escala)); font-weight: 700; display: grid; place-items: center; color: var(--m-texto, var(--texto-2));
   }
+
+  /* Chip de desempate: segundos por pregunta en promedio. Solo se pinta cuando hay un vecino con el mismo puntaje,
+     para no ensuciar la pantalla cuando el puntaje ya alcanza para explicar el orden. Cada contexto (podio o
+     cuadrícula) escala con su propia variable, igual que el resto de sus textos. */
+  #vista-ranking .rp-desempate {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 7px; border-radius: 10px; border: 1px solid var(--borde-suave); background: var(--superficie);
+    color: var(--texto-2); font-variant-numeric: tabular-nums;
+  }
+  #vista-ranking .rp-desempate svg { flex: none; width: 12px; height: 12px; }
+  #vista-ranking .rp-desempate { font-size: var(--rp-tiempo); }
+  #vista-ranking .lugar .rp-desempate { margin-top: calc(3px * var(--rp-escala)); }
+  #vista-ranking .rp-rejilla .fila .rp-desempate { flex: none; }
+
   #vista-ranking .lugar.l1 .base { height: calc(150px * var(--rp-escala)); font-size: calc(52px * var(--rp-escala)); }
   #vista-ranking .lugar.l2 .base { height: calc(110px * var(--rp-escala)); }
   #vista-ranking .lugar.l3 .base { height: calc(84px * var(--rp-escala)); }

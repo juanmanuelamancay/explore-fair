@@ -136,6 +136,11 @@ function releerIndiceDe(email) {
   cachePoner_('releer:' + texto_(email).toLowerCase(), 1, 21600);
 }
 
+// Temporal: borrar después de ejecutar una vez.
+function _releerBrandon() {
+  releerIndiceDe('brandon.boluarte@bbva.com');
+}
+
 /* ---------- Filas propias ---------- */
 
 /*

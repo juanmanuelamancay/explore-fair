@@ -4,7 +4,7 @@
   const RETRASO_DE_GUARDADO_MS = 700;   // espera a que terminen los movimientos del deslizador antes de escribir en Config
   // Preset de la pantalla. Se guarda en la hoja Config (claves rp_*); si no hay nada, se usan estos valores.
   // El top (escala y ancho) tiene sus propios ajustes: las columnas y las filas no lo afectan.
-  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 88, ocultarMenu: false, modoOscuro: false };
+  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 88, tiempo: 13, ocultarMenu: false, modoOscuro: false };
   // Interruptores del panel (sí o no).
   const INTERRUPTORES = [
     { clave: 'ocultarMenu', etiqueta: 'Ocultar menú de navegación (queda solo el ranking)' },
@@ -19,6 +19,7 @@
     { clave: 'puntos', etiqueta: 'Tamaño de puntos (px)', min: 14, max: 40, paso: 1 },
     { clave: 'escala', etiqueta: 'Tamaño del top (%)', min: 60, max: 160, paso: 5 },
     { clave: 'anchoTop', etiqueta: 'Ancho del top (% de la pantalla)', min: 40, max: 100, paso: 2 },
+    { clave: 'tiempo', etiqueta: 'Tamaño del tiempo de desempate (px)', min: 10, max: 24, paso: 1 },
   ];
   const contenido = $('rp-contenido');
   const vista = $('vista-ranking');
@@ -41,6 +42,7 @@
     estilo.setProperty('--rp-puntos', ajustes.puntos + 'px');
     estilo.setProperty('--rp-escala', ajustes.escala / 100);
     estilo.setProperty('--rp-ancho-top', ajustes.anchoTop + '%');
+    estilo.setProperty('--rp-tiempo', ajustes.tiempo + 'px');
     // La barra de navegación y el modo oscuro solo se aplican mientras esta vista está abierta.
     document.body.classList.toggle('sin-menu', enPantalla && !!ajustes.ocultarMenu);
     document.body.classList.toggle('pantalla-oscura', enPantalla && !!ajustes.modoOscuro);
@@ -170,6 +172,12 @@
   const subio = p => (comparando && comparando.has(p.nombre) ? Math.max(0, p.puntos - comparando.get(p.nombre)) : 0);
   const etiqueta = n => (n > 0 ? `<i class="delta">+${n}</i>` : '');
 
+  // Mismo puntaje que el vecino de arriba o de abajo: ahí es donde el orden no se explica solo con el puntaje.
+  const empatado = i => (i > 0 && filas[i - 1].puntos === filas[i].puntos) || (i < filas.length - 1 && filas[i + 1].puntos === filas[i].puntos);
+  const chipTiempo = (p, i) => (empatado(i) && typeof p.seg === 'number')
+    ? `<span class="rp-desempate" title="Segundos totales en sus quizzes: así se desempata este puntaje">${svg(ICONO.reloj, 13)}${p.seg}s</span>`
+    : '';
+
   // El podio toma hasta tres personas, una por premio; la cuadrícula empieza en el 4.º.
   const PUESTOS_DEL_PODIO = 3;
   // De izquierda a derecha: el 2.º, el 1.º en el pico, y luego el 3.º.
@@ -194,18 +202,20 @@
         ${avatarDePuesto(p.nombre, n + 1)}
         <div class="nombre">${esc(p.nombre)}</div>
         <div class="pts tnum">${etiqueta(delta)}${p.puntos} pts</div>
+        ${chipTiempo(p, n)}
         <div class="base">${n + 1}</div>
       </div>`;
   };
 
-  /** Una fila de la cuadrícula: posición, nombre y puntos. */
-  const celda = (p, puesto) => {
+  /** Una fila de la cuadrícula: posición, nombre y puntos. El tiempo solo aparece si hay empate con el vecino. */
+  const celda = (p, puesto, i) => {
     const delta = subio(p);
     return `
       <div class="fila ${delta ? 'subio' : ''}">
         <span class="pos tnum">${puesto}</span>
         <span class="quien"><b>${esc(p.nombre)}</b></span>
         ${etiqueta(delta)}
+        ${chipTiempo(p, i)}
         <span class="rp-puntos tnum"><b>${p.puntos}</b><small>pts</small></span>
       </div>`;
   };
@@ -230,9 +240,9 @@
     const inicio = PUESTOS_DEL_PODIO;
     const cuantas = cuantasMostrar();
     const visibles = filas.slice(inicio, inicio + cuantas);
-    $('rp-rejilla').innerHTML = visibles.map((p, k) => celda(p, inicio + k + 1)).join('');
+    $('rp-rejilla').innerHTML = visibles.map((p, k) => celda(p, inicio + k + 1, inicio + k)).join('');
     $('rp-pie').textContent = visibles.length
-      ? `Mostrando puestos ${inicio + visibles.length} de ${filas.length} · En empate, va primero quien llegó antes a ese puntaje.`
+      ? `Mostrando puestos ${inicio + visibles.length} de ${filas.length} · En empate, va primero quien respondió más rápido en total (el reloj junto al puntaje).`
       : `${filas.length} ${filas.length === 1 ? 'persona' : 'personas'} en el ranking`;
   }
 

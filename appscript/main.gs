@@ -13,6 +13,7 @@ const ARCHIVO_DE_VISTA = {
   CHARLAS: 'charlas',
   QUIZ: 'quiz',
   RANKING: 'ranking',
+  TABLA: 'tabla',
   INGRESOS: 'ingresos',
   GENERAR_CODIGO: 'generar-codigo',
   PREGUNTAS: 'preguntas',

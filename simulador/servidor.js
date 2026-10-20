@@ -177,8 +177,8 @@ function datosDeEjemplo() {
       ['LIDER', 'GENERAR_CODIGO', true],
       ['EXPOSITOR', 'PREGUNTAS', true],
       ...['GENERAR_CODIGO', 'PREGUNTAS'].map(v => ['PONENTE', v, true]),
-      ...['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS', 'INGRESOS'].map(v => ['VALIDADOR', v, true]),
-      ...['MAPA', 'CHARLAS', 'QUIZ', 'RANKING', 'INGRESOS', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN', 'ESPERA'].map(v => ['ADMIN', v, true])],
+      ...['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS', 'INGRESOS', 'TABLA'].map(v => ['VALIDADOR', v, true]),
+      ...['MAPA', 'CHARLAS', 'QUIZ', 'RANKING', 'TABLA', 'INGRESOS', 'GENERAR_CODIGO', 'PREGUNTAS', 'PANEL_ADMIN', 'ESPERA'].map(v => ['ADMIN', v, true])],
     Config: [['clave', 'valor', 'descripcion'], ['minutos_vigencia_codigo', 5, ''], ['minutos_para_responder', 5, ''],
       ['puntos_por_defecto', 10, ''], ['segundos_refresco_board', process.env.VIVO ? 10 : 15, ''], ['feria_abierta', true, ''],
       ['segundos_cache_ranking', process.env.VIVO ? 5 : 60, ''],
@@ -213,7 +213,9 @@ const sorteo = azar(2024);
 /** Una persona que completó el quiz de una unidad (un pabellón), con unas respuestas correctas de 10 puntos. */
 function intentoCompletado(tablas, email, unidad, correctas, cuando) {
   const id = 'INT-' + String(tablas.Intentos.length).padStart(5, '0');
-  return [id, email, unidad, 'COMPLETADO', correctas * 10, cuando, correctas, unidad, '', new Date(cuando - 120000), new Date(cuando + 180000), '[]', '[]'];
+  // Preguntas de relleno, solo para que el simulador tenga con qué calcular segundos por pregunta en Tabla y Ranking.
+  const preguntas = Array.from({ length: Math.max(1, correctas) }, (_, k) => 'PRG-DEMO-' + k);
+  return [id, email, unidad, 'COMPLETADO', correctas * 10, cuando, correctas, unidad, '', new Date(cuando - 120000), new Date(cuando + 180000), JSON.stringify(preguntas), '[]'];
 }
 
 /** Arma N personas con puntajes variados, algunos empates arriba, para que el podio y la cuadrícula tengan qué mostrar. */

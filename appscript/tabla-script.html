@@ -1,0 +1,79 @@
+<script>
+(() => {
+  const lista = $('tabla-lista');
+  const buscar = $('tabla-buscar');
+  $('tabla-buscar-icono').innerHTML = svg(ICONO.buscar, 18);
+  let filas = null;
+  let texto = '';
+
+  /** 45 -> "45 seg"; 125.4 -> "2 min 05 seg" (se redondea al segundo entero, ya con minutos el decimal no aporta). */
+  const formatoSeg = s => {
+    if (s < 60) return s + ' seg';
+    const total = Math.round(s);
+    return Math.floor(total / 60) + ' min ' + String(total % 60).padStart(2, '0') + ' seg';
+  };
+
+  function mostrar() {
+    if (!filas) App.cargando(lista);
+    cargar();
+  }
+
+  function cargar(forzar) {
+    return servidor('obtenerTabla', forzar === true).then(r => {
+      filas = r.filas;
+      $('tabla-total').textContent = filas.length;
+      pintar();
+    }).catch(() => { if (filas) toast('No pudimos actualizar la tabla.'); else App.error(lista, cargar); });
+  }
+
+  /** Portapapeles moderno si está disponible (requiere https); si no, el campo oculto de respaldo. */
+  function copiarCorreo(email, nombre) {
+    const listo = () => toast('Correo de ' + nombre + ' copiado');
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(email).then(listo).catch(() => copiarConRespaldo(email, listo));
+    else copiarConRespaldo(email, listo);
+  }
+  function copiarConRespaldo(valor, listo) {
+    const campo = document.createElement('textarea');
+    campo.value = valor;
+    campo.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(campo);
+    campo.select();
+    try { document.execCommand('copy'); listo(); } catch (error) { toast('No pudimos copiar el correo.'); }
+    document.body.removeChild(campo);
+  }
+
+  function pintar() {
+    if (!filas.length) {
+      lista.innerHTML = `<div class="estado"><div class="icono">${svg(ICONO.trofeo, 32)}</div>
+        <h2>Esperando los primeros puntajes</h2><p>Aún nadie tiene puntaje.</p></div>`;
+      return;
+    }
+    const q = texto.trim().toLowerCase();
+    const visibles = filas.filter(f => !q || f.nombre.toLowerCase().indexOf(q) >= 0);
+    if (!visibles.length) {
+      lista.innerHTML = `<div class="panel-vacio"><strong>No encontramos coincidencias</strong><span>Prueba con otro nombre.</span></div>`;
+      return;
+    }
+    lista.innerHTML = `<ul class="lista filas">${visibles.map(f => `
+      <li class="fila tabla-fila" data-correo="${esc(f.email)}" data-nombre="${esc(f.nombre)}" role="button" tabindex="0" aria-label="Copiar el correo de ${esc(f.nombre)}">
+        ${medalla(f.puesto)}
+        <span class="quien">
+          <b>${esc(f.nombre)}</b>
+          <span>${esc(f.email)}</span>
+          <span class="tabla-resuelto">${f.unidades} ${f.unidades === 1 ? 'quiz' : 'quizzes'} / ${formatoSeg(f.seg)}</span>
+        </span>
+        <span class="tabla-puntos tnum"><b>${f.puntos}</b><small>pts</small></span>
+      </li>`).join('')}</ul>`;
+  }
+
+  function alTocar(e) {
+    const fila = e.target.closest('[data-correo]');
+    if (fila) copiarCorreo(fila.dataset.correo, fila.dataset.nombre);
+  }
+  lista.addEventListener('click', alTocar);
+  lista.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alTocar(e); } });
+  buscar.addEventListener('input', e => { texto = e.target.value; pintar(); });
+
+  App.registrar('tabla', { alMostrar: mostrar, alRefrescar: () => cargar(true) });
+})();
+</script>

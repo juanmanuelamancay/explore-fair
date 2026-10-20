@@ -8,11 +8,11 @@ const SEGUNDOS_CACHE_USUARIO = 21600;   // máximo que permite CacheService
 
 // El VALIDADOR revisa la feria sin tocarla: solo estas vistas, y en cada una el servidor lo deja leer, no escribir.
 // Aunque Permisos le agregue otra, no la recibe.
-const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS', 'INGRESOS'];
+const VISTAS_DEL_VALIDADOR = ['MAPA', 'QUIZ', 'PREGUNTAS', 'CHARLAS', 'INGRESOS', 'TABLA'];
 
 // Vistas que solo pueden tener el ADMIN y el VALIDADOR, aunque Permisos o la hoja digan otra cosa.
 // Se revisa aquí y no solo en el panel, porque quien responde puede editar el Sheet a mano.
-const VISTAS_SOLO_ADMIN_Y_VALIDADOR = ['INGRESOS'];
+const VISTAS_SOLO_ADMIN_Y_VALIDADOR = ['INGRESOS', 'TABLA'];
 
 // Por ahora solo personal interno: cuentas @bbva.com, sin las de contratistas (nombre.apellido.contractor@bbva.com).
 const DOMINIO_PERMITIDO = 'bbva.com';
@@ -107,6 +107,19 @@ function nombreDesdeEmail_(email) {
   const partes = email.split('@')[0].replace(/[0-9]/g, '').split(/[._-]+/).filter(Boolean);
   if (!partes.length) return email;
   return partes.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+}
+
+/**
+ * "MANUEL ALEXANDER PRINCIPE TOLENTINO" -> "Manuel Principe": primer nombre y primer apellido, en Mayúscula-minúscula.
+ * El nombre completo trae nombres y apellidos juntos y en cualquier cantidad (uno o dos de cada uno), así que el
+ * apellido paterno se toma contando desde el final (el anteúltimo si hay dos apellidos, el último si solo hay uno).
+ * Con una o dos palabras no hay nada que acortar: se devuelven tal cual, solo con el formato de mayúsculas.
+ */
+function nombreCorto_(nombreCompleto) {
+  const partes = texto_(nombreCompleto).split(/\s+/).filter(Boolean);
+  const formato = p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+  if (partes.length <= 2) return partes.map(formato).join(' ');
+  return [partes[0], partes[partes.length - 2]].map(formato).join(' ');
 }
 
 /**

@@ -1,0 +1,21 @@
+<section id="vista-tabla" class="vista" hidden>
+
+  <header class="cab">
+    <div>
+      <p class="sec chico" data-marca></p>
+      <h1>Tabla</h1>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><b class="tnum" id="tabla-total">–</b><span>personas</span></div>
+    </div>
+    <button class="refrescar" data-refrescar aria-label="Actualizar"></button>
+  </header>
+
+  <p class="panel-ayuda tabla-ayuda">Busca por nombre y toca su fila para copiar el correo.</p>
+
+  <label class="panel-busqueda tabla-busqueda"><span id="tabla-buscar-icono"></span><input id="tabla-buscar" type="search" placeholder="Buscar por nombre" autocomplete="off"></label>
+
+  <!-- El script arma aquí la lista ordenada por puntos; un toque en una fila copia el correo de esa persona. -->
+  <section class="tabla-lista" id="tabla-lista" aria-label="Personas del ranking, con su correo"></section>
+
+</section>
