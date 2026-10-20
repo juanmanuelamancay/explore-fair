@@ -31,6 +31,11 @@
     display: grid; place-items: center; border: 1px solid var(--borde); color: var(--texto-2);
   }
   #vista-ranking .rp-ajustes-btn:active { background: var(--superficie); }
+  #vista-ranking .rp-accion {
+    height: 36px; padding: 0 14px; border-radius: 18px; flex: none; font: inherit; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--borde); background: transparent; color: var(--texto-2); cursor: pointer;
+  }
+  #vista-ranking .rp-accion:disabled { opacity: .4; cursor: default; }
   /* El contenido va centrado; su ancho es el ajuste "Ancho del contenido" (% del espacio dentro del margen) */
   #vista-ranking #rp-contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; width: var(--rp-ancho-contenido); margin: 0 auto; }
 
@@ -179,6 +184,25 @@
   #vista-ranking .rp-puntos small { font-size: calc(var(--rp-puntos) * .55); color: var(--texto-2); }
   #vista-ranking .rp-rejilla .fila.top10::before { background: linear-gradient(180deg, #FFE680 0%, #FFC400 100%); }
   #vista-ranking .rp-rejilla .fila.top20::before { background: linear-gradient(180deg, #A9D8FF 0%, #6FB5FF 100%); }
+
+  /* Revelación: los puestos tapados se ven tenues; los que acaban de aparecer entran en cascada con --rp-retraso */
+  #vista-ranking .oculto .nombre, #vista-ranking .oculto .pts, #vista-ranking .oculto .quien b, #vista-ranking .oculto .rp-puntos { opacity: .4; }
+  #vista-ranking .revela { animation: rp-revela .55s cubic-bezier(.34, 1.56, .64, 1) var(--rp-retraso, 0ms) both; }
+  @keyframes rp-revela {
+    0% { opacity: 0; transform: scale(.6) translateY(12px); }
+    60% { opacity: 1; transform: scale(1.04); }
+    100% { opacity: 1; transform: none; }
+  }
+  #vista-ranking .podio .lugar .ficha.sin-nombre { visibility: hidden; }
+  #vista-ranking .podio .lugar .ficha.cae { animation: rp-cae 1.1s cubic-bezier(.34, 1.2, .64, 1) both; }
+  @keyframes rp-cae {
+    0% { opacity: 0; transform: translateY(-70vh); }
+    20% { opacity: 1; }
+    80% { transform: translateY(14px); }
+    100% { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { #vista-ranking .revela, #vista-ranking .podio .lugar .ficha.cae { animation: none; } }
+  body.pantalla-grande #vista-ranking .rp-accion { border-color: rgba(0, 229, 255, .4); color: #00E5FF; background: rgba(7, 14, 70, .5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
   /* Cambios desde el último refresco: la fila destella y aparece un "+N" que se desvanece.
      Solo se anima quien subió; en cada refresco sin cambios no pasa nada. */

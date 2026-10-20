@@ -49,6 +49,11 @@
   let enPantalla = false;
   let animarPodio = false;             // la entrada en resorte corre solo al mostrar la pantalla
   let finEntrada = null;
+  let revelacion = null;               // { pasos, hecho, revelados }: solo mientras se revela
+  let recien = new Set();              // puestos que acaba de revelar el último clic
+  let finRecien = null;
+  let recienTipo = null;
+  let ultimoPuestoVisible = 0;         // último puesto que la cuadrícula llega a pintar
 
   /** Lleva los ajustes a las variables CSS de la vista: los tamaños cambian al instante. */
   function aplicarEstilos() {
@@ -202,9 +207,11 @@
         ajustes = { ...AJUSTES_DEFECTO, ...r.ajustes };
         aplicarEstilos();
       }
+      if (revelacion) return;   // durante la revelación el ranking queda congelado
       comparando = anteriores;
       filas = r.filas;
       pintar();
+      actualizarControles();
       comparando = null;
       anteriores = new Map(filas.map(p => [p.nombre, p.puntos]));
       $('rp-hora').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -297,24 +304,38 @@
     return `<svg class="rp-rama" viewBox="0 0 48 100" aria-hidden="true"><g fill="currentColor">${tallo}${partes.join('')}</g></svg>`;
   })();
 
+  // Puestos tapados muestran ? y, al aparecer, entran en cascada.
+  const puestoVisible = puesto => !revelacion || revelacion.revelados.has(puesto);
+  const enRecien = (puesto, tipo) => recien.has(puesto) && recienTipo === tipo;
+  const claseRevelado = puesto => (!puestoVisible(puesto) ? 'oculto' : (enRecien(puesto, 'filas') ? 'revela' : ''));
+  const podioConPuntos = puesto => !revelacion || revelacion.podioPuntos.has(puesto);
+  const podioConNombre = puesto => !revelacion || revelacion.podioNombres.has(puesto);
+  const retrasoRevelado = puesto => {
+    const primero = recien.size ? Math.min(...recien) : puesto;
+    return `--rp-retraso: ${Math.min(1200, (puesto - primero) * 30)}ms`;
+  };
+
   /** Un puesto del podio. */
   const lugar = (p, n) => {
-    const delta = subio(p);
+    const puesto = n + 1;
+    const conPuntos = podioConPuntos(puesto);
+    const conNombre = podioConNombre(puesto);
+    const delta = conPuntos ? subio(p) : 0;
     return `
-      <div class="lugar l${n + 1} ${metalDe(n + 1)} ${delta ? 'subio' : ''}">
-        <div class="ficha">
-          <div class="flota">${avatarDePuesto(p.nombre, n + 1)}</div>
+      <div class="lugar l${puesto} ${metalDe(puesto)} ${delta ? 'subio' : ''}">
+        <div class="ficha ${conNombre ? '' : 'sin-nombre'} ${enRecien(puesto, 'nombre') ? 'cae' : ''}">
+          <div class="flota">${avatarDePuesto(conNombre ? p.nombre : '?', puesto)}</div>
           <div class="info">
-            <div class="nombre"><span class="rp-nombre">${esc(p.nombre)}</span></div>
+            <div class="nombre"><span class="rp-nombre">${conNombre ? esc(p.nombre) : '?'}</span></div>
           </div>
           <div class="sombra"></div>
         </div>
         <div class="cuerpo">
           <div class="base">
             <span class="rp-placa">${RAMA}<span class="rp-num">${n + 1}</span>${RAMA}</span>
-            <div class="metricas">
-              <div class="pts tnum">${etiqueta(delta)}${p.puntos} pts</div>
-              ${chipTiempo(p)}
+            <div class="metricas ${conPuntos ? (enRecien(puesto, 'puntos') ? 'revela' : '') : 'oculto'}">
+              <div class="pts tnum">${conPuntos ? `${etiqueta(delta)}${p.puntos} pts` : '? pts'}</div>
+              ${conPuntos ? chipTiempo(p) : ''}
             </div>
           </div>
         </div>
@@ -323,13 +344,14 @@
 
   /** Una fila de la cuadrícula: posición, nombre y puntos. */
   const celda = (p, puesto) => {
-    const delta = subio(p);
+    const visible = puestoVisible(puesto);
+    const delta = visible ? subio(p) : 0;
     const clasePuesto = puesto <= 10 ? 'top10' : (puesto <= 20 ? 'top20' : 'resto');
     return `
-      <div class="fila ${clasePuesto} ${delta ? 'subio' : ''}">
+      <div class="fila ${clasePuesto} ${delta ? 'subio' : ''} ${claseRevelado(puesto)}" style="${retrasoRevelado(puesto)}">
         <span class="pos tnum">${puesto}</span>
-        <span class="quien"><b>${esc(p.nombre)}</b></span>
-        <span class="rp-puntos tnum"><span class="rp-pts-linea">${etiqueta(delta)}<b>${p.puntos}</b><small>pts</small></span>${chipTiempo(p)}</span>
+        <span class="quien"><b>${visible ? esc(p.nombre) : '?'}</b></span>
+        <span class="rp-puntos tnum"><span class="rp-pts-linea">${visible ? `${etiqueta(delta)}<b>${p.puntos}</b><small>pts</small>` : '<b>?</b>'}</span>${visible ? chipTiempo(p) : ''}</span>
       </div>`;
   };
 
@@ -356,6 +378,7 @@
     if (filas.length > inicio) ajustarPodioAlAlto();
     const { cuantas, filas: filasUsadas } = distribucion();
     const visibles = filas.slice(inicio, inicio + cuantas);
+    ultimoPuestoVisible = inicio + visibles.length;
     const rejilla = $('rp-rejilla');
     rejilla.style.setProperty('--rp-filas', filasUsadas);
     rejilla.innerHTML = visibles.map((p, k) => celda(p, inicio + k + 1, inicio + k)).join('');
@@ -364,7 +387,72 @@
   // Montserrat llega después del primer pintado y agranda el podio: se vuelve a medir para que la última fila no quede cortada.
   if (document.fonts) document.fonts.addEventListener('loadingdone', alCambiarTamano);
 
+  /** Pasos: filas fuera del top 10, del 10 al 4, puntos del podio y luego los nombres del 3 al 1. */
+  function construirPasos(ultimo, total) {
+    const rango = (desde, hasta) => Array.from({ length: Math.max(0, hasta - desde + 1) }, (_, i) => desde + i);
+    const pasos = [
+      { tipo: 'filas', ranks: rango(11, ultimo) },
+      { tipo: 'filas', ranks: rango(4, Math.min(10, ultimo)) },
+      { tipo: 'puntos', ranks: rango(1, Math.min(3, total)) },
+      ...[3, 2, 1].filter(p => p <= total).map(p => ({ tipo: 'nombre', ranks: [p] })),
+    ];
+    return pasos.filter(paso => paso.ranks.length);
+  }
+
+  /** Toma el ranking del servidor (forzado) y lo congela; ningún refresco lo cambia hasta salir. */
+  function iniciarRevelacion() {
+    servidor('obtenerRanking', true).then(r => {
+      filas = r.filas;
+      revelacion = { pasos: [], hecho: 0, revelados: new Set(), podioPuntos: new Set(), podioNombres: new Set() };
+      recien = new Set();
+      pintar();
+      revelacion.pasos = construirPasos(Math.min(filas.length, ultimoPuestoVisible), filas.length);
+      actualizarControles();
+    }).catch(() => { $('rp-hora').textContent = 'Sin conexión: inténtalo otra vez'; });
+  }
+
+  function revelarSiguiente() {
+    const { pasos, hecho } = revelacion;
+    if (hecho >= pasos.length) return;
+    const paso = pasos[hecho];
+    revelacion.hecho++;
+    const destino = { filas: revelacion.revelados, puntos: revelacion.podioPuntos, nombre: revelacion.podioNombres }[paso.tipo];
+    paso.ranks.forEach(puesto => destino.add(puesto));
+    recien = new Set(paso.ranks);
+    recienTipo = paso.tipo;
+    clearTimeout(finRecien);
+    finRecien = setTimeout(() => { recien = new Set(); }, 2500);
+    pintar();
+    actualizarControles();
+  }
+
+  function salirRevelacion() {
+    revelacion = null;
+    recien = new Set();
+    cargar(true);
+    actualizarControles();
+  }
+
+  /** Estado de los botones de revelación. */
+  function actualizarControles() {
+    const boton = $('rp-revelar');
+    if (!revelacion) {
+      boton.textContent = 'Iniciar revelación';
+      boton.disabled = !filas || !filas.length;
+    } else if (revelacion.hecho < revelacion.pasos.length) {
+      boton.textContent = `Revelar siguiente (${revelacion.hecho}/${revelacion.pasos.length})`;
+      boton.disabled = false;
+    } else {
+      boton.textContent = 'Revelación completa';
+      boton.disabled = true;
+    }
+    $('rp-salir').hidden = !revelacion;
+  }
+
+  $('rp-revelar').addEventListener('click', () => (revelacion ? revelarSiguiente() : iniciarRevelacion()));
+  $('rp-salir').addEventListener('click', salirRevelacion);
   aplicarEstilos();
+  actualizarControles();
   $('rp-ajustes').addEventListener('click', abrirAjustes);
   App.registrar('ranking', { alMostrar: mostrar, alOcultar: ocultar, alRefrescar: () => cargar(true) });
 })();
