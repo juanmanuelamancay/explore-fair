@@ -1,7 +1,9 @@
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@700;800;900&display=swap');
   /* Vista RANKING, pensada para proyectar en una pantalla grande.
      Las reglas están limitadas a esta vista (o al panel de ajustes en #hoja).
-     Los tamaños salen de variables CSS que se mueven en vivo desde el panel de ajustes. */
+     Los tamaños salen de variables CSS que se mueven en vivo desde el panel de ajustes.
+     El tema escénico (colores, medallas y fondo) está al final del archivo. */
   .rank-cab { margin-bottom: 20px; }
   body.pantalla-grande #app { max-width: none; padding: 20px 32px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
   #vista-ranking {
@@ -132,27 +134,111 @@
   #hoja .rp-check { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-size: 15px; }
   #hoja .rp-check input { width: 20px; height: 20px; accent-color: var(--azul); }
   #hoja .rp-estado-ajustes { margin-top: 10px; font-size: 13px; color: var(--texto-2); min-height: 18px; }
-  #hoja:has(.rp-ajustes) { background: rgba(255, 255, 255, .72); border: 1px solid rgba(255, 255, 255, .7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
-  #hoja:has(.rp-ajustes input:focus), #hoja:has(.rp-ajustes input:active) {
-    background: rgba(255, 255, 255, .4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  /* Tema escénico (docs/UX_UI_solo_para_vista_ranking.md): fondo de escenario con luz azul, acentos cian neón y
+     medallas en metal. Es el único tema de la vista; los tokens de color de la pantalla se definen aquí. */
+  body.pantalla-grande {
+    --fondo: #040B26; --superficie: rgba(7, 33, 70, .6); --texto: #FFFFFF; --texto-2: #B8D8F8;
+    --borde: rgba(0, 229, 255, .3); --borde-suave: rgba(184, 216, 248, .16);
+    --azul: #00E5FF; --azul-suave: rgba(0, 229, 255, .12);
+    --verde: #2DCCCD; --verde-suave: rgba(45, 204, 205, .18); --rojo: #FF8A80;
+    background: radial-gradient(circle at 50% 30%, rgba(0, 85, 255, .5) 0%, rgba(0, 68, 129, .22) 35%, rgba(4, 11, 38, .98) 72%),
+      linear-gradient(125deg, #040B26 0%, #072146 50%, #040B26 100%);
+    background-attachment: fixed; color: var(--texto);
   }
-  body.hoja-abierta:has(#hoja .rp-ajustes) #velo { background: rgba(32, 33, 36, .08); }
-  body.hoja-abierta:has(#hoja .rp-ajustes input:focus) #velo,
-  body.hoja-abierta:has(#hoja .rp-ajustes input:active) #velo { background: rgba(32, 33, 36, .02); }
+  body.pantalla-grande #vista-ranking { font-family: Inter, system-ui, sans-serif; }
 
-  /* Modo oscuro de la pantalla: cambia los colores mientras la vista está abierta */
-  body.pantalla-grande.pantalla-oscura {
-    --fondo: #0f1419; --superficie: #1b232b; --texto: #e8eaed; --texto-2: #9aa0a6;
-    --borde: #3c4650; --borde-suave: #263238; --azul: #8ab4f8; --azul-suave: rgba(138, 180, 248, .16);
-    --verde: #81c995; --verde-suave: rgba(129, 201, 149, .18); --rojo: #f28b82;
-    background: #0f1419; color: #e8eaed;
+  /* Cabecera: kicker con barra cian y título en Montserrat */
+  body.pantalla-grande #vista-ranking [data-marca] {
+    display: inline-block; margin-bottom: 0; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em; color: var(--texto);
   }
-  body.pantalla-grande.pantalla-oscura #vista-ranking .oro { --m-fondo: #3a2e10; --m-texto: #fdd663; --m-corona: #fbbc04; }
-  body.pantalla-grande.pantalla-oscura #vista-ranking .plata { --m-fondo: #2a2f35; --m-texto: #e8eaed; --m-corona: #dadce0; --m-corona-borde: #9aa0a6; }
-  body.pantalla-grande.pantalla-oscura #vista-ranking .bronce { --m-fondo: #3a2316; --m-texto: #f0a875; --m-corona: #d98e5a; }
-  body.pantalla-grande.pantalla-oscura #hoja:has(.rp-ajustes) { background: rgba(15, 20, 25, .76); border-color: rgba(255, 255, 255, .12); }
-  body.pantalla-grande.pantalla-oscura #hoja:has(.rp-ajustes input:focus),
-  body.pantalla-grande.pantalla-oscura #hoja:has(.rp-ajustes input:active) { background: rgba(15, 20, 25, .42); }
+  body.pantalla-grande #vista-ranking [data-marca]::after {
+    content: ''; display: block; width: 48px; height: 4px; margin-top: 4px; background: #00E5FF; box-shadow: 0 0 10px #00E5FF;
+  }
+  body.pantalla-grande #vista-ranking .rank-titulo {
+    font-family: Montserrat, sans-serif; font-weight: 900; line-height: 1.05; text-transform: uppercase;
+    color: #00E5FF; text-shadow: 0 0 15px rgba(0, 229, 255, .4);
+  }
+  body.pantalla-grande #vista-ranking .rp-ajustes-btn,
+  body.pantalla-grande #vista-ranking .refrescar {
+    border: 1px solid rgba(0, 229, 255, .4); color: #00E5FF; background: rgba(7, 33, 70, .5);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Podio: halo azul detrás, base elíptica con anillo de luz, nombres en píldora y pedestales azul rey con franja cian */
+  body.pantalla-grande #vista-ranking .podio { position: relative; }
+  body.pantalla-grande #vista-ranking .podio::before {
+    content: ''; position: absolute; left: -10%; right: -10%; top: -20%; bottom: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 70%, rgba(0, 85, 255, .45) 0%, rgba(0, 85, 255, 0) 60%);
+  }
+  body.pantalla-grande #vista-ranking .podio::after {
+    content: ''; position: absolute; left: -2%; right: -2%; bottom: -20px; height: 40px; border-radius: 50%; pointer-events: none;
+    border: 1.5px solid rgba(0, 229, 255, .55); box-shadow: 0 0 22px rgba(0, 229, 255, .45), inset 0 0 18px rgba(0, 229, 255, .25);
+  }
+  body.pantalla-grande #vista-ranking .lugar.oro {
+    --m-fondo: linear-gradient(135deg, #FFF3B0 0%, #FFD700 50%, #B8860B 100%); --m-borde: #FFD700; --m-texto: #FFD700;
+    --m-corona: #FFE066; --m-glow: rgba(255, 215, 0, .5);
+  }
+  body.pantalla-grande #vista-ranking .lugar.plata {
+    --m-fondo: linear-gradient(135deg, #FFFFFF 0%, #C0C0C0 50%, #7F8C8D 100%); --m-borde: #C0C0C0; --m-texto: #E6EAEE;
+    --m-corona: #DADCE0; --m-corona-borde: #7F8C8D; --m-glow: rgba(192, 192, 192, .4);
+  }
+  body.pantalla-grande #vista-ranking .lugar.bronce {
+    --m-fondo: linear-gradient(135deg, #F5CBA7 0%, #CD7F32 50%, #873600 100%); --m-borde: #CD7F32; --m-texto: #F0B07A;
+    --m-corona: #E09A5E; --m-glow: rgba(205, 127, 50, .5);
+  }
+  body.pantalla-grande #vista-ranking .lugar .nombre {
+    display: inline-block; max-width: 100%; box-sizing: border-box; padding: 3px 16px; border-radius: 9999px;
+    border: 2.5px solid var(--m-borde); background: linear-gradient(180deg, #071936 0%, #03091A 100%);
+    font-family: Montserrat, sans-serif; font-size: calc(16px * var(--rp-escala)); font-weight: 700; letter-spacing: .02em;
+    text-transform: uppercase; color: #FFFFFF;
+  }
+  body.pantalla-grande #vista-ranking .lugar.l1 .nombre { font-size: calc(20px * var(--rp-escala)); }
+  body.pantalla-grande #vista-ranking .lugar .avatar { color: #040B26; box-shadow: 0 0 22px var(--m-glow); }
+  body.pantalla-grande #vista-ranking .lugar.l1 .avatar { box-shadow: 0 0 36px var(--m-glow); }
+  body.pantalla-grande #vista-ranking .lugar .base {
+    position: relative; overflow: hidden; color: var(--m-texto); font-family: Montserrat, sans-serif; font-weight: 900;
+    background: linear-gradient(180deg, #0B3A7E 0%, #004481 45%, #03112E 100%);
+    border: 1px solid rgba(0, 229, 255, .35); border-bottom: 0; border-radius: 12px 12px 0 0;
+    box-shadow: inset 0 16px 24px -16px rgba(0, 229, 255, .7); text-shadow: 0 0 16px var(--m-glow);
+  }
+  body.pantalla-grande #vista-ranking .lugar .base::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #00E5FF;
+    box-shadow: 0 0 12px #00E5FF, 0 0 26px rgba(0, 229, 255, .7);
+  }
+
+  /* Cuadrícula: filas de cristal con borde cian; el puesto en un círculo de neón y los puntos con brillo */
+  body.pantalla-grande #vista-ranking .rp-rejilla .fila {
+    background: linear-gradient(90deg, rgba(7, 33, 70, .75) 0%, rgba(4, 11, 38, .6) 100%);
+    border: 1px solid rgba(0, 229, 255, .22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  body.pantalla-grande #vista-ranking .rp-rejilla .fila .pos {
+    background: rgba(0, 229, 255, .08); border: 1.5px solid #00E5FF; color: #00E5FF;
+    box-shadow: 0 0 12px rgba(0, 229, 255, .22); font-family: Montserrat, sans-serif; font-weight: 700;
+  }
+  body.pantalla-grande #vista-ranking .rp-rejilla .fila .quien b { color: #FFFFFF; font-weight: 600; }
+  body.pantalla-grande #vista-ranking .rp-puntos b {
+    color: #00E5FF; font-family: Montserrat, sans-serif; font-weight: 800; text-shadow: 0 0 12px rgba(0, 229, 255, .45);
+  }
+  body.pantalla-grande #vista-ranking .rp-puntos small { color: var(--texto-2); font-weight: 500; }
+
+  /* Panel de ajustes con el mismo tema: vidrio azul sobre el escenario */
+  body.pantalla-grande #hoja { background: rgba(4, 11, 38, .94); border-top: 1px solid rgba(0, 229, 255, .3); }
+  body.pantalla-grande #hoja:has(.rp-ajustes) {
+    background: rgba(7, 33, 70, .78); border: 1px solid rgba(0, 229, 255, .3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  body.pantalla-grande #hoja:has(.rp-ajustes input:focus),
+  body.pantalla-grande #hoja:has(.rp-ajustes input:active) { background: rgba(7, 33, 70, .4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+  body.pantalla-grande #hoja .asa { background: rgba(184, 216, 248, .35); }
+  body.pantalla-grande #hoja .btn { background: #0055FF; color: #FFFFFF; }
+  body.pantalla-grande #hoja .btn:active { background: #0046D1; }
+  body.pantalla-grande #hoja .btn.texto { background: transparent; color: #00E5FF; }
+  body.hoja-abierta:has(#hoja .rp-ajustes) #velo { background: rgba(0, 0, 0, .12); }
+
+  /* Barra de navegación con el mismo fondo oscuro, cuando no está oculta */
+  body.pantalla-grande #nav { background: rgba(4, 11, 38, .92); border-top-color: rgba(0, 229, 255, .2); }
+  body.pantalla-grande #nav button.activa .pastilla { background: rgba(0, 229, 255, .16); color: #00E5FF; }
 
   /* Modo pantalla: sin barra de navegación, el ranking ocupa todo el alto */
   body.pantalla-grande.sin-menu #nav { display: none !important; }

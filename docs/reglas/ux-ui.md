@@ -284,7 +284,7 @@ Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho
 - **Menos de tres personas:** el podio muestra solo a quienes hay: con una, el 1.º; con dos, el 2.º y el 1.º. Sin nadie con puntaje, "Esperando los primeros puntajes".
 - **Cambios:** quien sumó puntos desde la última actualización destella en verde y muestra un "+N" que se desvanece.
 - **Actualización:** se trae del servidor al entrar y luego sola cada `segundos_refresco_board` (mínimo 10 segundos). Se pausa con la app en segundo plano y, al volver, se actualiza de inmediato. El botón de actualizar recalcula el ranking en ese momento.
-- **Ajustes:** hoja con deslizadores para personas por pantalla, columnas, alto de fila, espacio entre filas, tamaño de nombres, tamaño de puntos, y tamaño y ancho del podio; dos interruptores, "Ocultar menú de navegación" y "Modo oscuro"; y "Restablecer valores". Cada cambio se ve al momento y se guarda en `Config` (claves `rp_*`); las demás pantallas abiertas lo toman en su siguiente actualización.
+- **Ajustes:** hoja con deslizadores para personas por pantalla, columnas, alto de fila, espacio entre filas, tamaño de nombres, tamaño de puntos, y tamaño y ancho del podio; un interruptor, "Ocultar menú de navegación"; y "Restablecer valores". Cada cambio se ve al momento y se guarda en `Config` (claves `rp_*`); las demás pantallas abiertas lo toman en su siguiente actualización.
 - **Pantalla angosta:** por debajo de 900 px la cuadrícula pasa a una columna y el podio ocupa todo el ancho.
 
 ## Patrones compartidos

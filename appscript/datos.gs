@@ -46,7 +46,6 @@ const CONFIG_DEFECTO = {
   rp_escala: 100,        // % del top (podio)
   rp_ancho_top: 88,     // % del ancho de la pantalla que ocupa el top
   rp_ocultar_menu: false, // TRUE oculta la barra de navegación en la vista de ranking
-  rp_modo_oscuro: false,  // TRUE pinta la vista de ranking en oscuro
 };
 
 // Filas de Intentos que se reservan a cada persona: un intento por unidad (el quiz de entrada, 6 pabellones y 5 charlas son 12),

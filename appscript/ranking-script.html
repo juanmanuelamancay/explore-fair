@@ -4,11 +4,10 @@
   const RETRASO_DE_GUARDADO_MS = 700;   // espera a que terminen los movimientos del deslizador antes de escribir en Config
   // Preset de la pantalla. Se guarda en la hoja Config (claves rp_*); si no hay nada, se usan estos valores.
   // El top (escala y ancho) tiene sus propios ajustes: las columnas y las filas no lo afectan.
-  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 88, tiempo: 13, ocultarMenu: false, modoOscuro: false };
+  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 88, tiempo: 13, ocultarMenu: false };
   // Interruptores del panel (sí o no).
   const INTERRUPTORES = [
     { clave: 'ocultarMenu', etiqueta: 'Ocultar menú de navegación (queda solo el ranking)' },
-    { clave: 'modoOscuro', etiqueta: 'Modo oscuro' },
   ];
   const CONTROLES = [
     { clave: 'personas', etiqueta: 'Personas por pantalla (0 = lo que quepa)', min: 0, max: 300, paso: 1 },
@@ -43,9 +42,8 @@
     estilo.setProperty('--rp-escala', ajustes.escala / 100);
     estilo.setProperty('--rp-ancho-top', ajustes.anchoTop + '%');
     estilo.setProperty('--rp-tiempo', ajustes.tiempo + 'px');
-    // La barra de navegación y el modo oscuro solo se aplican mientras esta vista está abierta.
+    // La barra de navegación solo se oculta mientras esta vista está abierta.
     document.body.classList.toggle('sin-menu', enPantalla && !!ajustes.ocultarMenu);
-    document.body.classList.toggle('pantalla-oscura', enPantalla && !!ajustes.modoOscuro);
   }
 
   /** Un cambio del panel: se ve al momento y se guarda en Config poco después. */
@@ -130,7 +128,7 @@
     enPantalla = false;
     clearInterval(intervalo);
     window.removeEventListener('resize', alCambiarTamano);
-    document.body.classList.remove('pantalla-grande', 'sin-menu', 'pantalla-oscura');
+    document.body.classList.remove('pantalla-grande', 'sin-menu');
   }
 
   function programar() {

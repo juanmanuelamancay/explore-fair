@@ -59,7 +59,6 @@ function ajustesPantalla_(config) {
     fuente: config.rp_fuente, puntos: config.rp_puntos, escala: config.rp_escala, anchoTop: config.rp_ancho_top,
     tiempo: config.rp_tiempo,
     ocultarMenu: config.rp_ocultar_menu === true,
-    modoOscuro: config.rp_modo_oscuro === true,
   };
 }
 
@@ -73,7 +72,6 @@ function guardarAjustesPantalla(ajustes) {
   bloqueo.waitLock(SEGUNDOS_BLOQUEO);
   try {
     if (typeof entrada.ocultarMenu === 'boolean') configPonerRanking_('rp_ocultar_menu', entrada.ocultarMenu);
-    if (typeof entrada.modoOscuro === 'boolean') configPonerRanking_('rp_modo_oscuro', entrada.modoOscuro);
     Object.keys(campos).forEach(campo => {
       const clave = campos[campo];
       const valor = Number(entrada[campo]);

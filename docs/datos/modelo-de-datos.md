@@ -369,7 +369,6 @@ Claves que la app reconoce, con el valor que usa si la fila no existe o su valor
 | `rp_escala` | 100 | Pantalla de ranking: tamaño del podio en %. De 60 a 160 |
 | `rp_ancho_top` | 88 | Pantalla de ranking: ancho del podio en % de la pantalla. De 40 a 100 |
 | `rp_ocultar_menu` | FALSE | Pantalla de ranking: oculta la barra de navegación |
-| `rp_modo_oscuro` | FALSE | Pantalla de ranking: colores oscuros |
 
 Reglas de `Config`:
 
