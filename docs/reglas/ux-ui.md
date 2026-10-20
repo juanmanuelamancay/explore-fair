@@ -39,7 +39,7 @@ Diferencias principales de la app real: el usuario y el líder no tienen ranking
 | Texto secundario | `#5f6368` | `--texto-2` |
 | Bordes | `#dadce0` y `#e8eaed` | `--borde`, `--borde-suave` |
 
-Las variables están en `comun-style.html`. Una franja fija de 4 px con los cuatro colores de Google (`#4285f4`, `#ea4335`, `#fbbc04`, `#34a853`) corona todas las pantallas.
+Las variables están en `comun-style.html`. Una franja fija de 4 px con los cuatro colores de Google (`#4285f4`, `#ea4335`, `#fbbc04`, `#34a853`) corona todas las pantallas, salvo la de ranking, que usa el tema escénico de [UX_UI_solo_para_vista_ranking.md](../UX_UI_solo_para_vista_ranking.md).
 
 ### Color por pabellón
 
@@ -275,21 +275,21 @@ Sincronización y reinicio:
 
 ### Ranking
 
-Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho de la pantalla, con el contenido centrado hasta 1.400 px.
+Vista `RANKING`, solo del admin (una persona), para proyectar. Usa todo el ancho de la pantalla, con el contenido centrado hasta 1.680 px.
 
-- **Cabecera:** título "Ranking", la hora de la última actualización, el botón de ajustes y el de actualizar.
+- **Sin cabecera:** no lleva marca ni título visibles, para dejarle todo el alto al ranking. La hora de la última actualización, el botón de ajustes y el de actualizar flotan casi transparentes en la esquina superior derecha y se encienden al pasar el mouse.
 - **Podio** con los tres primeros, uno por premio, en oro, plata y bronce: el avatar con las iniciales toma el metal y lleva una corona encima, y la base del podio se pinta del mismo metal. De izquierda a derecha van el 2.º, el 1.º (el más alto) y el 3.º.
-- **Cuadrícula** del quinto en adelante: cada celda lleva puesto, nombre y puntos. Muestra las personas que caben en pantalla, o menos si los ajustes fijan una cantidad.
-- **Pie:** hasta qué puesto se está mostrando, de cuántos, y la regla de desempate.
+- **Cuadrícula** del cuarto en adelante: cada celda lleva puesto, nombre, el reloj con sus segundos totales debajo del nombre y los puntos. El podio también muestra los segundos de cada uno. Muestra las personas que caben en pantalla, o menos si los ajustes fijan una cantidad.
+- **Pie:** "Puestos 1 a N de T" y la regla de desempate.
 - **Menos de tres personas:** el podio muestra solo a quienes hay: con una, el 1.º; con dos, el 2.º y el 1.º. Sin nadie con puntaje, "Esperando los primeros puntajes".
 - **Cambios:** quien sumó puntos desde la última actualización destella en verde y muestra un "+N" que se desvanece.
 - **Actualización:** se trae del servidor al entrar y luego sola cada `segundos_refresco_board` (mínimo 10 segundos). Se pausa con la app en segundo plano y, al volver, se actualiza de inmediato. El botón de actualizar recalcula el ranking en ese momento.
-- **Ajustes:** hoja con deslizadores para personas por pantalla, columnas, alto de fila, espacio entre filas, tamaño de nombres, tamaño de puntos, y tamaño y ancho del podio; un interruptor, "Ocultar menú de navegación"; y "Restablecer valores". Cada cambio se ve al momento y se guarda en `Config` (claves `rp_*`); las demás pantallas abiertas lo toman en su siguiente actualización.
+- **Ajustes:** hoja con deslizadores para personas por pantalla, columnas, alto de fila, espacio entre filas, tamaño de nombres de la lista, tamaño de puntos, tamaño y ancho del podio, tamaño de nombres del podio y tamaño del tiempo; un interruptor, "Ocultar menú de navegación"; y "Restablecer valores". Cada cambio se ve al momento y se guarda en `Config` (claves `rp_*`); las demás pantallas abiertas lo toman en su siguiente actualización.
 - **Pantalla angosta:** por debajo de 900 px la cuadrícula pasa a una columna y el podio ocupa todo el ancho.
 
 ## Patrones compartidos
 
-- **Marca y rol:** la cabecera de cada vista del staff lleva "Explore Fair · Rol" (Líder, Admin, Validador), para saber con qué rol se entró. El usuario ve solo "Explore Fair".
+- **Marca y rol:** la cabecera de cada vista del staff (salvo Ranking, que no tiene cabecera) lleva "Explore Fair · Rol" (Líder, Admin, Validador), para saber con qué rol se entró. El usuario ve solo "Explore Fair".
 - **Hoja inferior:** sube desde abajo sobre un velo oscuro, con un asa y un botón de cerrar. Se cierra tocando el velo, con ese botón o con Escape.
 - **Hoja de confirmación:** toda acción que anula o borra algo se confirma en una hoja inferior con título en forma de pregunta, la consecuencia en una frase, el botón de acción y "Cancelar" como botón de solo texto.
 - **Confirmación reforzada:** si la acción afecta a todos y no se puede deshacer desde la app, además hay que escribir una palabra.

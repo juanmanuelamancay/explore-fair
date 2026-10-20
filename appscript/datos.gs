@@ -44,7 +44,9 @@ const CONFIG_DEFECTO = {
   rp_fuente: 16,         // px de los nombres
   rp_puntos: 22,         // px de los puntos
   rp_escala: 100,        // % del top (podio)
-  rp_ancho_top: 88,     // % del ancho de la pantalla que ocupa el top
+  rp_ancho_top: 88,      // % del ancho de la pantalla que ocupa el top
+  rp_nombre_top: 16,     // px de los nombres del top (el 1.º, un 25 % más)
+  rp_tiempo: 13,         // px del tiempo de desempate
   rp_ocultar_menu: false, // TRUE oculta la barra de navegación en la vista de ranking
 };
 

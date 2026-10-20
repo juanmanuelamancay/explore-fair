@@ -4,26 +4,40 @@
      Las reglas están limitadas a esta vista (o al panel de ajustes en #hoja).
      Los tamaños salen de variables CSS que se mueven en vivo desde el panel de ajustes.
      El tema escénico (colores, medallas y fondo) está al final del archivo. */
-  .rank-cab { margin-bottom: 20px; }
-  body.pantalla-grande #app { max-width: none; padding: 20px 32px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
+  /* La vista ocupa justo el alto de la pantalla (ni sobra ni falta): arriba 12 px de margen, abajo la barra de
+     navegación y 16 px. No lleva cabecera (marca, título): en la pantalla gigante ese alto es para el ranking. */
+  body.pantalla-grande #app { max-width: none; padding: 12px 32px calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); }
   #vista-ranking {
-    --rp-cols: 6; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%; --rp-tiempo: 13px;
-    min-height: calc(100vh - var(--nav-h) - 110px); display: flex; flex-direction: column;
+    --rp-cols: 6; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%; --rp-tiempo: 13px; --rp-nombre-top: 16px; --rp-celda-min: 280px;
+    height: calc(100dvh - 28px - var(--nav-h) - env(safe-area-inset-bottom)); display: flex; flex-direction: column; position: relative;
+    overflow-x: clip;   /* el halo del podio sale por los lados: no debe abrir una barra horizontal */
   }
-  #vista-ranking .rank-titulo { font-size: 32px; }
-  #vista-ranking .rp-hora { font-variant-numeric: tabular-nums; align-self: flex-end; padding-bottom: 6px; }
+  body.pantalla-grande.sin-menu #vista-ranking { height: calc(100dvh - 24px); }
+  /* El título queda solo para lectores de pantalla */
+  #vista-ranking .rp-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* Controles flotantes en la esquina superior derecha (hora, ajustes, actualizar): no ocupan alto y casi no se
+     ven en la proyección; se encienden al pasar el mouse o al llegar con el teclado */
+  #vista-ranking .rp-controles {
+    position: absolute; top: 0; right: 0; z-index: 5; display: flex; align-items: center; gap: 8px;
+    opacity: .18; transition: opacity .2s;
+  }
+  #vista-ranking .rp-controles:hover, #vista-ranking .rp-controles:focus-within { opacity: 1; }
+  #vista-ranking .rp-hora { margin: 0; font-size: 12px; color: var(--texto-2); font-variant-numeric: tabular-nums; }
   #vista-ranking .rp-ajustes-btn {
     width: 44px; height: 44px; border-radius: 50%; flex: none; align-self: center;
     display: grid; place-items: center; border: 1px solid var(--borde); color: var(--texto-2);
   }
   #vista-ranking .rp-ajustes-btn:active { background: var(--superficie); }
   /* El contenido va centrado con un ancho máximo: en una pantalla grande no se estira de borde a borde */
-  #vista-ranking #rp-contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 1400px; margin: 0 auto; }
+  #vista-ranking #rp-contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 1680px; margin: 0 auto; }
 
-  /* Podio: su ancho y su escala (--rp-ancho-top, --rp-escala) son propios; no dependen de las columnas ni de las filas */
+  /* Podio: su ancho y su escala (--rp-ancho-top, --rp-escala) son propios; no dependen de las columnas ni de las filas.
+     Cada pedestal mide como mucho 340 px × escala de ancho: así ancho y alto crecen juntos y el podio no se
+     vuelve una losa plana en pantallas anchas. Si falta alto, el script baja la escala (ver ajustarPodioAlAlto). */
   #vista-ranking .podio {
-    --rp-podio: 3; width: calc(var(--rp-ancho-top) * var(--rp-podio) / 3); margin: 0 auto 20px; padding-top: 16px;
-    display: grid; grid-template-columns: repeat(var(--rp-podio), 1fr); gap: 8px; align-items: end;
+    --rp-podio: 3; width: min(calc(var(--rp-ancho-top) * var(--rp-podio) / 3), calc(var(--rp-podio) * 300px * var(--rp-escala-base, 1)));
+    margin: 0 auto 24px; padding-top: calc(24px * var(--rp-escala));
+    display: grid; grid-template-columns: repeat(var(--rp-podio), 1fr); gap: calc(12px * var(--rp-escala)); align-items: end;
   }
   #vista-ranking .lugar { text-align: center; min-width: 0; position: relative; }
   #vista-ranking .lugar .avatar {
@@ -35,27 +49,27 @@
     font-size: calc(40px * var(--rp-escala)); animation: rp-brillo-oro 2.8s ease-in-out infinite;
   }
   #vista-ranking .lugar.l1 .avatar::before, #vista-ranking .lugar.l1 .avatar::after {
-    content: ''; position: absolute; z-index: 3; width: calc(19px * var(--rp-escala)); height: calc(19px * var(--rp-escala)); background: #fbbc04;
+    content: ''; position: absolute; z-index: 3; width: calc(19px * var(--rp-escala)); height: calc(19px * var(--rp-escala)); background: #FFE066;
     clip-path: polygon(50% 0, 62% 37%, 100% 50%, 62% 63%, 50% 100%, 38% 63%, 0 50%, 38% 37%);
-    filter: drop-shadow(0 0 5px rgba(249, 171, 0, .8)); animation: rp-estrella-oro 1.8s ease-in-out infinite;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, .8)); animation: rp-estrella-oro 1.8s ease-in-out infinite;
   }
   #vista-ranking .lugar.l1 .avatar::before { top: 13%; right: -12%; }
   #vista-ranking .lugar.l1 .avatar::after {
-    left: -11%; bottom: 14%; width: calc(15px * var(--rp-escala)); height: calc(15px * var(--rp-escala)); background: #e37400;
-    filter: drop-shadow(0 0 5px rgba(227, 116, 0, .75)); animation-delay: .9s;
+    left: -11%; bottom: 14%; width: calc(15px * var(--rp-escala)); height: calc(15px * var(--rp-escala)); background: #FFD700;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, .75)); animation-delay: .9s;
   }
   #vista-ranking .lugar .corona { width: calc(28px * var(--rp-escala)); height: calc(21px * var(--rp-escala)); top: calc(-20px * var(--rp-escala)); }
   #vista-ranking .lugar.l1 .corona { width: calc(40px * var(--rp-escala)); height: calc(30px * var(--rp-escala)); top: calc(-28px * var(--rp-escala)); }
-  #vista-ranking .lugar .nombre { font-size: calc(22px * var(--rp-escala)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #vista-ranking .lugar.l1 .nombre { font-size: calc(26px * var(--rp-escala)); }
+  #vista-ranking .lugar .nombre { font-size: var(--rp-nombre-top); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #vista-ranking .lugar.l1 .nombre { font-size: calc(var(--rp-nombre-top) * 1.25); }
   #vista-ranking .lugar .pts { font-size: calc(19px * var(--rp-escala)); color: var(--texto-2); margin-top: calc(2px * var(--rp-escala)); }
   #vista-ranking .lugar .base {
     margin-top: calc(10px * var(--rp-escala)); border-radius: 12px 12px 0 0; background: var(--m-fondo, var(--superficie));
     font-size: calc(36px * var(--rp-escala)); font-weight: 700; display: grid; place-items: center; color: var(--m-texto, var(--texto-2));
   }
 
-  /* Chip de desempate: segundos por pregunta en promedio. Solo se pinta cuando hay un vecino con el mismo puntaje,
-     para no ensuciar la pantalla cuando el puntaje ya alcanza para explicar el orden. Cada contexto (podio o
+  /* Chip de tiempo: segundos totales en sus quizzes (el criterio de desempate). Lo lleva todo el mundo, también
+     el top, para que cada puesto tenga la misma estructura: nombre, puntos y tiempo. Cada contexto (podio o
      cuadrícula) escala con su propia variable, igual que el resto de sus textos. */
   #vista-ranking .rp-desempate {
     display: inline-flex; align-items: center; gap: 3px;
@@ -64,8 +78,9 @@
   }
   #vista-ranking .rp-desempate svg { flex: none; width: 12px; height: 12px; }
   #vista-ranking .rp-desempate { font-size: var(--rp-tiempo); }
-  #vista-ranking .lugar .rp-desempate { margin-top: calc(3px * var(--rp-escala)); }
-  #vista-ranking .rp-rejilla .fila .rp-desempate { flex: none; }
+  #vista-ranking .lugar .rp-desempate { margin-top: calc(6px * var(--rp-escala)); }
+  /* En la cuadrícula el chip va debajo del nombre: en la misma línea dejaba nombres como "G…" con 6 columnas */
+  #vista-ranking .rp-rejilla .fila .quien .rp-desempate { margin-top: 3px; }
 
   #vista-ranking .lugar.l1 .base { height: calc(150px * var(--rp-escala)); font-size: calc(52px * var(--rp-escala)); }
   #vista-ranking .lugar.l2 .base { height: calc(110px * var(--rp-escala)); }
@@ -73,7 +88,7 @@
   #vista-ranking .lugar .delta { top: calc(-26px * var(--rp-escala)); left: 50%; margin-left: -20px; }
   @keyframes rp-brillo-oro {
     0%, 100% { filter: drop-shadow(0 0 0 rgba(249, 171, 0, 0)); }
-    50% { filter: drop-shadow(0 0 16px rgba(249, 171, 0, .55)); }
+    50% { filter: drop-shadow(0 0 16px rgba(255, 215, 0, .55)); }
   }
   @keyframes rp-estrella-oro {
     0%, 100% { opacity: .45; transform: scale(.65) rotate(0); }
@@ -84,12 +99,12 @@
   #vista-ranking .rp-cuerpo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
   #vista-ranking .rp-rejilla {
     flex: 1 1 0; min-height: 0; overflow: hidden;
-    display: grid; grid-template-columns: repeat(var(--rp-cols), minmax(0, 1fr));
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(max(var(--rp-celda-min), calc((100% - (var(--rp-cols) - 1) * var(--rp-espacio)) / var(--rp-cols))), 1fr));
     grid-auto-rows: var(--rp-alto); gap: var(--rp-espacio); align-content: start;
   }
   /* Cada tarjeta separa sus datos: posición en círculo, nombre, y puntos a la derecha */
   #vista-ranking .rp-rejilla .fila {
-    position: relative; display: flex; align-items: center; gap: 12px; padding: 0 14px 0 10px;
+    position: relative; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 10px;
     height: var(--rp-alto); min-height: var(--rp-alto); font-size: var(--rp-fuente);
     border: 1px solid var(--borde); border-radius: 16px; background: var(--fondo);
   }
@@ -100,16 +115,22 @@
   }
   #vista-ranking .rp-rejilla .fila .quien { flex: 1; min-width: 0; }
   #vista-ranking .rp-rejilla .fila .quien b { display: block; font-size: var(--rp-fuente); font-weight: 500; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #vista-ranking .rp-puntos { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
+  /* "460 pts" en una línea, igual que en el podio: con la etiqueta debajo, la fila parecía cortada */
+  #vista-ranking .rp-puntos { flex: none; display: flex; align-items: baseline; gap: 4px; line-height: 1; }
   #vista-ranking .rp-puntos b { font-size: var(--rp-puntos); font-weight: 500; color: var(--azul); }
-  #vista-ranking .rp-puntos small { margin-top: 3px; font-size: calc(var(--rp-puntos) * .5); color: var(--texto-2); text-transform: uppercase; letter-spacing: .04em; }
+  #vista-ranking .rp-puntos small { font-size: calc(var(--rp-puntos) * .55); color: var(--texto-2); }
 
   /* Cambios desde el último refresco: la fila destella y aparece un "+N" que se desvanece.
      Solo se anima quien subió; en cada refresco sin cambios no pasa nada. */
   #vista-ranking .fila.subio { animation: rp-destello-p 1.6s ease both; }
   @keyframes rp-destello-p { 0% { background-color: var(--verde-suave); box-shadow: inset 4px 0 0 var(--verde); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
-  /* El "+N" va en absoluto: no ocupa lugar y no deja hueco cuando se desvanece */
-  #vista-ranking .rp-rejilla .fila .delta { position: absolute; right: calc(var(--rp-puntos) * 3); top: 50%; margin-top: -11px; }
+  /* El "+N" va pegado a la izquierda de los puntos, centrado en su línea, sea cual sea el largo de la cifra.
+     Es absoluto (no ocupa lugar ni deja hueco al desvanecerse) y opaco, para leerse limpio si pisa el final del nombre. */
+  #vista-ranking .rp-puntos { position: relative; }
+  #vista-ranking .rp-rejilla .fila .delta {
+    position: absolute; right: calc(100% + 10px); top: 0; bottom: 0; margin: auto 0; height: fit-content;
+    background: #0B3A4C; border: 1px solid rgba(45, 204, 205, .55); line-height: 1.2;
+  }
   #vista-ranking .delta {
     white-space: nowrap; pointer-events: none; padding: 2px 8px; border-radius: 10px;
     background: var(--verde-suave); color: var(--verde); font-size: 13px; font-style: normal; font-weight: 500;
@@ -122,7 +143,7 @@
     100% { opacity: 0; transform: translateY(-6px); }
   }
 
-  #vista-ranking .rp-pie { margin-top: 10px; text-align: center; color: var(--texto-2); font-size: 14px; }
+  #vista-ranking .rp-pie { margin-top: 12px; text-align: center; color: var(--texto-2); font-size: 14px; }
 
   /* Panel de ajustes (vive en #hoja, fuera de la vista) */
   #hoja .rp-ajustes .rp-campo { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
@@ -147,81 +168,169 @@
   }
   body.pantalla-grande #vista-ranking { font-family: Inter, system-ui, sans-serif; }
 
-  /* Cabecera: kicker con barra cian y título en Montserrat */
-  body.pantalla-grande #vista-ranking [data-marca] {
-    display: inline-block; margin-bottom: 0; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .08em; color: var(--texto);
-  }
-  body.pantalla-grande #vista-ranking [data-marca]::after {
-    content: ''; display: block; width: 48px; height: 4px; margin-top: 4px; background: #00E5FF; box-shadow: 0 0 10px #00E5FF;
-  }
-  body.pantalla-grande #vista-ranking .rank-titulo {
-    font-family: Montserrat, sans-serif; font-weight: 900; line-height: 1.05; text-transform: uppercase;
-    color: #00E5FF; text-shadow: 0 0 15px rgba(0, 229, 255, .4);
-  }
   body.pantalla-grande #vista-ranking .rp-ajustes-btn,
   body.pantalla-grande #vista-ranking .refrescar {
     border: 1px solid rgba(0, 229, 255, .4); color: #00E5FF; background: rgba(7, 33, 70, .5);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   }
 
-  /* Podio: halo azul detrás, base elíptica con anillo de luz, nombres en píldora y pedestales azul rey con franja cian */
-  body.pantalla-grande #vista-ranking .podio { position: relative; }
+  /* Podio: halo azul detrás, nombres en píldora y pedestales azul rey con franja cian. Sin base elíptica debajo:
+     los pedestales se apoyan directo sobre el escenario. */
+  /* El halo va detrás de los pedestales (isolation + z-index -1): si se pinta encima, parecen de vidrio */
+  body.pantalla-grande #vista-ranking .podio { position: relative; isolation: isolate; }
   body.pantalla-grande #vista-ranking .podio::before {
-    content: ''; position: absolute; left: -10%; right: -10%; top: -20%; bottom: 0; pointer-events: none;
+    content: ''; position: absolute; left: -10%; right: -10%; top: -20%; bottom: 0; pointer-events: none; z-index: -1;
     background: radial-gradient(ellipse at 50% 70%, rgba(0, 85, 255, .45) 0%, rgba(0, 85, 255, 0) 60%);
   }
-  body.pantalla-grande #vista-ranking .podio::after {
-    content: ''; position: absolute; left: -2%; right: -2%; bottom: -20px; height: 40px; border-radius: 50%; pointer-events: none;
-    border: 1.5px solid rgba(0, 229, 255, .55); box-shadow: 0 0 22px rgba(0, 229, 255, .45), inset 0 0 18px rgba(0, 229, 255, .25);
-  }
   body.pantalla-grande #vista-ranking .lugar.oro {
-    --m-fondo: linear-gradient(135deg, #FFF3B0 0%, #FFD700 50%, #B8860B 100%); --m-borde: #FFD700; --m-texto: #FFD700;
+    --m-fondo: linear-gradient(135deg, #FFFDE8 0%, #FFE680 28%, #FFD84D 55%, #FFF3B0 72%, #C98A00 100%); --m-borde: #FFD700; --m-texto: #FFD700;
     --m-corona: #FFE066; --m-glow: rgba(255, 215, 0, .5);
+    --m-num: linear-gradient(180deg, #FFFDE8 0%, #FFE680 18%, #FFC400 38%, #A86E00 52%, #FFD84D 64%, #FFF3B0 78%, #C98A00 100%);
+    --m-brillo: linear-gradient(100deg, #FFFDE8 0%, #FFE680 18%, #FFC400 38%, #A86E00 52%, #FFD84D 64%, #FFF3B0 78%, #C98A00 100%); --m-svg: url(#rp-metal-oro);
+    --m-aro: linear-gradient(90deg, #7A4E00 0%, #A86E00 5%, #FFC400 12%, #FFFDE8 22%, #FFE680 30%, #A86E00 40%, #FFF3B0 50%, #A86E00 60%, #FFE680 70%, #FFFDE8 78%, #FFC400 88%, #A86E00 95%, #7A4E00 100%); --m-canto: #8A5A00;
   }
   body.pantalla-grande #vista-ranking .lugar.plata {
-    --m-fondo: linear-gradient(135deg, #FFFFFF 0%, #C0C0C0 50%, #7F8C8D 100%); --m-borde: #C0C0C0; --m-texto: #E6EAEE;
+    --m-fondo: linear-gradient(135deg, #FFFFFF 0%, #F1F4F7 28%, #D9E0E6 55%, #FFFFFF 72%, #8E99A3 100%); --m-borde: #C0C0C0; --m-texto: #E6EAEE;
     --m-corona: #DADCE0; --m-corona-borde: #7F8C8D; --m-glow: rgba(192, 192, 192, .4);
+    --m-num: linear-gradient(180deg, #FFFFFF 0%, #F1F4F7 18%, #C9D1D8 38%, #6F7A84 52%, #D9E0E6 64%, #FFFFFF 78%, #8E99A3 100%);
+    --m-brillo: linear-gradient(100deg, #FFFFFF 0%, #F1F4F7 18%, #C9D1D8 38%, #6F7A84 52%, #D9E0E6 64%, #FFFFFF 78%, #8E99A3 100%); --m-svg: url(#rp-metal-plata);
+    --m-aro: linear-gradient(90deg, #55606A 0%, #6F7A84 5%, #C9D1D8 12%, #FFFFFF 22%, #F1F4F7 30%, #6F7A84 40%, #FFFFFF 50%, #6F7A84 60%, #F1F4F7 70%, #FFFFFF 78%, #C9D1D8 88%, #6F7A84 95%, #55606A 100%); --m-canto: #4F5861;
   }
   body.pantalla-grande #vista-ranking .lugar.bronce {
-    --m-fondo: linear-gradient(135deg, #F5CBA7 0%, #CD7F32 50%, #873600 100%); --m-borde: #CD7F32; --m-texto: #F0B07A;
+    --m-fondo: linear-gradient(135deg, #FFE9D6 0%, #F6B87E 28%, #E9A267 55%, #FFD9B5 72%, #9A5220 100%); --m-borde: #CD7F32; --m-texto: #F0B07A;
     --m-corona: #E09A5E; --m-glow: rgba(205, 127, 50, .5);
+    --m-num: linear-gradient(180deg, #FFE9D6 0%, #F6B87E 18%, #D9853F 38%, #7E3C10 52%, #E9A267 64%, #FFD9B5 78%, #9A5220 100%);
+    --m-brillo: linear-gradient(100deg, #FFE9D6 0%, #F6B87E 18%, #D9853F 38%, #7E3C10 52%, #E9A267 64%, #FFD9B5 78%, #9A5220 100%); --m-svg: url(#rp-metal-bronce);
+    --m-aro: linear-gradient(90deg, #5E2C0B 0%, #7E3C10 5%, #D9853F 12%, #FFE9D6 22%, #F6B87E 30%, #7E3C10 40%, #FFD9B5 50%, #7E3C10 60%, #F6B87E 70%, #FFE9D6 78%, #D9853F 88%, #7E3C10 95%, #5E2C0B 100%); --m-canto: #5E2C0B;
   }
   body.pantalla-grande #vista-ranking .lugar .nombre {
     display: inline-block; max-width: 100%; box-sizing: border-box; padding: 3px 16px; border-radius: 9999px;
-    border: 2.5px solid var(--m-borde); background: linear-gradient(180deg, #071936 0%, #03091A 100%);
-    font-family: Montserrat, sans-serif; font-size: calc(16px * var(--rp-escala)); font-weight: 700; letter-spacing: .02em;
+    border: 2.5px solid transparent;
+    background: linear-gradient(180deg, #071936 0%, #03091A 100%) padding-box, var(--m-brillo, var(--m-borde)) border-box;
+    font-family: Montserrat, sans-serif; font-size: var(--rp-nombre-top); font-weight: 700; letter-spacing: .02em;
     text-transform: uppercase; color: #FFFFFF;
   }
-  body.pantalla-grande #vista-ranking .lugar.l1 .nombre { font-size: calc(20px * var(--rp-escala)); }
+  /* Los nombres del top tienen su propio ajuste (--rp-nombre-top): no se achican con el podio; el 1.º va un 25 % más grande */
+  body.pantalla-grande #vista-ranking .lugar.l1 .nombre { font-size: calc(var(--rp-nombre-top) * 1.25); }
   body.pantalla-grande #vista-ranking .lugar .avatar { color: #040B26; box-shadow: 0 0 22px var(--m-glow); }
   body.pantalla-grande #vista-ranking .lugar.l1 .avatar { box-shadow: 0 0 36px var(--m-glow); }
+  /* Pedestal sólido (diseño de referencia): un prisma azul rey opaco, no vidrio. Las capas del fondo, de arriba
+     abajo: la cara superior iluminada, las aristas donde la cara frontal se une con las laterales, las caras
+     laterales en sombra, el foco de luz en la cara frontal y el cuerpo. Arriba lleva un canto de metal (::before)
+     y abajo la tira LED cian (::after). */
   body.pantalla-grande #vista-ranking .lugar .base {
     position: relative; overflow: hidden; color: var(--m-texto); font-family: Montserrat, sans-serif; font-weight: 900;
-    background: linear-gradient(180deg, #0B3A7E 0%, #004481 45%, #03112E 100%);
-    border: 1px solid rgba(0, 229, 255, .35); border-bottom: 0; border-radius: 12px 12px 0 0;
-    box-shadow: inset 0 16px 24px -16px rgba(0, 229, 255, .7); text-shadow: 0 0 16px var(--m-glow);
+    padding-top: calc(22px * var(--rp-escala)); border: 0; border-radius: 4px 4px 0 0;
+    background:
+      linear-gradient(180deg, transparent calc(16px * var(--rp-escala)), rgba(170, 210, 255, .22) calc(16px * var(--rp-escala)), rgba(170, 210, 255, 0) 30%),
+      linear-gradient(90deg, transparent calc(11% - 1px), rgba(170, 215, 255, .5) 11%, transparent calc(11% + 1px),
+        transparent calc(89% - 1px), rgba(170, 215, 255, .5) 89%, transparent calc(89% + 1px)),
+      linear-gradient(90deg, rgba(10, 30, 90, .35) 0, rgba(90, 150, 245, .22) 10.9%, transparent 11%,
+        transparent 89%, rgba(90, 150, 245, .22) 89.1%, rgba(10, 30, 90, .35) 100%),
+      radial-gradient(ellipse 42% 62% at 50% 62%, rgba(0, 10, 50, .5) 0%, rgba(0, 10, 50, 0) 75%),
+      linear-gradient(180deg, #1A55D6 0%, #0F3FB0 50%, #0A2E85 100%);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .45), 0 0 34px -8px var(--m-glow);
   }
+  /* Tapa del pedestal, toda de metal: degradado vertical del metal (claro arriba, profundo abajo), un reflejo
+     blanco al centro y los extremos algo más oscuros, como una pieza maciza vista de frente */
+  body.pantalla-grande #vista-ranking .lugar .base::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; height: calc(var(--rp-tapa) + var(--rp-curva));
+    /* El borde de abajo sigue la misma curva que el de arriba: la tapa tiene grosor parejo */
+    clip-path: polygon(0% calc(var(--rp-curva) * 1), 5% calc(var(--rp-curva) * 0.81), 10% calc(var(--rp-curva) * 0.64), 15% calc(var(--rp-curva) * 0.49), 20% calc(var(--rp-curva) * 0.36), 25% calc(var(--rp-curva) * 0.25), 30% calc(var(--rp-curva) * 0.16), 35% calc(var(--rp-curva) * 0.09), 40% calc(var(--rp-curva) * 0.04), 45% calc(var(--rp-curva) * 0.01), 50% calc(var(--rp-curva) * 0), 55% calc(var(--rp-curva) * 0.01), 60% calc(var(--rp-curva) * 0.04), 65% calc(var(--rp-curva) * 0.09), 70% calc(var(--rp-curva) * 0.16), 75% calc(var(--rp-curva) * 0.25), 80% calc(var(--rp-curva) * 0.36), 85% calc(var(--rp-curva) * 0.49), 90% calc(var(--rp-curva) * 0.64), 95% calc(var(--rp-curva) * 0.81), 100% calc(var(--rp-curva) * 1), 100% calc(var(--rp-tapa) + var(--rp-curva) * 1), 95% calc(var(--rp-tapa) + var(--rp-curva) * 0.81), 90% calc(var(--rp-tapa) + var(--rp-curva) * 0.64), 85% calc(var(--rp-tapa) + var(--rp-curva) * 0.49), 80% calc(var(--rp-tapa) + var(--rp-curva) * 0.36), 75% calc(var(--rp-tapa) + var(--rp-curva) * 0.25), 70% calc(var(--rp-tapa) + var(--rp-curva) * 0.16), 65% calc(var(--rp-tapa) + var(--rp-curva) * 0.09), 60% calc(var(--rp-tapa) + var(--rp-curva) * 0.04), 55% calc(var(--rp-tapa) + var(--rp-curva) * 0.01), 50% calc(var(--rp-tapa) + var(--rp-curva) * 0), 45% calc(var(--rp-tapa) + var(--rp-curva) * 0.01), 40% calc(var(--rp-tapa) + var(--rp-curva) * 0.04), 35% calc(var(--rp-tapa) + var(--rp-curva) * 0.09), 30% calc(var(--rp-tapa) + var(--rp-curva) * 0.16), 25% calc(var(--rp-tapa) + var(--rp-curva) * 0.25), 20% calc(var(--rp-tapa) + var(--rp-curva) * 0.36), 15% calc(var(--rp-tapa) + var(--rp-curva) * 0.49), 10% calc(var(--rp-tapa) + var(--rp-curva) * 0.64), 5% calc(var(--rp-tapa) + var(--rp-curva) * 0.81), 0% calc(var(--rp-tapa) + var(--rp-curva) * 1));
+    background:
+      var(--m-aro, var(--m-num));
+    box-shadow: inset 0 -2px 0 var(--m-canto), 0 3px 8px rgba(0, 0, 0, .5), 0 0 18px var(--m-glow);
+  }
+  /* Los pedestales van pegados, como un solo podio; el 1.º queda delante de los otros dos */
+  body.pantalla-grande #vista-ranking .podio { gap: 0; }
+  body.pantalla-grande #vista-ranking .lugar.l1 { z-index: 1; }
+
+  /* Borde superior en arco, de lado a lado (diseño de referencia): el centro es el punto más alto y la curva cae
+     de forma continua hasta los dos extremos, sin tramos rectos. Caída = curva × (2x − 1)², muestreada cada 5 %
+     en el polígono. El recorte también corta la sombra del bloque, por eso la sombra va como filtro en el puesto. */
+  body.pantalla-grande #vista-ranking .lugar .base {
+    --rp-tapa: calc(16px * var(--rp-escala)); --rp-curva: calc(14px * var(--rp-escala));
+    clip-path: polygon(0% calc(var(--rp-curva) * 1), 5% calc(var(--rp-curva) * 0.81), 10% calc(var(--rp-curva) * 0.64), 15% calc(var(--rp-curva) * 0.49), 20% calc(var(--rp-curva) * 0.36), 25% calc(var(--rp-curva) * 0.25), 30% calc(var(--rp-curva) * 0.16), 35% calc(var(--rp-curva) * 0.09), 40% calc(var(--rp-curva) * 0.04), 45% calc(var(--rp-curva) * 0.01), 50% calc(var(--rp-curva) * 0), 55% calc(var(--rp-curva) * 0.01), 60% calc(var(--rp-curva) * 0.04), 65% calc(var(--rp-curva) * 0.09), 70% calc(var(--rp-curva) * 0.16), 75% calc(var(--rp-curva) * 0.25), 80% calc(var(--rp-curva) * 0.36), 85% calc(var(--rp-curva) * 0.49), 90% calc(var(--rp-curva) * 0.64), 95% calc(var(--rp-curva) * 0.81), 100% calc(var(--rp-curva) * 1), 100% 100%, 0 100%);
+    border-radius: 0;
+  }
+  body.pantalla-grande #vista-ranking .lugar { filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .45)); }
+  body.pantalla-grande #vista-ranking .lugar.l1 { filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .45)) drop-shadow(0 0 18px rgba(0, 0, 0, .55)); }
+  /* Placa del pedestal: número grande de metal entre dos ramas de laurel, centrado (diseño de referencia).
+     El número lleva un degradado vertical del metal recortado al texto y un canto oscuro debajo que le da volumen;
+     las ramas van del mismo metal, con el mismo canto. Todo escala con --rp-escala. */
+  body.pantalla-grande #vista-ranking .lugar.l1 { --rp-num: calc(88px * var(--rp-escala)); }
+  body.pantalla-grande #vista-ranking .lugar.l2 { --rp-num: calc(62px * var(--rp-escala)); }
+  body.pantalla-grande #vista-ranking .lugar.l3 { --rp-num: calc(50px * var(--rp-escala)); }
+  body.pantalla-grande #vista-ranking .lugar .rp-placa {
+    display: flex; align-items: center; justify-content: center; gap: calc(var(--rp-num) * .08);
+  }
+  body.pantalla-grande #vista-ranking .lugar .rp-num {
+    font-size: var(--rp-num); line-height: 1; font-weight: 900; text-shadow: none;
+    background: linear-gradient(110deg, rgba(255, 255, 255, 0) 42%, rgba(255, 255, 255, .95) 50%, rgba(255, 255, 255, 0) 58%) 150% 0 / 250% 100% no-repeat,
+      var(--m-num);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 calc(var(--rp-num) * .05) 0 var(--m-canto)) drop-shadow(0 0 calc(var(--rp-num) * .18) var(--m-glow));
+    animation: rp-destello-metal 4.5s ease-in-out infinite;
+  }
+  body.pantalla-grande #vista-ranking .lugar.l2 .rp-num { animation-delay: 1.5s; }
+  body.pantalla-grande #vista-ranking .lugar.l3 .rp-num { animation-delay: 3s; }
+  /* Un destello blanco cruza el número de izquierda a derecha y luego descansa */
+  @keyframes rp-destello-metal {
+    0%, 55% { background-position: 150% 0, 0 0; }
+    85%, 100% { background-position: -60% 0, 0 0; }
+  }
+  /* Ramas de laurel en metal pulido: cada hoja toma el degradado del metal (definido en ranking-view.html),
+     claro en los filos y oscuro en el nervio, como una pieza enchapada */
+  body.pantalla-grande #vista-ranking .lugar .rp-rama path { fill: var(--m-svg, currentColor); }
+  body.pantalla-grande #vista-ranking .lugar .rp-rama .rp-tallo { fill: none; stroke: var(--m-svg, currentColor); }
+  body.pantalla-grande #vista-ranking .lugar .rp-rama {
+    flex: none; height: calc(var(--rp-num) * 1.2); width: calc(var(--rp-num) * .58); overflow: visible;
+    color: var(--m-borde); filter: drop-shadow(0 1.5px 0 var(--m-canto)) drop-shadow(0 0 6px var(--m-glow));
+  }
+  body.pantalla-grande #vista-ranking .lugar .rp-rama:last-child { transform: scaleX(-1); }
+
+  /* Píldora del nombre con una ramita de laurel a cada lado (diseño de referencia). El nombre se recorta
+     con puntos suspensivos; las ramas nunca se recortan. */
+  body.pantalla-grande #vista-ranking .lugar .nombre {
+    display: inline-flex; align-items: center; gap: .4em; padding: 4px 12px;
+    box-shadow: 0 0 14px var(--m-glow), inset 0 0 8px rgba(0, 0, 0, .5);
+  }
+  body.pantalla-grande #vista-ranking .lugar .nombre .rp-nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body.pantalla-grande #vista-ranking .lugar .nombre .rp-rama {
+    height: 1.5em; width: .72em; filter: drop-shadow(0 1px 0 var(--m-canto)) drop-shadow(0 0 3px var(--m-glow));
+  }
+  body.pantalla-grande #vista-ranking .lugar .pts {
+    font-family: Montserrat, sans-serif; font-size: max(16px, calc(18px * var(--rp-escala))); font-weight: 800; color: #FFFFFF;
+    margin-top: calc(8px * var(--rp-escala)); line-height: 1.1;
+  }
+  /* Ritmo del puesto, igual en los tres: píldora · 8 · puntos · 6 · tiempo · 14 · pedestal */
+  body.pantalla-grande #vista-ranking .lugar .base { margin-top: calc(14px * var(--rp-escala)); }
+  body.pantalla-grande #vista-ranking .lugar .rp-desempate {
+    background: rgba(7, 33, 70, .7); border-color: rgba(184, 216, 248, .25); color: #B8D8F8;
+  }
+  body.pantalla-grande #vista-ranking .lugar.l1 .pts { font-size: max(18px, calc(22px * var(--rp-escala))); }
+  /* Zócalo del pedestal, de la misma familia de azules que el cuerpo (no cian): una franja más profunda con un
+     filo de luz azul clara arriba, como el borde iluminado de la tarima de la referencia */
   body.pantalla-grande #vista-ranking .lugar .base::after {
-    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #00E5FF;
-    box-shadow: 0 0 12px #00E5FF, 0 0 26px rgba(0, 229, 255, .7);
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(10px * var(--rp-escala));
+    background: linear-gradient(180deg, #8DBBFF 0, #4F8BF5 2px, #1747B8 45%, #0B2C7A 100%);
+    box-shadow: 0 -2px 10px rgba(80, 150, 255, .55);
   }
 
-  /* Cuadrícula: filas de cristal con borde cian; el puesto en un círculo de neón y los puntos con brillo */
+  /* Cuadrícula: sobria, para que el brillo quede solo en el podio. Filas de vidrio oscuro con un filo azul
+     tenue, el puesto en un círculo apagado y los puntos en blanco; nada de cian neón ni resplandores. */
   body.pantalla-grande #vista-ranking .rp-rejilla .fila {
-    background: linear-gradient(90deg, rgba(7, 33, 70, .75) 0%, rgba(4, 11, 38, .6) 100%);
-    border: 1px solid rgba(0, 229, 255, .22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    background: linear-gradient(90deg, rgba(10, 34, 72, .7) 0%, rgba(6, 18, 48, .55) 100%);
+    border: 1px solid rgba(184, 216, 248, .12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
   }
   body.pantalla-grande #vista-ranking .rp-rejilla .fila .pos {
-    background: rgba(0, 229, 255, .08); border: 1.5px solid #00E5FF; color: #00E5FF;
-    box-shadow: 0 0 12px rgba(0, 229, 255, .22); font-family: Montserrat, sans-serif; font-weight: 700;
+    background: rgba(184, 216, 248, .08); border: 1px solid rgba(184, 216, 248, .22); color: #B8D8F8;
+    font-family: Montserrat, sans-serif; font-weight: 700;
   }
-  body.pantalla-grande #vista-ranking .rp-rejilla .fila .quien b { color: #FFFFFF; font-weight: 600; }
-  body.pantalla-grande #vista-ranking .rp-puntos b {
-    color: #00E5FF; font-family: Montserrat, sans-serif; font-weight: 800; text-shadow: 0 0 12px rgba(0, 229, 255, .45);
-  }
+  body.pantalla-grande #vista-ranking .rp-rejilla .fila .quien b { color: #F2F6FB; font-weight: 500; letter-spacing: .01em; }
+  body.pantalla-grande #vista-ranking .rp-puntos b { color: #FFFFFF; font-family: Montserrat, sans-serif; font-weight: 700; }
   body.pantalla-grande #vista-ranking .rp-puntos small { color: var(--texto-2); font-weight: 500; }
+  body.pantalla-grande #vista-ranking .rp-rejilla .rp-desempate { background: transparent; border-color: rgba(184, 216, 248, .14); }
 
   /* Panel de ajustes con el mismo tema: vidrio azul sobre el escenario */
   body.pantalla-grande #hoja { background: rgba(4, 11, 38, .94); border-top: 1px solid rgba(0, 229, 255, .3); }
@@ -236,28 +345,46 @@
   body.pantalla-grande #hoja .btn.texto { background: transparent; color: #00E5FF; }
   body.hoja-abierta:has(#hoja .rp-ajustes) #velo { background: rgba(0, 0, 0, .12); }
 
+  /* La franja de colores de Google rompe el escenario: no se muestra en esta vista */
+  body.pantalla-grande .franja { display: none; }
+
+  /* Estado sin puntajes: ícono en vidrio cian, no en el círculo gris claro de la app */
+  body.pantalla-grande #vista-ranking .tarjeta.estado { background: rgba(7, 33, 70, .6); border-color: rgba(0, 229, 255, .3); }
+  body.pantalla-grande #vista-ranking .estado .icono {
+    background: rgba(0, 229, 255, .08); border: 1.5px solid #00E5FF; color: #00E5FF; box-shadow: 0 0 18px rgba(0, 229, 255, .3);
+  }
+  body.pantalla-grande #vista-ranking .estado h2 { font-family: Montserrat, sans-serif; font-weight: 700; color: #FFFFFF; }
+
   /* Barra de navegación con el mismo fondo oscuro, cuando no está oculta */
   body.pantalla-grande #nav { background: rgba(4, 11, 38, .92); border-top-color: rgba(0, 229, 255, .2); }
   body.pantalla-grande #nav button.activa .pastilla { background: rgba(0, 229, 255, .16); color: #00E5FF; }
 
   /* Modo pantalla: sin barra de navegación, el ranking ocupa todo el alto */
   body.pantalla-grande.sin-menu #nav { display: none !important; }
-  body.pantalla-grande.sin-menu #app { padding-bottom: 24px; }
+  body.pantalla-grande.sin-menu #app { padding-bottom: 12px; }
 
   @media (max-width: 899px) {
-    body.pantalla-grande #app { padding: 16px 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
-    #vista-ranking .rank-titulo { font-size: 26px; }
+    body.pantalla-grande #app { padding: 12px 16px calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); }
+    #vista-ranking { height: calc(100dvh - 28px - var(--nav-h) - env(safe-area-inset-bottom)); }
+    body.pantalla-grande.sin-menu #vista-ranking { height: calc(100dvh - 24px); }
+    /* En pantallas angostas la hora caía sobre el avatar del 1.º: quedan solo los dos botones */
+    #vista-ranking .rp-hora { display: none; }
     #vista-ranking .rp-rejilla { grid-template-columns: 1fr; }
     #vista-ranking .podio { width: 100%; gap: 4px; }
     #vista-ranking .lugar .avatar { width: calc(60px * var(--rp-escala)); height: calc(60px * var(--rp-escala)); font-size: calc(20px * var(--rp-escala)); }
     #vista-ranking .lugar.l1 .avatar { width: calc(76px * var(--rp-escala)); height: calc(76px * var(--rp-escala)); font-size: calc(26px * var(--rp-escala)); }
-    #vista-ranking .lugar .nombre { font-size: calc(15px * var(--rp-escala)); }
-    #vista-ranking .lugar.l1 .nombre { font-size: calc(17px * var(--rp-escala)); }
-    #vista-ranking .lugar .pts { font-size: calc(14px * var(--rp-escala)); }
+    #vista-ranking .lugar .nombre, body.pantalla-grande #vista-ranking .lugar .nombre { font-size: max(13px, calc(var(--rp-nombre-top) * .85)); }
+    #vista-ranking .lugar.l1 .nombre, body.pantalla-grande #vista-ranking .lugar.l1 .nombre { font-size: max(14px, calc(var(--rp-nombre-top) * 1.05)); }
+    #vista-ranking .lugar .pts, body.pantalla-grande #vista-ranking .lugar .pts { font-size: max(14px, calc(15px * var(--rp-escala))); }
+    /* Pedestales angostos: número y ramas más chicos para que la placa quepa; en la píldora, el nombre va primero */
+    body.pantalla-grande #vista-ranking .lugar.l1 { --rp-num: calc(56px * var(--rp-escala)); }
+    body.pantalla-grande #vista-ranking .lugar.l2 { --rp-num: calc(44px * var(--rp-escala)); }
+    body.pantalla-grande #vista-ranking .lugar.l3 { --rp-num: calc(38px * var(--rp-escala)); }
+    body.pantalla-grande #vista-ranking .lugar .nombre .rp-rama { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     #vista-ranking .fila.subio, #vista-ranking .delta,
     #vista-ranking .lugar.l1 .avatar, #vista-ranking .lugar.l1 .avatar::before,
-    #vista-ranking .lugar.l1 .avatar::after { animation: none; }
+    #vista-ranking .lugar.l1 .avatar::after, #vista-ranking .lugar .rp-num { animation: none; }
   }
 </style>

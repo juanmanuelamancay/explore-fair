@@ -4,7 +4,7 @@
   const RETRASO_DE_GUARDADO_MS = 700;   // espera a que terminen los movimientos del deslizador antes de escribir en Config
   // Preset de la pantalla. Se guarda en la hoja Config (claves rp_*); si no hay nada, se usan estos valores.
   // El top (escala y ancho) tiene sus propios ajustes: las columnas y las filas no lo afectan.
-  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 88, tiempo: 13, ocultarMenu: false };
+  const AJUSTES_DEFECTO = { personas: 0, columnas: 6, alto: 64, espacio: 10, fuente: 16, puntos: 22, escala: 100, anchoTop: 88, tiempo: 13, nombreTop: 16, ocultarMenu: false };
   // Interruptores del panel (sí o no).
   const INTERRUPTORES = [
     { clave: 'ocultarMenu', etiqueta: 'Ocultar menú de navegación (queda solo el ranking)' },
@@ -14,10 +14,11 @@
     { clave: 'columnas', etiqueta: 'Columnas', min: 1, max: 8, paso: 1 },
     { clave: 'alto', etiqueta: 'Alto de cada fila (px)', min: 40, max: 120, paso: 2 },
     { clave: 'espacio', etiqueta: 'Espacio entre filas (px)', min: 4, max: 24, paso: 1 },
-    { clave: 'fuente', etiqueta: 'Tamaño de nombres (px)', min: 12, max: 30, paso: 1 },
+    { clave: 'fuente', etiqueta: 'Tamaño de nombres de la lista (px)', min: 12, max: 30, paso: 1 },
     { clave: 'puntos', etiqueta: 'Tamaño de puntos (px)', min: 14, max: 40, paso: 1 },
     { clave: 'escala', etiqueta: 'Tamaño del top (%)', min: 60, max: 160, paso: 5 },
     { clave: 'anchoTop', etiqueta: 'Ancho del top (% de la pantalla)', min: 40, max: 100, paso: 2 },
+    { clave: 'nombreTop', etiqueta: 'Tamaño de nombres del top (px; el 1.º, un 25 % más)', min: 12, max: 40, paso: 1 },
     { clave: 'tiempo', etiqueta: 'Tamaño del tiempo de desempate (px)', min: 10, max: 24, paso: 1 },
   ];
   const contenido = $('rp-contenido');
@@ -40,8 +41,11 @@
     estilo.setProperty('--rp-fuente', ajustes.fuente + 'px');
     estilo.setProperty('--rp-puntos', ajustes.puntos + 'px');
     estilo.setProperty('--rp-escala', ajustes.escala / 100);
+    // La escala del ajuste, sin el achique por alto: el ancho del podio se queda con esta.
+    estilo.setProperty('--rp-escala-base', ajustes.escala / 100);
     estilo.setProperty('--rp-ancho-top', ajustes.anchoTop + '%');
     estilo.setProperty('--rp-tiempo', ajustes.tiempo + 'px');
+    estilo.setProperty('--rp-nombre-top', ajustes.nombreTop + 'px');
     // La barra de navegación solo se oculta mientras esta vista está abierta.
     document.body.classList.toggle('sin-menu', enPantalla && !!ajustes.ocultarMenu);
   }
@@ -170,10 +174,10 @@
   const subio = p => (comparando && comparando.has(p.nombre) ? Math.max(0, p.puntos - comparando.get(p.nombre)) : 0);
   const etiqueta = n => (n > 0 ? `<i class="delta">+${n}</i>` : '');
 
-  // Mismo puntaje que el vecino de arriba o de abajo: ahí es donde el orden no se explica solo con el puntaje.
-  const empatado = i => (i > 0 && filas[i - 1].puntos === filas[i].puntos) || (i < filas.length - 1 && filas[i + 1].puntos === filas[i].puntos);
-  const chipTiempo = (p, i) => (empatado(i) && typeof p.seg === 'number')
-    ? `<span class="rp-desempate" title="Segundos totales en sus quizzes: así se desempata este puntaje">${svg(ICONO.reloj, 13)}${p.seg}s</span>`
+  // Todos muestran sus segundos, también el top: así cada puesto tiene la misma estructura (nombre, puntos y
+  // tiempo) y las filas quedan alineadas. Además deja ver el desempate antes de que ocurra.
+  const chipTiempo = p => (typeof p.seg === 'number')
+    ? `<span class="rp-desempate" title="Tiempo total en sus quizzes: en empate de puntos va primero quien tardó menos">${svg(ICONO.reloj, 13)}${formatoSeg(p.seg)}</span>`
     : '';
 
   // El podio toma hasta tres personas, una por premio; la cuadrícula empieza en el 4.º.
@@ -188,9 +192,64 @@
   function cuantasMostrar() {
     const rejilla = $('rp-rejilla');
     const filasVisibles = Math.max(1, Math.floor((rejilla.clientHeight + ajustes.espacio) / (ajustes.alto + ajustes.espacio)));
-    const cabe = ajustes.columnas * filasVisibles;
+    // Las columnas que de verdad pinta la rejilla: por debajo de 900 px es una sola, aunque el ajuste diga otra cosa.
+    const columnas = getComputedStyle(rejilla).gridTemplateColumns.split(' ').length || ajustes.columnas;
+    const cabe = columnas * filasVisibles;
     return ajustes.personas > 0 ? Math.min(cabe, ajustes.personas) : cabe;
   }
+
+  // El podio nunca deja a la cuadrícula con menos de estas filas: si no caben, se achica en proporción.
+  const FILAS_MINIMAS = 3;
+  const ESCALA_MINIMA = 0.5;   // relativa al "Tamaño del top" de los ajustes
+
+  /**
+   * En pantallas bajas (o con zoom del navegador) el podio a tamaño completo dejaba la cuadrícula en media fila.
+   * Aquí se baja --rp-escala hasta que entren FILAS_MINIMAS. Todas las medidas del podio dependen de esa
+   * variable, así que se achica entero y mantiene sus proporciones. Se mide con la rejilla todavía vacía.
+   */
+  function ajustarPodioAlAlto() {
+    const base = ajustes.escala / 100;
+    vista.style.setProperty('--rp-escala', base);
+    const rejilla = $('rp-rejilla');
+    const podio = contenido.querySelector('.podio');
+    const necesita = FILAS_MINIMAS * ajustes.alto + (FILAS_MINIMAS - 1) * ajustes.espacio;
+    let escala = base;
+    // Unas pocas vueltas: los márgenes fijos hacen que una sola cuenta se quede un poco corta.
+    for (let vuelta = 0; vuelta < 4 && rejilla.clientHeight < necesita && escala > base * ESCALA_MINIMA; vuelta++) {
+      const alto = podio.offsetHeight;
+      escala = Math.max(base * ESCALA_MINIMA, escala * (alto - (necesita - rejilla.clientHeight)) / alto);
+      vista.style.setProperty('--rp-escala', escala);
+    }
+  }
+
+  /**
+   * Rama de laurel que flanquea el número del pedestal (una a cada lado; la derecha es la misma en espejo por CSS).
+   * Se dibuja una vez: el tallo sigue un arco abierto, como un "(", y en cada nudo salen dos hojas en punta,
+   * una hacia afuera y otra hacia adentro, que se afinan hacia la punta. Toma el color del metal (currentColor).
+   */
+  const RAMA = (() => {
+    const R = 52, CX = 62, CY = 54, NUDOS = 8, inicio = 0.62, fin = 2.45;
+    const punto = t => [CX - R * Math.sin(t), CY + R * Math.cos(t)];
+    // Hoja en forma de almendra que nace en (x, y) y apunta hacia "grados".
+    const hoja = (x, y, grados, largo, ancho) =>
+      `<path d="M0 0Q${(largo / 2).toFixed(1)} ${(-ancho).toFixed(1)} ${largo.toFixed(1)} 0Q${(largo / 2).toFixed(1)} ${ancho.toFixed(1)} 0 0" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${grados.toFixed(1)})"/>`;
+    const partes = [];
+    for (let i = 0; i < NUDOS; i++) {
+      const t = inicio + (fin - inicio) * i / (NUDOS - 1);
+      const [x, y] = punto(t);
+      // Dirección en la que crece la rama (tangente al arco, hacia arriba).
+      const rumbo = Math.atan2(-Math.sin(t), -Math.cos(t)) * 180 / Math.PI;
+      const tamano = 1 - i * 0.045;
+      partes.push(hoja(x, y, rumbo - 40, 16 * tamano, 5.6 * tamano));   // afuera
+      partes.push(hoja(x, y, rumbo + 40, 13.5 * tamano, 4.8 * tamano)); // adentro
+    }
+    const [xf, yf] = punto(fin);
+    const rumboFin = Math.atan2(-Math.sin(fin), -Math.cos(fin)) * 180 / Math.PI;
+    partes.push(hoja(xf, yf, rumboFin, 13, 4.6));                         // hoja de la punta
+    const [x0, y0] = punto(inicio - 0.08);
+    const tallo = `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 0 1 ${xf.toFixed(1)} ${yf.toFixed(1)}" class="rp-tallo" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>`;
+    return `<svg class="rp-rama" viewBox="0 0 48 100" aria-hidden="true"><g fill="currentColor">${tallo}${partes.join('')}</g></svg>`;
+  })();
 
   /** Un puesto del podio. */
   const lugar = (p, n) => {
@@ -198,10 +257,10 @@
     return `
       <div class="lugar l${n + 1} ${metalDe(n + 1)} ${delta ? 'subio' : ''}">
         ${avatarDePuesto(p.nombre, n + 1)}
-        <div class="nombre">${esc(p.nombre)}</div>
+        <div class="nombre">${RAMA}<span class="rp-nombre">${esc(p.nombre)}</span>${RAMA}</div>
         <div class="pts tnum">${etiqueta(delta)}${p.puntos} pts</div>
-        ${chipTiempo(p, n)}
-        <div class="base">${n + 1}</div>
+        ${chipTiempo(p)}
+        <div class="base"><span class="rp-placa">${RAMA}<span class="rp-num">${n + 1}</span>${RAMA}</span></div>
       </div>`;
   };
 
@@ -211,10 +270,8 @@
     return `
       <div class="fila ${delta ? 'subio' : ''}">
         <span class="pos tnum">${puesto}</span>
-        <span class="quien"><b>${esc(p.nombre)}</b></span>
-        ${etiqueta(delta)}
-        ${chipTiempo(p, i)}
-        <span class="rp-puntos tnum"><b>${p.puntos}</b><small>pts</small></span>
+        <span class="quien"><b>${esc(p.nombre)}</b>${chipTiempo(p)}</span>
+        <span class="rp-puntos tnum">${etiqueta(delta)}<b>${p.puntos}</b><small>pts</small></span>
       </div>`;
   };
 
@@ -235,14 +292,22 @@
       <p class="rp-pie" id="rp-pie"></p>`;
 
     // Primero se dibuja la rejilla vacía para medir cuánto cabe, y luego se llena con esa cantidad.
+    // El pie se escribe antes de medir, con el número más largo posible: si se llenara después, al ocupar
+    // una o dos líneas empujaría la rejilla y la última fila quedaría cortada.
     const inicio = PUESTOS_DEL_PODIO;
+    const textoPie = hasta => (filas.length > inicio
+      ? `Puestos 1 a ${hasta} de ${filas.length} · En empate, va primero quien respondió más rápido en total (el reloj con el tiempo total).`
+      : `${filas.length} ${filas.length === 1 ? 'persona' : 'personas'} en el ranking`);
+    $('rp-pie').textContent = textoPie(filas.length);
+    if (filas.length > inicio) ajustarPodioAlAlto();
     const cuantas = cuantasMostrar();
     const visibles = filas.slice(inicio, inicio + cuantas);
     $('rp-rejilla').innerHTML = visibles.map((p, k) => celda(p, inicio + k + 1, inicio + k)).join('');
-    $('rp-pie').textContent = visibles.length
-      ? `Mostrando puestos ${inicio + visibles.length} de ${filas.length} · En empate, va primero quien respondió más rápido en total (el reloj junto al puntaje).`
-      : `${filas.length} ${filas.length === 1 ? 'persona' : 'personas'} en el ranking`;
+    $('rp-pie').textContent = textoPie(inicio + visibles.length);
   }
+
+  // Montserrat llega después del primer pintado y agranda el podio: se vuelve a medir para que la última fila no quede cortada.
+  if (document.fonts) document.fonts.addEventListener('loadingdone', alCambiarTamano);
 
   aplicarEstilos();
   $('rp-ajustes').addEventListener('click', abrirAjustes);

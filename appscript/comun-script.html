@@ -8,6 +8,12 @@ const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const iniciales = nombre => String(nombre).trim().split(/\s+/).map(p => p.charAt(0)).slice(0, 2).join('').toUpperCase();
 const formatoReloj = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+/** Tiempo de desempate (Tabla y Ranking). 45 -> "45 seg"; 125.4 -> "2 min 05 seg" (se redondea al segundo entero, ya con minutos el decimal no aporta). */
+const formatoSeg = s => {
+  if (s < 60) return s + ' seg';
+  const total = Math.round(s);
+  return Math.floor(total / 60) + ' min ' + String(total % 60).padStart(2, '0') + ' seg';
+};
 
 const svg = (d, tam = 24, color = 'currentColor', grosor = 2) =>
   `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${grosor}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;

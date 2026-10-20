@@ -1,436 +1,253 @@
-# Sistema de Diseño UX/UI: Estética High-Tech & Gamificación Corporativa
-**Referencia Visual:** Campaña "Feria de Agentes de IA" (Estilo BBVA Tech)  
-**Propósito:** Guía maestra de arquitectura UX, tokens de diseño UI y especificaciones técnicas para el desarrollo de aplicaciones web, landing pages y plataformas interactivas.
+# Guía UX/UI de la vista Ranking (pantalla proyectada)
+
+Última actualización: 2026-10-19
+
+**Alcance:** solo la vista `RANKING` (`appscript/ranking-view.html`, `ranking-style.html`, `ranking-script.html`). El resto de la app sigue [reglas/ux-ui.md](reglas/ux-ui.md) (estilo Google, claro). Esta guía manda únicamente mientras `body.pantalla-grande` está activo, es decir, mientras la vista de ranking está abierta.
+
+**Referencia visual:** campaña "Feria de Agentes de IA" (escenario oscuro, luz azul, acentos cian y podio metálico).
 
 ---
 
-## 1. Visión General y Dirección de Arte
-El lenguaje visual fusiona la **confianza institucional corporativa** con una **estética futurista, inmersiva y gamificada**. En lugar de utilizar el tradicional diseño bancario plano y claro (*Light Mode*), este sistema adopta un **Modo Oscuro Escénico (*Stage Dark UI*)** donde la luz actúa como jerarquía visual.
+## 0. Qué se corrigió de la versión anterior de este documento
 
-### Pilares de Diseño
-1. **Inmersión Escénica:** Los fondos no son planos; simulan un escenario tecnológico con iluminación volumétrica, haces de luz (*spotlights*) y desenfoque de profundidad de campo (*bokeh*).
-2. **Tecnología Humanizada:** El uso de un personaje 3D carismático (Agente Robot) como hilo conductor reduce la fricción cognitiva y guía emocionalmente al usuario en cada estado del sistema.
-3. **Claridad de Alto Contraste:** Toda la información crítica de lectura se ubica sobre zonas de sombra controlada (Azul Noche Profundo) utilizando tipografía blanca y acentos en Cian Neón para garantizar accesibilidad (WCAG AAA en titulares).
-4. **Interfaces Holográficas (*Glassmorphism*):** Los elementos secundarios e iconográficos flotan en el espacio tridimensional dentro de contenedores translúcidos con bordes luminosos.
+La versión anterior era un sistema de diseño genérico para landings, páginas de error y pantallas de cierre. Al aplicarlo a una pantalla de ranking proyectada tenía estos problemas:
 
----
-
-## 2. Tokens de Color (Color System)
-
-### 2.1 Paleta Principal y Fondos
-| Token | Nombre | HEX | RGB | Uso en la Interfaz |
-| :--- | :--- | :--- | :--- | :--- |
-| `--color-bg-deep` | **Core Navy (Fondo Base)** | `#040B26` | `4, 11, 38` | Fondo principal detrás de bloques de texto para máxima legibilidad y contraste. |
-| `--color-bg-navy` | **BBVA Dark Navy** | `#072146` | `7, 33, 70` | Tono medio para transiciones de degradado y fondos de tarjetas oscuras. |
-| `--color-primary-royal` | **Electric Royal Blue** | `#004481` | `0, 68, 129` | Color institucional base, iluminación de ambiente y estructura del escenario. |
-| `--color-stage-glow` | **Stage Blue Light** | `#0055FF` | `0, 85, 255` | Haces de luz, resplandores radiales detrás del elemento central 3D. |
-
-### 2.2 Acentos y Textos
-| Token | Nombre | HEX | RGB | Uso en la Interfaz |
-| :--- | :--- | :--- | :--- | :--- |
-| `--color-accent-cyan` | **Cyber Cyan (Acento Principal)** | `#00E5FF` | `0, 229, 255` | Palabras clave en titulares, subrayados activos, bordes neón, íconos y ojos del robot. |
-| `--color-accent-aqua` | **Core Aqua** | `#2DCCCD` | `45, 204, 205` | Variación secundaria para textos del header ("oportunidades") y estados *hover*. |
-| `--color-text-primary` | **Pure White** | `#FFFFFF` | `255, 255, 255` | Logotipo, primera línea de titulares H1, subtítulos e íconos principales. |
-| `--color-text-muted` | **Ice Blue** | `#B8D8F8` | `184, 216, 248` | Textos legales, etiquetas secundarias o descripciones largas. |
-
-### 2.3 Colores Semánticos y Gamificación (Podio y Estados)
-| Token | Nombre | HEX / Gradiente Sugerido | Uso en la Interfaz |
-| :--- | :--- | :--- | :--- |
-| `--color-rank-gold` | **Winner Gold (1° Lugar)** | `linear-gradient(135deg, #FFF3B0 0%, #FFD700 50%, #B8860B 100%)` | Trofeo principal, bordes de tarjeta de 1° puesto, laureles y confeti. |
-| `--color-rank-silver` | **Runner-up Silver (2° Lugar)** | `linear-gradient(135deg, #FFFFFF 0%, #C0C0C0 50%, #7F8C8D 100%)` | Trofeo secundario, bordes y número del 2° puesto. |
-| `--color-rank-bronze` | **Third Place Bronze (3° Lugar)** | `linear-gradient(135deg, #F5CBA7 0%, #CD7F32 50%, #873600 100%)` | Trofeo, bordes y número del 3° puesto. |
-| `--color-state-warning`| **Maintenance Amber** | `#FFB800` | Luces de alerta en páginas de error 500/mantenimiento y cintas de precaución. |
+| # | Problema | Corrección |
+|---|---|---|
+| 1 | Describía patrones que la vista no tiene: Patrón A 45/55, Patrón B de error 404/500, barra "Explora · Conecta · Aplica · Transforma", tarjetas flotantes, robot 3D y su micro-narrativa. | Se movieron a "Fuera de alcance" (§10). La vista no tiene recursos 3D ni del robot. |
+| 2 | Dos nombres para los mismos tokens: la tabla usaba `--color-bg-deep`, el CSS `--bg-core-navy`. | Una sola tabla, con los nombres de variable que usa el código (§3). |
+| 3 | Las medidas del texto y las del CSS de ejemplo no coincidían (barra del kicker 48 × 4 px a 8 px vs. 52 px a 10 px; borde de las píldoras 3 px vs. 2,5 / 2 px; círculo de paso 56 vs. 54 px; etiqueta 14 vs. 12 px). | Una sola medida por elemento, la que usa la vista (§4 y §6). |
+| 4 | Usaba degradados como "color" (`--color-rank-gold: linear-gradient(...)`). Un degradado no sirve en `color` ni en `border-color`. | Cada metal tiene un color sólido (borde, texto) y un degradado (solo para fondos o texto con `background-clip: text`). |
+| 5 | H1 de 56–72 px y subtítulo de 24–28 px: en una pantalla de ranking eso le quita filas a la cuadrícula, que es lo que la gente busca (su nombre). | La cabecera es compacta (§4); la jerarquía la llevan el podio y los puntos. |
+| 6 | `backdrop-filter: blur()` recomendado para todo el vidrio. Con 50–300 filas en pantalla, en el portátil que proyecta, cuesta mucho y no se nota (el fondo de la fila es casi opaco). | Desenfoque solo en elementos sueltos (botones de cabecera y panel de ajustes), nunca en las filas (§9). |
+| 7 | Animaciones infinitas (levitación, pulso) sin mención a `prefers-reduced-motion`. | Toda animación se apaga con movimiento reducido (§7). |
+| 8 | Breakpoint de 1024 px. | La app usa 900 px (§5.6). |
+| 9 | "WCAG AAA en titulares" sin medir. | Se midieron los pares reales (§8). Todos pasan AA; los textos principales pasan AAA. |
+| 10 | Configuración de Tailwind. El proyecto es Apps Script con CSS propio, sin Tailwind. | Eliminada. |
+| 11 | No decía nada de cómo se lee un ranking de 500 personas a distancia: nombres truncados, empates, qué tramo se está viendo. | Reglas de lectura a distancia, desempate y pie (§2, §6.3–6.5). |
 
 ---
 
-## 3. Sistema Tipográfico (Typography)
+## 1. Contexto de uso
 
-### Familias Tipográficas Recomendadas
-* **Corporativa Original:** *Benton Sans* (Propiedad de BBVA).
-* **Alternativas Web (Google Fonts):**
-  * **Titulares (Display):** `Montserrat` o `Plus Jakarta Sans` (Pesos: *700 Bold*, *800 ExtraBold*, *900 Black*).
-  * **Cuerpo y UI:** `Inter` o `DM Sans` (Pesos: *400 Regular*, *500 Medium*, *600 SemiBold*).
-  * **Acento Manuscrito (Opcional para cierres):** `Caveat` o `Pacifico` con efecto de sombra neón.
+- **Dónde se ve:** proyector o TV en el salón de la feria, a 3–10 m. Lo opera el admin; el público solo mira.
+- **Qué busca el público:** primero, quién va ganando (podio). Después, **su propio nombre** y su puesto (cuadrícula).
+- **Cómo cambia:** se refresca solo cada `segundos_refresco_board` (mínimo 10 s). Quien sube de puntaje destella y muestra "+N".
+- **Sin interacción del público:** nada en la pantalla debe parecer tocable salvo los dos botones del admin (ajustes y actualizar).
 
-### Escala y Jerarquía Tipográfica (Desktop)
+## 2. Dirección de arte
 
-1. **Kicker / Eyebrow (`FERIA DE AGENTES DE IA`):**
-   * **Tamaño:** `1.125rem` (`18px`) a `1.25rem` (`20px`)
-   * **Peso:** `700 (Bold)`
-   * **Transformación:** `UPPERCASE`
-   * **Tracking (Espaciado):** `0.08em`
-   * **Elemento decorativo obligatorio:** Barra inferior sólida de `48px` de ancho por `4px` de alto en color `--color-accent-cyan` (`#00E5FF`), separada a `8px` del texto.
+Modo oscuro "de escenario": la luz marca la jerarquía.
 
-2. **Hero Headline - H1 (`BIENVENIDOS` / `NUESTROS GANADORES`):**
-   * **Tamaño:** `3.5rem` (`56px`) a `4.5rem` (`72px`) — `clamp(2.5rem, 5vw, 4.5rem)`
-   * **Peso:** `900 (Black)`
-   * **Line Height:** `1.05` (muy compacto para impacto visual)
-   * **Regla Bicolor:**
-     * *Línea 1:* Blanco Puro (`#FFFFFF`).
-     * *Línea Destacada:* Cian Neón (`#00E5FF`).
-   * **Variante Estado de Error:** En pantallas de soporte técnico, se utiliza *Sentence case* (primera letra mayúscula y resto minúsculas) con peso `800 (ExtraBold)` para dar un tono más conversacional y calmado (`Estamos presentando` / `algunos problemas técnicos`).
+1. **Escenario:** fondo azul noche con un halo de luz azul arriba, detrás del podio. Nunca plano.
+2. **El podio es el protagonista:** metales (oro, plata, bronce) y brillos solo en los tres primeros. La cuadrícula es sobria: blanco y azul hielo, sin cian neón ni resplandores.
+3. **Alto contraste:** texto blanco o hielo sobre azul noche; cian solo para acentos y cifras.
+4. **Legible a distancia antes que decorativo:** un nombre recortado o un número pequeño es un error de diseño, aunque el efecto se vea bien.
+5. **Un solo acento:** el cian. No se mezclan los colores de Google (franja superior, estrellas amarillas) con el tema.
 
-3. **Lead / Subtítulo (`El talento que impulsa nuevas oportunidades.`):**
-   * **Tamaño:** `1.5rem` (`24px`) a `1.75rem` (`28px`)
-   * **Peso:** `400 (Regular)`
-   * **Line Height:** `1.4`
-   * **Color:** `#FFFFFF` (Opacidad `90%`)
+## 3. Tokens de color
 
-4. **Etiquetas de Iconografía (`EXPLORA | CONECTA | APLICA | TRANSFORMA`):**
-   * **Tamaño:** `0.875rem` (`14px`)
-   * **Peso:** `600 (SemiBold)`
-   * **Transformación:** `UPPERCASE`
-   * **Tracking:** `0.05em`
+Se definen en `body.pantalla-grande` (`ranking-style.html`) sobre las mismas variables que usa la app, así los componentes comunes toman el tema sin reglas extra.
 
----
+### 3.1 Fondo y texto
 
-## 4. Arquitectura de Layout y Retícula (UX Layout Patterns)
+| Variable | Valor | Uso |
+|---|---|---|
+| `--fondo` | `#040B26` | Azul noche: fondo base |
+| — | `#072146` | Azul marino: segunda parada del degradado y fondo de filas |
+| — | `#004481` | Azul rey: pedestales del podio |
+| — | `#0055FF` | Luz de escenario: halo y botón principal del panel |
+| `--superficie` | `rgba(7, 33, 70, .6)` | Superficies secundarias (chips, estados) |
+| `--texto` | `#FFFFFF` | Nombres, títulos |
+| `--texto-2` | `#B8D8F8` | Hielo: hora, pie, "pts", etiquetas |
+| `--borde` | `rgba(0, 229, 255, .3)` | Bordes de vidrio |
+| `--borde-suave` | `rgba(184, 216, 248, .16)` | Bordes secundarios |
 
-El sistema utiliza dos patrones de composición principales según el objetivo de la vista:
+### 3.2 Acentos
 
-### Patrón A: Escenario Asimétrico 45 / 55 (Vistas de Bienvenida, Éxito y Cierre)
-Ideal para *Hero Sections*, *Landing Pages* y pantallas de anuncio.
-* **Columna Izquierda (45% del viewport):**
-  * Alineación totalmente a la izquierda.
-  * Fondo con viñeta oscura (`#040B26`) para asegurar que ningún elemento brillante del fondo interfiera con la lectura.
-  * Orden vertical estricto:
-    1. *Brand Header* (Logo + divisor vertical + eslogan).
-    2. *Espaciador amplio* (`48px` - `64px`).
-    3. *Kicker* + línea cian.
-    4. *H1 Bicolor*.
-    5. *Subtítulo / Copy*.
-    6. *Footer de sección / Pilares iconográficos o CTA*.
-* **Columna Derecha (55% del viewport):**
-  * Composición piramidal centrada en el personaje 3D sobre una plataforma circular luminosa.
-  * Marco geométrico de neón cian rotado ligeramente (`-5deg` a `8deg`) detrás del sujeto principal para encuadrar la acción.
-  * Elementos flotantes (*Glass Cards*) distribuidos en arco alrededor del personaje.
+| Variable | Valor | Uso |
+|---|---|---|
+| `--azul` | `#00E5FF` | Cian: título, puestos, puntos, barra del kicker |
+| `--azul-suave` | `rgba(0, 229, 255, .12)` | Fondos de selección |
+| `--verde` | `#2DCCCD` | Aqua: "+N" y destello de quien subió |
+| `--verde-suave` | `rgba(45, 204, 205, .18)` | Fondo del destello |
+| `--rojo` | `#FF8A80` | Errores (legible sobre oscuro) |
 
-### Patrón B: Composición de Estado del Sistema 50 / 50 (Mantenimiento / Error 404 / 500)
-* **Header Superior Centrado:** El logo y el *kicker* (`FERIA DE AGENTES DE IA`) se unifican en una sola línea horizontal en la parte superior central.
-* **Columna Izquierda (50%):** El personaje 3D abandona el podio y se sitúa a nivel del suelo interactuando con el problema (reparando una laptop con una llave inglesa y caja de herramientas).
-* **Columna Derecha (50%):** Mensaje de estado alineado a la izquierda, divisor cian inferior y un indicador de tiempo (`Volvemos en breve` + ícono de reloj en cian), acompañado en la esquina inferior derecha por utilería 3D contextual (conos y valla de mantenimiento con luz ámbar).
+### 3.3 Metales del podio
 
----
+Cada metal tiene un **sólido** (bordes, texto, coronas) y un **degradado** (solo fondos o texto recortado).
 
-## 5. Especificaciones de Componentes UI
+| Puesto | Sólido (borde) | Texto | Degradado | Brillo |
+|---|---|---|---|---|
+| 1 Oro | `#FFD700` | `#FFD700` | `135deg, #FFF3B0, #FFD700, #B8860B` | `rgba(255, 215, 0, .5)` |
+| 2 Plata | `#C0C0C0` | `#E6EAEE` | `135deg, #FFFFFF, #C0C0C0, #7F8C8D` | `rgba(192, 192, 192, .4)` |
+| 3 Bronce | `#CD7F32` | `#F0B07A` | `135deg, #F5CBA7, #CD7F32, #873600` | `rgba(205, 127, 50, .5)` |
 
-### 5.1 Header de Co-Branding Institucional
-Compuesto por tres elementos en disposición horizontal (`display: flex; align-items: center; gap: 16px;`):
-1. **Logotipo Principal:** Blanco puro.
-2. **Divisor Vertical:** Línea de `1px` o `2px` de ancho, `40px` de alto, color blanco con `50%` de opacidad.
-3. **Tagline de Campaña:** Tres líneas de texto pequeño (`14px`), donde las líneas 1 y 3 son blancas y la línea central ("oportunidades") está en color `--color-accent-aqua`.
+En el código son `--m-borde`, `--m-texto`, `--m-fondo` y `--m-glow` sobre las clases `oro`, `plata` y `bronce`.
 
-### 5.2 Tarjetas Flotantes Holográficas (Floating Glass Cards)
-Son los distintivos visuales más reconocibles del sistema. Representan capacidades técnicas o reacciones sociales.
-* **Dimensiones:** Cuadradas, de `72px × 72px` a `96px × 96px`.
-* **Bordes:** `border-radius: 20px`, borde sólido de `2px` en `#00E5FF`.
-* **Fondo:** `rgba(0, 85, 255, 0.25)` con `backdrop-filter: blur(12px)`.
-* **Resplandor (Glow):** `box-shadow: 0 0 25px rgba(0, 229, 255, 0.5), inset 0 0 15px rgba(0, 229, 255, 0.3)`.
-* **Rotación Dinámica:** Cada tarjeta tiene una inclinación individual entre `-15deg` y `+15deg` para dar sensación de ingravidez.
-* **Contenido:** Ícono vectorial blanco centrado (`</>` código, engranajes, bombilla, gráfico de barras, burbuja de chat, corazón, estrella, llave inglesa, alerta).
+## 4. Tipografía
 
-### 5.3 Componente de Podio y Ranking (Leaderboard UI)
-Para pantallas de gamificación, hackathons o premiaciones:
-* **Píldoras de Nombre (Nameplates):**
-  * Contenedor en forma de estadio (`border-radius: 9999px`), fondo azul muy oscuro (`#03091E`).
-  * Borde metálico de `3px` según posición (Oro para el 1°, Plata para el 2°, Bronce para el 3°).
-  * Decoración interna: Ramas de laurel vectoriales a ambos lados del nombre del ganador.
-  * Texto del ganador en blanco, mayúsculas y peso *Bold*.
-* **Pedestales:**
-  * Cilindros/prismas azul rey iluminados desde abajo con tiras LED cian en la base.
-  * Números gigantes (`1`, `2`, `3`) con textura metálica 3D abrazados por coronas de laurel.
+- **Display:** Montserrat 700 / 800 / 900 (título, nombres del podio, números de pedestal, puntos).
+- **Texto:** Inter 400 / 500 / 600 (nombres de la cuadrícula, pie, hora).
+- **Cifras que cambian** (puntos, puestos, hora, segundos): `font-variant-numeric: tabular-nums`.
+- **Tamaño mínimo a distancia:** nada que el público deba leer baja de 14 px en 1080p; los nombres de la cuadrícula parten en 16 px y los puntos en 22 px (ajustables).
 
-### 5.4 Barra de Pilares de Valor (Process Steps)
-Ubicada en la parte inferior izquierda (vista en la pantalla de agradecimiento):
-* **Estructura:** Fila horizontal de 4 pasos separados por una línea vertical sutil (`1px solid rgba(255, 255, 255, 0.2)`).
-* **Ícono:** Círculo de `56px × 56px`, borde de `1.5px` en `#00E5FF`, fondo ligeramente translúcido y pictograma lineal en cian (Brújula, Comunidad, Bombilla, Crecimiento).
-* **Etiqueta:** Texto en blanco centrado debajo del círculo (`EXPLORA`, `CONECTA`, `APLICA`, `TRANSFORMA`).
+| Elemento | Tamaño | Peso | Notas |
+|---|---|---|---|
+| Nombre en el podio | `--rp-nombre-top` (16 px; 1.º: × 1,25). Ajuste propio, no se achica con el podio | 700 | Mayúsculas, dentro de la píldora |
+| Puntos en el podio | 18 px × escala, mínimo 16 px (1.º: 22 px, mínimo 18 px) | 800 | Blanco, "520 pts" en una línea |
+| Número del pedestal | 88 / 62 / 50 px × escala (1.º / 2.º / 3.º) | 900 | Degradado vertical del metal, canto oscuro y ramas de laurel a los lados (§6.2) |
+| Nombre en la cuadrícula | `--rp-fuente` (16 px) | 500 | Blanco suave `#F2F6FB` |
+| Puntos en la cuadrícula | `--rp-puntos` (22 px) | 700 | Blanco, sin brillo; "pts" en la misma línea, como en el podio |
+| Pie | 14 px | 400 | Hielo |
 
-### 5.5 Base / Plataforma Escénica (Stage Podium Base)
-* Estructura elíptica en la parte inferior de la pantalla con anillos concéntricos.
-* Incorpora segmentos de luz neón cian (`box-shadow` intenso) que simulan luces de pista o de escenario futurista, anclando al personaje 3D para que no parezca "pegado" sobre el fondo.
+## 5. Layout de la vista
 
----
+De arriba abajo, centrado con un ancho máximo de 1.680 px.
 
-## 6. Psicología UX y Micro-Narrativa del Personaje (Agente IA)
+### 5.0 Reglas de orden (presupuesto de pantalla)
 
-El éxito de esta interfaz radica en el uso consistente de su mascota (el robot blanco y azul con pantalla facial negra y ojos cian):
+Estas reglas salen de revisar la vista con una pantalla real de 1534 × 710 px (1920 × 888 con zoom del 125 %), donde el podio ocupaba el 60 % del alto, la cuadrícula quedaba en media fila y sobraban 90 px vacíos sobre el menú.
 
-| Etapa del Usuario (User Journey) | Postura y Utilería del Robot | Iconos Flotantes Asociados | Impacto Psicológico (UX) |
-| :--- | :--- | :--- | :--- |
-| **1. Bienvenida / Onboarding** | Sostiene una tablet corporativa con una mano y extiende la otra invitando a entrar. | `</>`, Engranajes, Bombilla, Gráfico, Chat. | Genera curiosidad, profesionalismo y reduce la barrera de entrada tecnológica. |
-| **2. Competencia / Ganadores** | Brazos levantados en señal de victoria en lo más alto del podio junto a las copas. | Confeti dorado, destellos de luz y haces de reflectores. | Despierta orgullo, celebración y sentido de logro comunitario. |
-| **3. Cierre / Agradecimiento** | Brazos completamente abiertos en gesto de abrazo bajo un cartel neón de "¡Gracias!". | Corazón, Usuarios, Bombilla, Gráfico, Estrella. | Fomenta recordación positiva de marca y conexión emocional. |
-| **4. Error / Mantenimiento** | Sentado en el suelo frente a una laptop, sosteniendo una llave inglesa con expresión feliz/calmada. | Engranaje, Llave inglesa, Triángulo de advertencia (`!`). | Transforma un momento de frustración técnica en una experiencia empática y transparente. |
+1. **La vista mide exactamente el alto de la pantalla.** Ni sobra espacio bajo el pie ni la página se desplaza. Con el menú oculto, gana ese alto.
+2. **La cuadrícula manda; el podio cede.** El podio nunca deja menos de **3 filas completas** a la cuadrícula. Si no caben, el podio se achica entero en proporción (hasta el 50 % del "Tamaño del top"), nunca se cortan filas.
+3. **El texto no se achica por debajo del mínimo legible**, aunque el podio se achique: nombres del podio 14 px, puntos 16 px.
+4. **El podio es proporcionado:** cada pedestal mide como mucho 300 px × "Tamaño del top" de ancho. En pantallas anchas no se estira en losas planas.
+5. **Ninguna celda baja de 280 px de ancho.** Si las columnas del ajuste no caben con ese mínimo, se pinta una menos (en 1920 px: 5 columnas, sin nombres recortados; en 1534 px: 5).
+6. **Ritmo vertical:** 12 px de margen arriba, podio 24 arriba y 24 abajo, pie 12.
+7. **Sin barra horizontal:** el halo del podio se recorta en los bordes de la vista.
+8. **Sin cabecera.** Ni marca ("Explore Fair · Admin") ni título visible: en la pantalla gigante todo el alto es para el ranking. El título "Ranking" queda solo para lectores de pantalla.
 
----
+### 5.1 Controles flotantes
+En la esquina superior derecha, sin ocupar alto: la hora de la última actualización (12 px, `aria-live`), el botón de ajustes y el de actualizar (44 × 44 px, vidrio con borde cian). Van casi transparentes (18 %) para no distraer en la proyección y se encienden al pasar el mouse o al llegar con el teclado.
 
-## 7. Guía de Implementación en Código (CSS3 / Tailwind Ready)
+### 5.2 Podio
+- De izquierda a derecha: 2.º, 1.º (más alto), 3.º. Con menos de tres personas, solo los que haya.
+- Halo radial azul detrás. Sin base elíptica debajo: los pedestales se apoyan directo sobre el escenario.
+- Cada puesto: avatar con iniciales y corona del metal → píldora con el nombre → puntos → chip de tiempo → pedestal. El ritmo es el mismo en los tres: píldora · 8 px · puntos · 6 px · tiempo · 14 px · pedestal (× escala).
+- Ancho y escala propios (`--rp-ancho-top`, `--rp-escala`): no dependen de la cuadrícula. El script baja `--rp-escala` cuando falta alto (regla 2); `--rp-escala-base` guarda el valor del ajuste para el ancho.
 
-Puedes copiar este bloque CSS base en tu proyecto web para disponer de todas las variables, utilidades de cristal, textos neón y fondos escénicos listos para usar:
+### 5.3 Cuadrícula (4.º en adelante)
+- Hasta `--rp-cols` columnas (menos si una celda bajaría de `--rp-celda-min`, 280 px), filas de `--rp-alto`, separación `--rp-espacio`. Se llena con lo que cabe en pantalla (o con "Personas por pantalla").
+- Cada fila: círculo con el puesto → nombre y, debajo, el chip de tiempo → puntos a la derecha. Como todas las filas llevan las dos líneas, todas quedan alineadas a la misma altura.
+- **El nombre nunca comparte línea con el chip:** con 6 columnas, un chip en la misma línea deja nombres como "G…" o "R…", que no sirven a nadie.
 
-```css
-/* ==========================================================================
-   DESIGN SYSTEM TOKENS - FERIA DE AGENTES IA
-   ========================================================================== */
-:root {
-  /* Colores Base */
-  --bg-core-navy: #040B26;
-  --bg-dark-navy: #072146;
-  --primary-royal: #004481;
-  --stage-electric: #0055FF;
-  
-  /* Acentos */
-  --accent-cyan: #00E5FF;
-  --accent-aqua: #2DCCCD;
-  --text-white: #FFFFFF;
-  --text-muted: #B8D8F8;
-  
-  /* Semánticos & Gamificación */
-  --gold-main: #FFD700;
-  --silver-main: #C0C0C0;
-  --bronze-main: #CD7F32;
-  --warning-amber: #FFB800;
+### 5.4 Pie
+- Dice qué tramo se ve, en palabras que no se malinterpreten: **"Puestos 1 a 21 de 40"** (no "Mostrando puestos 21 de 40").
+- Explica la regla de desempate una sola vez.
 
-  /* Efectos de Cristal y Neón */
-  --glass-surface: rgba(0, 68, 129, 0.35);
-  --glass-border: rgba(0, 229, 255, 0.65);
-  --neon-shadow: 0 0 20px rgba(0, 229, 255, 0.5), inset 0 0 12px rgba(0, 229, 255, 0.25);
-  --neon-text-glow: 0 0 15px rgba(0, 229, 255, 0.4);
+### 5.5 Estados
+- **Cargando / error:** los comunes de la app, con el tema oscuro.
+- **Sin puntajes:** ícono de trofeo en un círculo de vidrio cian, "Esperando los primeros puntajes". Nunca un círculo gris claro sobre el escenario.
 
-  /* Tipografía */
-  --font-display: 'Montserrat', system-ui, -apple-system, sans-serif;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-}
+### 5.6 Pantalla angosta (< 900 px)
+La cuadrícula pasa a una columna y el podio ocupa todo el ancho, con avatares más chicos. Las reglas de alto (5.0) se aplican igual. Es un caso de respaldo: la vista está pensada para proyectar.
 
-/* ==========================================================================
-   ESTILOS DE ESCENARIO Y LAYOUT
-   ========================================================================== */
-body {
-  background-color: var(--bg-core-navy);
-  color: var(--text-white);
-  font-family: var(--font-body);
-  margin: 0;
-  overflow-x: hidden;
-}
+## 6. Componentes
 
-/* Contenedor Hero con Iluminación de Escenario */
-.stage-hero-container {
-  position: relative;
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 5fr 7fr;
-  align-items: center;
-  padding: 4rem 6vw;
-  background: 
-    radial-gradient(circle at 72% 48%, rgba(0, 85, 255, 0.55) 0%, rgba(0, 68, 129, 0.2) 35%, rgba(4, 11, 38, 0.98) 70%),
-    linear-gradient(125deg, #040B26 0%, #072146 50%, #040B26 100%);
-}
+### 6.1 Píldora de nombre (podio)
+`border-radius: 9999px`, fondo `linear-gradient(180deg, #071936, #03091A)`, borde sólido de 2,5 px del metal, texto blanco en mayúsculas, brillo exterior del metal y sombra interior. A cada lado del nombre, una **ramita de laurel** del metal (la misma `RAMA` del pedestal, a 1,5 em de alto), como en el diseño de referencia. El nombre se recorta con puntos suspensivos si no cabe, nunca salta de línea; las ramitas no se recortan. Por debajo de 900 px las ramitas se ocultan para dejarle el ancho al nombre, y los números del pedestal bajan a 56 / 44 / 38 px.
 
-/* ==========================================================================
-   COMPONENTES TIPOGRÁFICOS
-   ========================================================================== */
-.ui-kicker {
-  font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-white);
-  display: inline-block;
-  margin-bottom: 1.5rem;
-}
+### 6.2 Pedestal
+**Bloque sólido, no vidrio** (diseño de referencia): un prisma azul rey opaco (`#1A55D6 → #0F3FB0 → #0A2E85`) con:
 
-.ui-kicker::after {
-  content: "";
-  display: block;
-  width: 52px;
-  height: 4px;
-  background-color: var(--accent-cyan);
-  margin-top: 10px;
-  box-shadow: 0 0 10px var(--accent-cyan);
-}
+- **Borde superior en arco, de lado a lado:** el centro es el punto más alto y la curva cae de forma continua hasta los dos extremos (14 px × escala más abajo), sin tramos rectos. Caída = `curva × (2x − 1)²`, muestreada cada 5 % en el `clip-path`.
+- **Caras laterales** (el 11 % de cada lado): oscuras en el borde exterior y más claras junto a la cara frontal, como una cara que se aleja; una arista fina de luz las separa del frente.
+- **Centro en sombra:** la cara frontal se oscurece hacia el centro, detrás del número, y recibe un reflejo azul claro de la tapa justo debajo de ella. El número de metal resalta sobre esa sombra.
+- **Tapa toda de metal** de 16 px × escala que sigue el mismo arco por arriba y por abajo, así su grosor es parejo de punta a punta. Es de **metal pulido como un aro**: reflejos horizontales simétricos (`--m-aro`) con los extremos oscuros, filos claros, dos bandas oscuras y un reflejo claro al centro. Van en horizontal a propósito: un degradado vertical no sigue la curva de la tapa y dejaba el centro casi blanco y los lados oscuros, sin leerse como metal.
+- **Sombra proyectada** como `filter: drop-shadow` en el puesto entero (el recorte del arco cortaría un `box-shadow`); el 1.º lleva además sombra sobre sus vecinos.
+- **Zócalo** de 10 px × escala en la base, de la misma familia de azules que el cuerpo (`#1747B8 → #0B2C7A`) con un filo de luz azul clara arriba (`#8DBBFF`) y un brillo azul suave. No cian: el cian puro (`#00E5FF`) chocaba con el azul rey de los pedestales.
+- Los tres pedestales van **pegados**, como un solo podio; el 1.º queda delante.
+- **Opacos de verdad:** el halo va detrás de los pedestales (`isolation: isolate` en el podio y `z-index: -1`). Antes se pintaban encima y los pedestales parecían de vidrio.
 
-.ui-title-hero {
-  font-family: var(--font-display);
-  font-size: clamp(2.75rem, 5vw, 4.5rem);
-  font-weight: 900;
-  line-height: 1.05;
-  text-transform: uppercase;
-  margin: 0 0 1.5rem 0;
-}
+**Placa del número** (igual en los tres puestos, como en el diseño de referencia): el número grande al centro, entre **dos ramas de laurel**, una a cada lado.
 
-.ui-title-hero .highlight-cyan {
-  color: var(--accent-cyan);
-  display: block;
-  text-shadow: var(--neon-text-glow);
-}
+- **Número:** Montserrat 900, 88 / 62 / 50 px × escala para el 1.º / 2.º / 3.º. Degradado vertical del metal (claro arriba, profundo abajo) recortado al texto y un **canto** oscuro de 5 % del tamaño debajo, que le da volumen, más un brillo del metal.
+- **Ramas:** cada una es un arco abierto como "(" con 8 nudos de dos hojas en punta (afuera y adentro) que se afinan hacia arriba, y una hoja en la punta. Miden 1,2 veces el alto del número y van del color del metal con el mismo canto. La derecha es la izquierda en espejo. Es un SVG dibujado una vez en `ranking-script.html` (`RAMA`).
 
-.ui-subtitle {
-  font-size: clamp(1.125rem, 1.8vw, 1.625rem);
-  font-weight: 400;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, 0.92);
-  max-width: 540px;
-}
+**Metal enchapado, no opaco.** Todo lo que es de metal (número, tapa, ramas de laurel y borde de la píldora) usa el mismo degradado pulido de siete paradas: claro, medio, una **banda oscura de reflejo** al 52 % y otra vez claro. Esa alternancia de luz y sombra es la que hace leer la pieza como metal brillante y no como un color plano.
 
-/* ==========================================================================
-   COMPONENTES HOLOGRÁFICOS Y TARJETAS
-   ========================================================================== */
-.ui-glass-icon-card {
-  width: 84px;
-  height: 84px;
-  background: var(--glass-surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid var(--glass-border);
-  border-radius: 20px;
-  box-shadow: var(--neon-shadow);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-white);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
-}
+| Metal | Degradado pulido (0 · 18 · 38 · 52 · 64 · 78 · 100 %) | Canto |
+|---|---|---|
+| Oro | `#FFFDE8 · #FFE680 · #FFC400 · #A86E00 · #FFD84D · #FFF3B0 · #C98A00` | `#8A5A00` |
+| Plata | `#FFFFFF · #F1F4F7 · #C9D1D8 · #6F7A84 · #D9E0E6 · #FFFFFF · #8E99A3` | `#4F5861` |
+| Bronce | `#FFE9D6 · #F6B87E · #D9853F · #7E3C10 · #E9A267 · #FFD9B5 · #9A5220` | `#5E2C0B` |
 
-.ui-glass-icon-card:hover {
-  transform: translateY(-6px) rotate(0deg) scale(1.06) !important;
-  box-shadow: 0 0 32px rgba(0, 229, 255, 0.85), inset 0 0 18px rgba(0, 229, 255, 0.4);
-}
+- **Número:** el degradado en vertical (`--m-num`). **Tapa:** el mismo metal en bandas horizontales (`--m-aro`, §6.2). Sobre el número pasa además un **destello** blanco en diagonal cada 4,5 s, desfasado 1,5 s entre puestos; se apaga con movimiento reducido.
+- **Ramas de laurel:** el mismo degradado como `linearGradient` SVG (`#rp-metal-oro`, `-plata`, `-bronce` en `ranking-view.html`). Se aplica a cada hoja por separado, así cada una brilla en los filos y se oscurece en el nervio.
+- **Borde de la píldora:** el degradado en horizontal (`--m-brillo`), con el truco de doble fondo (relleno oscuro en `padding-box`, metal en `border-box`).
+- **Avatar:** una variante sin la banda oscura (`--m-fondo`), para que las iniciales oscuras siempre queden sobre metal claro.
 
-/* Marco de Neón Trasero (Detrás del Robot) */
-.ui-neon-frame {
-  border: 3px solid var(--accent-cyan);
-  border-radius: 28px;
-  background: rgba(0, 40, 100, 0.25);
-  box-shadow: 0 0 35px rgba(0, 229, 255, 0.45), inset 0 0 25px rgba(0, 229, 255, 0.2);
-  transform: rotate(-6deg);
-}
+### 6.3 Fila de la cuadrícula
+Fondo `linear-gradient(90deg, rgba(10,34,72,.7), rgba(6,18,48,.55))`, borde azul hielo al 12 %, radio 16 px, **sin** `backdrop-filter`. Puesto en un círculo apagado (fondo y borde azul hielo, número `#B8D8F8`), sin resplandor. Nada de cian neón: compite con el podio y se ve poco elegante en cientos de filas.
 
-/* Píldora de Ganador en Podio */
-.ui-podium-badge {
-  background: linear-gradient(180deg, #071936 0%, #03091A 100%);
-  border-radius: 9999px;
-  padding: 0.75rem 2.5rem;
-  font-family: var(--font-display);
-  font-weight: 800;
-  color: var(--text-white);
-  letter-spacing: 0.06em;
-  display: inline-flex;
-  align-items: center;
-  gap: 1rem;
-}
+### 6.4 Chip de tiempo
+Reloj + tiempo total en sus quizzes, en minutos y segundos como en la vista Tabla (`6 min 00 seg`; bajo un minuto, `45 seg`; `formatoSeg` en `comun-script.html`), que es el criterio de desempate. **Lo lleva todo el mundo, también el top 3**: así cada puesto tiene la misma estructura (nombre, puntos y tiempo), las filas quedan alineadas y el público ve el desempate antes de que ocurra. En la cuadrícula va debajo del nombre; en el podio, debajo de los puntos. Tamaño `--rp-tiempo`.
 
-.ui-podium-badge--gold {
-  border: 2.5px solid var(--gold-main);
-  box-shadow: 0 0 25px rgba(255, 215, 0, 0.35);
-}
+### 6.5 "+N" y destello
+Quien sumó puntos desde el último refresco: la fila destella en aqua con una franja a la izquierda y aparece "+N" que sube y se desvanece (2,4 s). Solo se anima quien cambió.
 
-.ui-podium-badge--silver {
-  border: 2px solid var(--silver-main);
-  box-shadow: 0 0 20px rgba(192, 192, 192, 0.25);
-}
+### 6.6 Corona y estrellas del 1.º
+Corona del metal sobre el avatar. El 1.º lleva además un brillo que respira y dos destellos en forma de estrella, en **oro del tema** (`#FFE066` / `#FFD700`), no en el amarillo de Google.
 
-.ui-podium-badge--bronze {
-  border: 2px solid var(--bronze-main);
-  box-shadow: 0 0 20px rgba(205, 127, 50, 0.25);
-}
+### 6.7 Panel de ajustes
+Hoja inferior de vidrio azul (`rgba(7,33,70,.78)` + blur 8 px). Mientras se mueve un deslizador se vuelve casi transparente para ver el efecto en el ranking. Botón principal `#0055FF`, botón de texto cian.
 
-/* ==========================================================================
-   PASOS DE PROCESO (EXPLORA | CONECTA | APLICA | TRANSFORMA)
-   ========================================================================== */
-.ui-steps-row {
-  display: flex;
-  align-items: center;
-  margin-top: 2.5rem;
-}
+### 6.8 Navegación y franja superior
+- La barra de navegación toma el fondo azul noche; con "Ocultar menú de navegación" desaparece.
+- La franja de cuatro colores de Google se oculta en esta vista: rompe el escenario y compite con el podio.
 
-.ui-step-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 1.5rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
-}
+## 7. Movimiento
 
-.ui-step-item:first-child { padding-left: 0; }
-.ui-step-item:last-child { border-right: none; }
+| Animación | Duración | Dónde |
+|---|---|---|
+| Brillo del avatar del 1.º | 2,8 s, infinito | Podio |
+| Destellos de estrella del 1.º | 1,8 s, infinito, desfasados 0,9 s | Podio |
+| Destello de fila que subió | 1,6 s, una vez | Cuadrícula y podio |
+| "+N" que sube y se desvanece | 2,4 s, una vez | Cuadrícula y podio |
 
-.ui-step-circle {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  border: 1.5px solid var(--accent-cyan);
-  background: rgba(0, 229, 255, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent-cyan);
-  margin-bottom: 0.65rem;
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
-}
+Con `prefers-reduced-motion: reduce` todas se apagan. No se agregan levitaciones ni pulsos permanentes en la cuadrícula: distraen de la lectura y cuestan en pantallas con cientos de filas.
 
-.ui-step-label {
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-```
+## 8. Accesibilidad y contraste
 
----
+Contraste medido sobre el fondo base (`#040B26`), la fila (`≈ #061A3D`) y el punto más brillante del halo (`≈ #022F8F`):
 
-## 8. Configuración Rápida para Tailwind CSS (`tailwind.config.js`)
+| Texto | Fondo base | Fila | Halo |
+|---|---|---|---|
+| Blanco | 19,4 | 17,2 | 11,6 |
+| Cian `#00E5FF` | 12,6 | 11,2 | 7,6 |
+| Hielo `#B8D8F8` | 13,2 | 11,6 | 7,9 |
+| Aqua `#2DCCCD` | 9,8 | 8,7 | 5,9 |
+| Oro `#FFD700` | 13,9 | 12,2 | 8,3 |
+| Plata `#E6EAEE` | 16,1 | 14,2 | 9,6 |
+| Bronce `#F0B07A` | 10,4 | 9,2 | 6,2 |
 
-Si trabajas con React, Vue, Next.js o Astro usando Tailwind CSS, extiende tu configuración con este bloque:
+Todo pasa AA (4,5:1); salvo el aqua y el bronce sobre el halo, pasa AAA (7:1). Las iniciales del avatar (`#040B26`) sobre el centro del metal: oro 13,9, plata 10,7, bronce 6,2.
 
-```javascript
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        bbva: {
-          deep: '#040B26',
-          navy: '#072146',
-          royal: '#004481',
-          stage: '#0055FF',
-          cyan: '#00E5FF',
-          aqua: '#2DCCCD',
-        },
-        podium: {
-          gold: '#FFD700',
-          silver: '#C0C0C0',
-          bronze: '#CD7F32',
-        }
-      },
-      fontFamily: {
-        display: ['Montserrat', 'sans-serif'],
-        sans: ['Inter', 'sans-serif'],
-      },
-      boxShadow: {
-        'neon-cyan': '0 0 20px rgba(0, 229, 255, 0.5), inset 0 0 12px rgba(0, 229, 255, 0.25)',
-        'neon-cyan-lg': '0 0 35px rgba(0, 229, 255, 0.8), inset 0 0 20px rgba(0, 229, 255, 0.4)',
-        'neon-gold': '0 0 25px rgba(255, 215, 0, 0.4)',
-      },
-      backgroundImage: {
-        'stage-radial': 'radial-gradient(circle at 72% 48%, rgba(0, 85, 255, 0.55) 0%, rgba(0, 68, 129, 0.2) 35%, rgba(4, 11, 38, 0.98) 70%)',
-      }
-    },
-  },
-  plugins: [],
-}
-```
+- El puesto siempre se muestra como número: el metal nunca es la única pista.
+- Botones sin texto con `aria-label`; la hora con `aria-live="polite"`.
 
----
+## 9. Rendimiento
 
-## 9. Reglas de Animación y Micro-interacciones (Motion UI)
+- Sin `backdrop-filter` en las filas ni en nada que se repita; sí en botones de cabecera y en el panel de ajustes.
+- Sombras y brillos estáticos; las animaciones infinitas solo en el 1.º.
+- Fondo con `background-attachment: fixed` y dos degradados, sin imágenes.
 
-Para llevar estas imágenes estáticas a una experiencia web viva:
-1. **Levitación Continua (`Floating Animation`):** Aplica una animación infinita suave (`translateY(-10px)` durante `3s` con `ease-in-out` alternado) a los íconos flotantes y un desfase (`animation-delay`) distinto a cada tarjeta para que no se muevan al mismo tiempo.
-2. **Parpadeo Ocular del Robot:** Si el robot se integra como SVG o Lottie, programa un parpadeo de sus ojos cian cada `4.5s` y un ligero pulso de brillo en el logo de su pecho.
-3. **Resplandor de Pista (`Stage Pulse`):** Las luces rectangulares cian de la plataforma inferior deben alternar su opacidad entre `0.6` y `1.0` para simular energía corriendo por el escenario.
-4. **Adaptabilidad Móvil (Responsive Breakpoints):**
-   * En pantallas `< 1024px` (Tablet/Mobile), la retícula `5fr 7fr` pasa a una sola columna vertical (`1fr`).
-   * El bloque de texto se centra en la parte superior y el escenario con el robot se ubica inmediatamente debajo, reduciendo el número de tarjetas flotantes de 5 a 3 para no saturar el ancho del dispositivo móvil.
+## 10. Fuera de alcance de esta vista
+
+Se conservan como referencia de la campaña, pero **no** se implementan en el ranking:
+
+- Robot 3D y su micro-narrativa (no hay recursos del personaje en el proyecto).
+- Patrón A (escenario asimétrico 45/55) y Patrón B (estado de error 50/50).
+- Tarjetas flotantes holográficas, barra de pilares "Explora · Conecta · Aplica · Transforma" y cartel de "¡Gracias!".
+- Confeti.
+- Tipografía corporativa Benton Sans (propiedad de BBVA): se usa Montserrat + Inter como alternativa web.
+
+## 11. Dónde está en el código
+
+| Archivo | Qué contiene |
+|---|---|
+| `appscript/ranking-view.html` | Controles flotantes de la vista y el contenedor `#rp-contenido` |
+| `appscript/ranking-style.html` | Medidas base (arriba) y tema escénico (`body.pantalla-grande`, abajo) |
+| `appscript/ranking-script.html` | Podio, cuadrícula, chip de desempate, "+N", pie y panel de ajustes |
+| `appscript/comun-script.html` | `avatarDePuesto`, `metalDe`, `CORONA` (compartidos con la sala de espera) |

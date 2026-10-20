@@ -1,16 +1,22 @@
 <section id="vista-ranking" class="vista" hidden>
 
-  <header class="cab rank-cab">
-    <div>
-      <p class="sec chico" data-marca></p>
-      <h1 class="rank-titulo">Ranking</h1>
-    </div>
-    <p class="sec chico rp-hora" id="rp-hora" aria-live="polite">Conectando…</p>
+  <!-- Sin cabecera: en la pantalla gigante todo el alto es para el ranking. Los controles flotan en la esquina,
+       casi transparentes, y se encienden al pasar el mouse o con el teclado. -->
+  <h1 class="rp-oculto">Ranking</h1>
+  <div class="rp-controles">
+    <p class="rp-hora" id="rp-hora" aria-live="polite">Conectando…</p>
     <button class="rp-ajustes-btn" id="rp-ajustes" type="button" aria-label="Ajustes de pantalla" title="Ajustes de pantalla">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
     </button>
     <button class="refrescar" data-refrescar aria-label="Actualizar"></button>
-  </header>
+  </div>
+
+  <!-- Metal pulido para las ramas de laurel del podio (ranking-style.html las pinta con fill: url(#rp-metal-…)) -->
+  <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false"><defs>
+    <linearGradient id="rp-metal-oro" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFDE8"/><stop offset="18%" stop-color="#FFE680"/><stop offset="38%" stop-color="#FFC400"/><stop offset="52%" stop-color="#A86E00"/><stop offset="64%" stop-color="#FFD84D"/><stop offset="78%" stop-color="#FFF3B0"/><stop offset="100%" stop-color="#C98A00"/></linearGradient>
+    <linearGradient id="rp-metal-plata" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="18%" stop-color="#F1F4F7"/><stop offset="38%" stop-color="#C9D1D8"/><stop offset="52%" stop-color="#6F7A84"/><stop offset="64%" stop-color="#D9E0E6"/><stop offset="78%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#8E99A3"/></linearGradient>
+    <linearGradient id="rp-metal-bronce" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFE9D6"/><stop offset="18%" stop-color="#F6B87E"/><stop offset="38%" stop-color="#D9853F"/><stop offset="52%" stop-color="#7E3C10"/><stop offset="64%" stop-color="#E9A267"/><stop offset="78%" stop-color="#FFD9B5"/><stop offset="100%" stop-color="#9A5220"/></linearGradient>
+  </defs></svg>
 
   <!-- El script arma aquí el podio, la cuadrícula de puestos y el pie. -->
   <div id="rp-contenido"></div>

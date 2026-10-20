@@ -49,7 +49,7 @@ function obtenerRanking(forzar) {
 /** Rangos permitidos para cada clave del preset: lo que llegue fuera de aquí se corrige al guardar. */
 const RANGOS_PANTALLA_ = {
   rp_personas: [0, 300], rp_columnas: [1, 8], rp_alto: [40, 120], rp_espacio: [4, 24],
-  rp_fuente: [12, 30], rp_puntos: [14, 40], rp_escala: [60, 160], rp_ancho_top: [40, 100], rp_tiempo: [10, 24],
+  rp_fuente: [12, 30], rp_puntos: [14, 40], rp_escala: [60, 160], rp_ancho_top: [40, 100], rp_tiempo: [10, 24], rp_nombre_top: [12, 40],
 };
 
 /** Preset en el formato que usa la pantalla (los valores de Config, o los de CONFIG_DEFECTO si no hay nada guardado). */
@@ -57,7 +57,7 @@ function ajustesPantalla_(config) {
   return {
     personas: config.rp_personas, columnas: config.rp_columnas, alto: config.rp_alto, espacio: config.rp_espacio,
     fuente: config.rp_fuente, puntos: config.rp_puntos, escala: config.rp_escala, anchoTop: config.rp_ancho_top,
-    tiempo: config.rp_tiempo,
+    tiempo: config.rp_tiempo, nombreTop: config.rp_nombre_top,
     ocultarMenu: config.rp_ocultar_menu === true,
   };
 }
@@ -67,7 +67,7 @@ function guardarAjustesPantalla(ajustes) {
   exigirVista_('RANKING');
   const entrada = ajustes || {};
   const campos = { personas: 'rp_personas', columnas: 'rp_columnas', alto: 'rp_alto', espacio: 'rp_espacio',
-    fuente: 'rp_fuente', puntos: 'rp_puntos', escala: 'rp_escala', anchoTop: 'rp_ancho_top', tiempo: 'rp_tiempo' };
+    fuente: 'rp_fuente', puntos: 'rp_puntos', escala: 'rp_escala', anchoTop: 'rp_ancho_top', tiempo: 'rp_tiempo', nombreTop: 'rp_nombre_top' };
   const bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(SEGUNDOS_BLOQUEO);
   try {
