@@ -179,6 +179,9 @@
     document.body.classList.remove('pantalla-grande', 'sin-menu');
     document.body.style.removeProperty('--rp-mv');
     document.body.style.removeProperty('--rp-mh');
+    // Los efectos viven en el body: al cambiar de vista no deben quedar encima de otra pantalla.
+    terminarClimax();
+    escena().innerHTML = '';
   }
 
   function programar() {
@@ -321,20 +324,25 @@
     const conPuntos = podioConPuntos(puesto);
     const conNombre = podioConNombre(puesto);
     const delta = conPuntos ? subio(p) : 0;
+    // El 1.º cae girando dentro del foco (ver iniciarClimax); el 2.º y el 3.º voltean la moneda y la placa se abre.
+    // Los tres terminan con onda y destello al asentarse.
+    const voltea = enRecien(puesto, 'nombre');
+    const entrada = voltea ? (puesto === 1 ? 'cae girar climax' : 'voltea') : '';
     return `
-      <div class="lugar l${puesto} ${metalDe(puesto)} ${delta ? 'subio' : ''}">
-        <div class="ficha ${conNombre ? '' : 'sin-nombre'} ${enRecien(puesto, 'nombre') ? (puesto === 1 ? 'cae girar' : 'cae') : ''}">
+      <div class="lugar l${puesto} ${metalDe(puesto)} ${delta ? 'subio' : ''} ${voltea ? 'destello-nombre' : ''}">
+        <div class="ficha ${conNombre ? '' : 'sin-nombre'} ${entrada}">
           <div class="flota">${avatarDePuesto(conNombre ? p.nombre : '?', puesto)}</div>
           <div class="info">
             <div class="nombre"><span class="rp-nombre">${conNombre ? esc(p.nombre) : '?'}</span></div>
           </div>
           <div class="sombra"></div>
+          ${voltea ? '<div class="rp-onda"></div>' : ''}
         </div>
         <div class="cuerpo">
           <div class="base">
             <span class="rp-placa">${RAMA}<span class="rp-num">${n + 1}</span>${RAMA}</span>
-            <div class="metricas ${conPuntos ? (enRecien(puesto, 'puntos') ? 'revela' : '') : 'oculto'}">
-              <div class="pts tnum">${conPuntos ? `${etiqueta(delta)}${p.puntos} pts` : '? pts'}</div>
+            <div class="metricas ${conPuntos ? (enRecien(puesto, 'puntos') ? 'cuenta' : '') : 'oculto'}">
+              <div class="pts tnum">${!conPuntos || enRecien(puesto, 'puntos') ? '? pts' : `${etiqueta(delta)}${p.puntos} pts`}</div>
               ${conPuntos ? chipTiempo(p) : ''}
             </div>
           </div>
@@ -348,7 +356,7 @@
     const delta = visible ? subio(p) : 0;
     const clasePuesto = puesto <= 10 ? 'top10' : (puesto <= 20 ? 'top20' : 'resto');
     return `
-      <div class="fila ${clasePuesto} ${delta ? 'subio' : ''} ${claseRevelado(puesto)}" style="${retrasoRevelado(puesto)}">
+      <div data-puesto="${puesto}" class="fila ${clasePuesto} ${delta ? 'subio' : ''} ${claseRevelado(puesto)}" style="${retrasoRevelado(puesto)}">
         <span class="pos tnum">${puesto}</span>
         <span class="quien"><b>${visible ? esc(p.nombre) : '?'}</b></span>
         <span class="rp-puntos tnum"><span class="rp-pts-linea">${visible ? `${etiqueta(delta)}<b>${p.puntos}</b><small>pts</small>` : '<b>?</b>'}</span>${visible ? chipTiempo(p) : ''}</span>
@@ -400,30 +408,61 @@
   }
 
   /** Toma el ranking del servidor (forzado) y lo congela; ningún refresco lo cambia hasta salir. */
+  // Mientras llega la lectura forzada del Sheet el botón dice "Preparando…" y no responde: un segundo clic
+  // por la demora no debe pedir otra lectura.
+  let preparando = false;
+
   function iniciarRevelacion() {
+    if (preparando) return;
+    preparando = true;
+    actualizarControles();
+    const listo = () => { preparando = false; actualizarControles(); };
     servidor('obtenerRanking', true).then(r => {
+      preparando = false;
       filas = r.filas;
       revelacion = { pasos: [], hecho: 0, revelados: new Set(), podioPuntos: new Set(), podioNombres: new Set() };
       recien = new Set();
       pintar();
       revelacion.pasos = construirPasos(Math.min(filas.length, ultimoPuestoVisible), filas.length);
       actualizarControles();
-    }).catch(() => { $('rp-hora').textContent = 'Sin conexión: inténtalo otra vez'; });
+    }).catch(() => { listo(); $('rp-hora').textContent = 'Sin conexión: inténtalo otra vez'; });
   }
 
-  /** Ráfagas sobre el pedestal del puesto 1; se quitan solas. */
-  function lanzarFuegos() {
+  /**
+   * Capa de efectos (foco, fuegos, confeti) directo en el body, a pantalla completa. No va dentro de la vista: la
+   * vista tiene transform (su animación de entrada) y recorta los costados, y la luz quedaría encerrada en su
+   * rectángulo. Es un div sin posición a propósito: no forma grupo propio, así las capas con mix-blend-mode
+   * se mezclan con la página que tienen debajo.
+   */
+  function escena() {
+    let capa = document.getElementById('rp-escena');
+    if (!capa) {
+      capa = document.createElement('div');
+      capa.id = 'rp-escena';
+      document.body.appendChild(capa);
+    }
+    return capa;
+  }
+
+  // Ráfagas [dx, dy, escala] alrededor del centro. El 1.º lleva fuegos completos; el 2.º y el 3.º, una sola en su metal.
+  const FUEGOS = {
+    1: { colores: ['#FFE066', '#00E5FF', '#FF8A80', '#FFFFFF', '#B388FF'], alto: 0.3,
+      rafagas: [[0, 0, 1], [-130, -40, 0.7], [130, -40, 0.7], [-70, -140, 0.6], [80, -150, 0.6], [-180, -10, 0.5], [190, -15, 0.5], [0, -200, 0.55], [-120, -210, 0.45], [125, -215, 0.45]] },
+    2: { colores: ['#FFFFFF', '#E6EAEE', '#C0C0C0', '#00E5FF'], alto: 0.22, rafagas: [[0, 0, 0.75], [-60, -60, 0.4], [60, -60, 0.4]] },
+    3: { colores: ['#FFD9B5', '#F6B87E', '#CD7F32', '#FFFFFF'], alto: 0.22, rafagas: [[0, 0, 0.6]] },
+  };
+
+  /** Ráfagas de chispas sobre el puesto del podio; se quitan solas. */
+  function lanzarFuegos(puesto = 1) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const primero = vista.querySelector('.lugar.l1');
-    if (!primero) return;
-    const caja = primero.getBoundingClientRect();
-    const vistaCaja = vista.getBoundingClientRect();
-    const cx = caja.left + caja.width / 2 - vistaCaja.left;
-    const cy = caja.top + caja.height * 0.3 - vistaCaja.top;
+    const lugarDelPodio = vista.querySelector(`.lugar.l${puesto}`);
+    if (!lugarDelPodio) return;
+    const { colores, alto, rafagas } = FUEGOS[puesto];
+    const caja = lugarDelPodio.getBoundingClientRect();
+    const cx = caja.left + caja.width / 2;
+    const cy = caja.top + caja.height * alto;
     const capa = document.createElement('div');
     capa.className = 'rp-fuegos';
-    const colores = ['#FFE066', '#00E5FF', '#FF8A80', '#FFFFFF', '#B388FF'];
-    const rafagas = [[0, 0, 1], [-130, -40, 0.7], [130, -40, 0.7], [-70, -140, 0.6], [80, -150, 0.6], [-180, -10, 0.5], [190, -15, 0.5], [0, -200, 0.55], [-120, -210, 0.45], [125, -215, 0.45]];
     rafagas.forEach(([dx, dy, escala], b) => {
       const centro = document.createElement('div');
       centro.className = 'rp-rafaga';
@@ -442,27 +481,200 @@
       }
       capa.appendChild(centro);
     });
-    vista.appendChild(capa);
+    escena().appendChild(capa);
     setTimeout(() => capa.remove(), 4500);
   }
 
+  // Pasos de la lista: una posición tras otra, del último puesto hacia el podio. Las que esperan siguen con "?".
+  // El top 10 (4.º al 10.º) va despacio, con suspenso; del 11.º en adelante, rápido.
+  const PAUSA_TOP10_MS = 600;
+  const PAUSA_RESTO_MS = 150;
+  const DURACION_MAXIMA_FILAS_MS = 9000;   // con muchas filas en pantalla la pausa se acorta para no pasar de esto
+  let cascada = [];                        // temporizadores de las filas que faltan aparecer
+  let cascadaPendiente = [];               // puestos del paso en curso
+
+  /** Destapa una fila sin repintar las demás, así solo ella hace la animación de entrada. */
+  function revelarFila(puesto) {
+    revelacion.revelados.add(puesto);
+    recien = new Set([puesto]);
+    recienTipo = 'filas';
+    const fila = contenido.querySelector(`.fila[data-puesto="${puesto}"]`);
+    if (fila) fila.outerHTML = celda(filas[puesto - 1], puesto);
+    recien = new Set();
+  }
+
+  function revelarFilasUnaPorUna(ranks) {
+    const orden = ranks.slice().sort((a, b) => b - a);
+    const esTop10 = orden.every(puesto => puesto <= 10);
+    const pausa = Math.min(esTop10 ? PAUSA_TOP10_MS : PAUSA_RESTO_MS, DURACION_MAXIMA_FILAS_MS / orden.length);
+    cascadaPendiente = orden;
+    cascada = orden.map((puesto, i) => setTimeout(() => revelarFila(puesto), i * pausa));
+  }
+
+  /** Si se pasa al siguiente paso (o se sale) a mitad de la cascada, lo que faltaba aparece de una vez. */
+  function terminarCascada() {
+    cascada.forEach(clearTimeout);
+    const faltan = revelacion ? cascadaPendiente.filter(p => !revelacion.revelados.has(p)) : [];
+    cascada = [];
+    cascadaPendiente = [];
+    if (!faltan.length) return;
+    faltan.forEach(p => revelacion.revelados.add(p));
+    recien = new Set();
+    pintar();
+  }
+
+  // Paso de los puntos del podio: cada pedestal cuenta desde 0, del 3.º al 1.º; el 1.º, tras una pausa y más lento.
+  const CONTEO_PODIO = { 3: { inicio: 0, dura: 1100 }, 2: { inicio: 1300, dura: 1100 }, 1: { inicio: 2900, dura: 1800 } };
+  let conteo = 0;   // sube en cada paso: un conteo que quedó a medias se detiene solo
+
+  /** Escribe el número en cada cuadro (rápido al principio, frena al final) y al llegar marca el golpe y el destello. */
+  function contarPuntosDelPodio(ranks) {
+    const id = ++conteo;
+    const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const t0 = performance.now();
+    const pendientes = new Set(ranks);
+    const cuadro = ahora => {
+      if (id !== conteo || !revelacion) return;
+      pendientes.forEach(puesto => {
+        const { inicio, dura } = CONTEO_PODIO[puesto];
+        const t = reducido ? 1 : (ahora - t0 - inicio) / dura;
+        if (t < 0) return;
+        // Se busca en cada cuadro: si algo repinta el podio, el conteo sigue sobre el elemento nuevo.
+        const metricas = contenido.querySelector(`.lugar.l${puesto} .metricas.cuenta`);
+        if (!metricas) return;
+        const avance = Math.min(1, t);
+        metricas.classList.add('contando');
+        metricas.querySelector('.pts').textContent = Math.round(filas[puesto - 1].puntos * (1 - Math.pow(1 - avance, 4))) + ' pts';
+        if (avance < 1) return;
+        metricas.classList.add('llego');
+        metricas.closest('.lugar').classList.add('destello');
+        recien.delete(puesto);   // un repintado posterior ya lo muestra con su valor final
+        pendientes.delete(puesto);
+      });
+      if (pendientes.size) requestAnimationFrame(cuadro);
+    };
+    requestAnimationFrame(cuadro);
+  }
+
   function revelarSiguiente() {
+    terminarCascada();
+    conteo++;
     const { pasos, hecho } = revelacion;
     if (hecho >= pasos.length) return;
     const paso = pasos[hecho];
     revelacion.hecho++;
+    if (paso.tipo === 'filas') {
+      revelarFilasUnaPorUna(paso.ranks);
+      actualizarControles();
+      return;
+    }
     const destino = { filas: revelacion.revelados, puntos: revelacion.podioPuntos, nombre: revelacion.podioNombres }[paso.tipo];
     paso.ranks.forEach(puesto => destino.add(puesto));
     recien = new Set(paso.ranks);
     recienTipo = paso.tipo;
     clearTimeout(finRecien);
-    finRecien = setTimeout(() => { recien = new Set(); }, 2500);
-    if (paso.tipo === 'nombre' && paso.ranks[0] === 1) setTimeout(lanzarFuegos, 1120);
+    finRecien = setTimeout(() => { recien = new Set(); }, paso.tipo === 'puntos' ? 6000 : 2500);
+    if (paso.tipo === 'nombre') {
+      const puesto = paso.ranks[0];
+      if (puesto === 1) {
+        clearTimeout(finRecien);
+        finRecien = setTimeout(() => { recien = new Set(); }, CLIMAX.luces + 1000);
+        iniciarClimax();
+      } else {
+        setTimeout(() => lanzarFuegos(puesto), 950);   // cuando la moneda se asienta
+      }
+    }
     pintar();
+    if (paso.tipo === 'puntos') contarPuntosDelPodio(paso.ranks);
     actualizarControles();
   }
 
+  // Paso del 1.º, en ms desde el clic. Los retrasos de las animaciones en ranking-style.html van con estos tiempos:
+  // la sala se apaga y se enciende el foco con un redoble; la moneda cae girando; al impacto tiembla el podio, cae
+  // la corona, se abre la placa y salen los fuegos y el confeti; al final la sala se vuelve a iluminar.
+  const CLIMAX = { impacto: 2300, luces: 4200 };
+  let temporizadoresClimax = [];
+
+  function iniciarClimax() {
+    terminarClimax();
+    vista.classList.add('rp-climax');
+    encenderFoco();
+    const despues = (ms, fn) => temporizadoresClimax.push(setTimeout(fn, ms));
+    despues(CLIMAX.impacto, () => {
+      const podio = contenido.querySelector('.podio');
+      if (podio) podio.classList.add('temblor');
+      lanzarFuegos(1);
+      lanzarConfeti();
+    });
+    despues(CLIMAX.luces, () => {
+      vista.classList.remove('rp-climax');
+      const foco = escena().querySelector('.rp-foco');
+      if (foco) foco.classList.add('apaga');
+    });
+    despues(CLIMAX.luces + 1200, () => escena().querySelectorAll('.rp-foco').forEach(el => el.remove()));
+  }
+
+  function terminarClimax() {
+    temporizadoresClimax.forEach(clearTimeout);
+    temporizadoresClimax = [];
+    vista.classList.remove('rp-climax');
+    escena().querySelectorAll('.rp-foco, .rp-confeti').forEach(el => el.remove());
+  }
+
+  /**
+   * Reflector sobre el 1.º, armado en capas que suman luz (mix-blend-mode: screen) en vez de tapar la página:
+   * penumbra de la sala, resplandor de la fuente, haz difuminado con un núcleo más intenso, polvo flotando en el
+   * haz y el charco de luz donde pega, sobre la tapa del pedestal. Las medidas salen del pedestal en la ventana.
+   */
+  function encenderFoco() {
+    const primero = vista.querySelector('.lugar.l1');
+    if (!primero) return;
+    const cuerpo = primero.querySelector('.cuerpo').getBoundingClientRect();
+    const capa = document.createElement('div');
+    capa.className = 'rp-foco';
+    const medida = (nombre, px) => capa.style.setProperty(nombre, px + 'px');
+    medida('--cx', cuerpo.left + cuerpo.width / 2);
+    medida('--tapa', cuerpo.top);
+    medida('--ancho', cuerpo.width * 1.35);
+    medida('--pedestal', cuerpo.width);
+    const motas = Array.from({ length: 28 }, () => {
+      const azar = (min, max) => min + Math.random() * (max - min);
+      return `<i style="left:${azar(30, 70).toFixed(1)}%;top:${azar(5, 95).toFixed(1)}%;--dx:${azar(-30, 30).toFixed(0)}px;--dy:${azar(-40, 20).toFixed(0)}px;` +
+        `--t:${azar(5, 10).toFixed(1)}s;--d:-${azar(0, 8).toFixed(1)}s;--s:${azar(1.5, 3.5).toFixed(1)}px"></i>`;
+    }).join('');
+    capa.innerHTML = '<div class="rp-penumbra"></div><div class="rp-lampara"></div>' +
+      '<div class="rp-haz"><i></i><i class="nucleo"></i></div>' +
+      `<div class="rp-motas">${motas}</div><div class="rp-charco"></div>`;
+    escena().appendChild(capa);
+  }
+
+  /** Lluvia de confeti dorado por toda la pantalla; se quita sola. */
+  function lanzarConfeti() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const capa = document.createElement('div');
+    capa.className = 'rp-confeti';
+    const colores = ['#FFD700', '#FFE680', '#FFF3B0', '#FFFFFF', '#00E5FF', '#C98A00'];
+    for (let i = 0; i < 140; i++) {
+      const pieza = document.createElement('i');
+      pieza.style.left = (Math.random() * 100) + '%';
+      pieza.style.background = colores[i % colores.length];
+      pieza.style.setProperty('--dx', ((Math.random() - 0.5) * 160) + 'px');
+      pieza.style.setProperty('--giro', ((Math.random() < 0.5 ? -1 : 1) * (360 + Math.random() * 720)) + 'deg');
+      pieza.style.animationDuration = (2.6 + Math.random() * 1.8) + 's';
+      pieza.style.animationDelay = (Math.random() * 1.2) + 's';
+      if (i % 3 === 0) pieza.style.borderRadius = '50%';
+      capa.appendChild(pieza);
+    }
+    escena().appendChild(capa);
+    setTimeout(() => capa.remove(), 6500);
+  }
+
   function salirRevelacion() {
+    terminarClimax();
+    conteo++;
+    cascada.forEach(clearTimeout);
+    cascada = [];
+    cascadaPendiente = [];
     revelacion = null;
     recien = new Set();
     cargar(true);
@@ -472,7 +684,10 @@
   /** Estado de los botones de revelación. */
   function actualizarControles() {
     const boton = $('rp-revelar');
-    if (!revelacion) {
+    if (preparando) {
+      boton.textContent = 'Preparando…';
+      boton.disabled = true;
+    } else if (!revelacion) {
       boton.textContent = 'Iniciar revelación';
       boton.disabled = !filas || !filas.length;
     } else if (revelacion.hecho < revelacion.pasos.length) {
