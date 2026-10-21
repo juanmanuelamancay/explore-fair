@@ -11,7 +11,7 @@
   body.pantalla-grande { --rp-mv: 5vh; --rp-mh: 5vw; --rp-borde-arriba: max(12px, var(--rp-mv)); --rp-borde-abajo: max(16px, var(--rp-mv)); }
   body.pantalla-grande #app { max-width: none; padding: var(--rp-borde-arriba) max(32px, var(--rp-mh)) calc(var(--nav-h) + var(--rp-borde-abajo) + env(safe-area-inset-bottom)); }
   #vista-ranking {
-    --rp-cols: 3; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%; --rp-tiempo: 13px; --rp-nombre-top: 16px; --rp-pts-top: 18px; --rp-ancho-contenido: 100%; --rp-resumen: 20px;
+    --rp-cols: 3; --rp-alto: 64px; --rp-espacio: 10px; --rp-fuente: 16px; --rp-puntos: 22px; --rp-escala: 1; --rp-ancho-top: 66%; --rp-tiempo: 13px; --rp-nombre-top: 16px; --rp-pts-top: 18px; --rp-tiempo-top: 13px; --rp-ancho-contenido: 100%; --rp-resumen: 20px;
     height: calc(100dvh - var(--rp-borde-arriba, 12px) - var(--rp-borde-abajo, 16px) - var(--nav-h) - env(safe-area-inset-bottom)); display: flex; flex-direction: column; position: relative;
     overflow-x: clip;   /* el halo del podio sale por los lados: no debe abrir una barra horizontal */
   }
@@ -123,8 +123,12 @@
     padding: 1px 7px; border-radius: 10px; border: 1px solid var(--borde-suave); background: var(--superficie);
     color: var(--texto-2); font-variant-numeric: tabular-nums;
   }
-  #vista-ranking .rp-desempate svg { flex: none; width: 12px; height: 12px; }
+  /* El reloj crece con el texto: así el ajuste de tamaño del tiempo lo arrastra también */
+  #vista-ranking .rp-desempate svg { flex: none; width: .95em; height: .95em; }
   #vista-ranking .rp-desempate { font-size: var(--rp-tiempo); }
+  /* En el podio, su propio ajuste ("Top · Tamaño del tiempo"), que sigue la escala del top como los puntos */
+  #vista-ranking .lugar .rp-desempate { font-size: calc(var(--rp-tiempo-top) * var(--rp-escala)); }
+  #vista-ranking .lugar.l1 .rp-desempate { font-size: calc(var(--rp-tiempo-top) * 1.25 * var(--rp-escala)); }
   /* En la cuadrícula el tiempo va debajo de los puntos, sin chip: así el nombre queda centrado en la fila */
   #vista-ranking .rp-rejilla .rp-puntos .rp-desempate { padding: 0; border: 0; background: none; margin-top: 2px; white-space: nowrap; }
   /* Con muchas columnas la tarjeta se angosta: el nombre y los puntos mandan. Primero se va el tiempo de

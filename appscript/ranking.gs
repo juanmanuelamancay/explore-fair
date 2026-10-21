@@ -53,7 +53,7 @@ function obtenerRanking(forzar) {
 const RANGOS_PANTALLA_ = {
   rp_personas: [0, 2000], rp_columnas: [1, 20], rp_filas: [0, 100], rp_alto: [20, 400], rp_espacio: [0, 120],
   rp_fuente: [6, 120], rp_puntos: [6, 200], rp_escala: [10, 500], rp_ancho_top: [10, 100], rp_ancho_contenido: [20, 100],
-  rp_tiempo: [6, 80], rp_nombre_top: [6, 160], rp_pts_top: [6, 200], rp_resumen: [0, 120], rp_margen: [0, 30],
+  rp_tiempo: [6, 80], rp_nombre_top: [6, 160], rp_pts_top: [6, 200], rp_tiempo_top: [6, 80], rp_resumen: [0, 120], rp_margen: [0, 30],
 };
 /** Interruptores del preset: campo de la pantalla -> clave en Config. */
 const INTERRUPTORES_PANTALLA_ = { ocultarMenu: 'rp_ocultar_menu', achicarTop: 'rp_achicar_top' };
@@ -64,7 +64,7 @@ function ajustesPantalla_(config) {
     personas: config.rp_personas, columnas: config.rp_columnas, alto: config.rp_alto, espacio: config.rp_espacio,
     fuente: config.rp_fuente, puntos: config.rp_puntos, escala: config.rp_escala, anchoTop: config.rp_ancho_top,
     tiempo: config.rp_tiempo, nombreTop: config.rp_nombre_top, margen: config.rp_margen,
-    filas: config.rp_filas, ptsTop: config.rp_pts_top, resumen: config.rp_resumen, anchoContenido: config.rp_ancho_contenido,
+    filas: config.rp_filas, ptsTop: config.rp_pts_top, tiempoTop: config.rp_tiempo_top, resumen: config.rp_resumen, anchoContenido: config.rp_ancho_contenido,
     ocultarMenu: config.rp_ocultar_menu === true, achicarTop: config.rp_achicar_top !== false,
   };
 }
@@ -75,7 +75,7 @@ function guardarAjustesPantalla(ajustes) {
   const entrada = ajustes || {};
   const campos = { personas: 'rp_personas', columnas: 'rp_columnas', alto: 'rp_alto', espacio: 'rp_espacio',
     fuente: 'rp_fuente', puntos: 'rp_puntos', escala: 'rp_escala', anchoTop: 'rp_ancho_top', tiempo: 'rp_tiempo', nombreTop: 'rp_nombre_top', margen: 'rp_margen',
-    filas: 'rp_filas', ptsTop: 'rp_pts_top', resumen: 'rp_resumen', anchoContenido: 'rp_ancho_contenido' };
+    filas: 'rp_filas', ptsTop: 'rp_pts_top', tiempoTop: 'rp_tiempo_top', resumen: 'rp_resumen', anchoContenido: 'rp_ancho_contenido' };
   const bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(SEGUNDOS_BLOQUEO);
   try {

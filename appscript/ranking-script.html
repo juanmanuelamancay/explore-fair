@@ -7,7 +7,7 @@
   // Los mismos valores que CONFIG_DEFECTO (datos.gs): se usan mientras no llega el preset de la hoja Config.
   const AJUSTES_DEFECTO = {
     personas: 0, columnas: 3, filas: 0, alto: 64, espacio: 10, fuente: 16, puntos: 22, tiempo: 13,
-    escala: 100, anchoTop: 52, nombreTop: 16, ptsTop: 18, anchoContenido: 100, margen: 5, resumen: 20,
+    escala: 100, anchoTop: 52, nombreTop: 16, ptsTop: 18, tiempoTop: 13, anchoContenido: 100, margen: 5, resumen: 20,
     ocultarMenu: false, achicarTop: true,
   };
   // Interruptores del panel (sí o no).
@@ -26,12 +26,13 @@
     { clave: 'espacio', etiqueta: 'Espacio entre filas (px)', min: 0, max: 120, paso: 1 },
     { clave: 'fuente', etiqueta: 'Tamaño de nombres (px)', min: 6, max: 120, paso: 1 },
     { clave: 'puntos', etiqueta: 'Tamaño de puntos (px)', min: 6, max: 200, paso: 1 },
-    { clave: 'tiempo', etiqueta: 'Tamaño del tiempo de desempate (px)', min: 6, max: 80, paso: 1 },
+    { clave: 'tiempo', etiqueta: 'Tamaño del tiempo (px)', min: 6, max: 80, paso: 1 },
     { grupo: 'Top' },
     { clave: 'escala', etiqueta: 'Tamaño del top (%)', min: 10, max: 500, paso: 5 },
     { clave: 'anchoTop', etiqueta: 'Ancho del top (% del contenido)', min: 10, max: 100, paso: 1 },
     { clave: 'nombreTop', etiqueta: 'Tamaño de nombres (px; el 1.º, un 25 % más)', min: 6, max: 160, paso: 1 },
     { clave: 'ptsTop', etiqueta: 'Tamaño de puntos (px; el 1.º, un 25 % más)', min: 6, max: 200, paso: 1 },
+    { clave: 'tiempoTop', etiqueta: 'Tamaño del tiempo (px; el 1.º, un 25 % más)', min: 6, max: 80, paso: 1 },
     { grupo: 'Pantalla' },
     { clave: 'anchoContenido', etiqueta: 'Ancho del contenido (% de la pantalla)', min: 20, max: 100, paso: 1 },
     { clave: 'margen', etiqueta: 'Margen de seguridad en los bordes (%; súbelo si la pantalla recorta)', min: 0, max: 30, paso: 1 },
@@ -70,6 +71,7 @@
     estilo.setProperty('--rp-tiempo', ajustes.tiempo + 'px');
     estilo.setProperty('--rp-nombre-top', ajustes.nombreTop + 'px');
     estilo.setProperty('--rp-pts-top', ajustes.ptsTop + 'px');
+    estilo.setProperty('--rp-tiempo-top', ajustes.tiempoTop + 'px');
     estilo.setProperty('--rp-ancho-contenido', ajustes.anchoContenido + '%');
     estilo.setProperty('--rp-resumen', ajustes.resumen + 'px');
     vista.classList.toggle('sin-resumen', !ajustes.resumen);

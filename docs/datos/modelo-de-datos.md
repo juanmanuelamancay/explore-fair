@@ -369,7 +369,8 @@ Claves que la app reconoce, con el valor que usa si la fila no existe o su valor
 | `rp_escala` | 100 | Pantalla de ranking: tamaño del podio en %. De 60 a 160 |
 | `rp_ancho_top` | 88 | Pantalla de ranking: ancho del podio en % de la pantalla. De 40 a 100 |
 | `rp_nombre_top` | 16 | Pantalla de ranking: tamaño de los nombres del podio en px (los tres puestos iguales). De 12 a 40 |
-| `rp_tiempo` | 13 | Pantalla de ranking: tamaño del tiempo de desempate en px. De 10 a 24 |
+| `rp_tiempo` | 13 | Pantalla de ranking: tamaño del tiempo de desempate en la lista, en px. De 6 a 80 |
+| `rp_tiempo_top` | 13 | Pantalla de ranking: tamaño del tiempo de desempate en el podio, en px (el 1.º, un 25 % más). De 6 a 80 |
 | `rp_ocultar_menu` | FALSE | Pantalla de ranking: oculta la barra de navegación |
 
 Reglas de `Config`:

@@ -51,7 +51,8 @@ const CONFIG_DEFECTO = {
   rp_resumen: 20,        // px del contador "N participantes · N quizzes"; 0 lo oculta
   rp_achicar_top: true,  // TRUE achica el top si con su tamaño no entran 3 filas de la cuadrícula
   rp_nombre_top: 16,     // px de los nombres del top (el 1.º, un 25 % más)
-  rp_tiempo: 13,         // px del tiempo de desempate
+  rp_tiempo: 13,         // px del tiempo de desempate en la lista
+  rp_tiempo_top: 13,     // px del tiempo de desempate en el top (el 1.º, un 25 % más)
   rp_margen: 5,          // % de margen en los bordes, por si la pantalla o el proyector recorta (overscan)
   rp_ocultar_menu: false, // TRUE oculta la barra de navegación en la vista de ranking
 };
