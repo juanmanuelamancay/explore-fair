@@ -323,7 +323,7 @@
     const delta = conPuntos ? subio(p) : 0;
     return `
       <div class="lugar l${puesto} ${metalDe(puesto)} ${delta ? 'subio' : ''}">
-        <div class="ficha ${conNombre ? '' : 'sin-nombre'} ${enRecien(puesto, 'nombre') ? 'cae' : ''}">
+        <div class="ficha ${conNombre ? '' : 'sin-nombre'} ${enRecien(puesto, 'nombre') ? (puesto === 1 ? 'cae girar' : 'cae') : ''}">
           <div class="flota">${avatarDePuesto(conNombre ? p.nombre : '?', puesto)}</div>
           <div class="info">
             <div class="nombre"><span class="rp-nombre">${conNombre ? esc(p.nombre) : '?'}</span></div>
@@ -411,6 +411,41 @@
     }).catch(() => { $('rp-hora').textContent = 'Sin conexión: inténtalo otra vez'; });
   }
 
+  /** Ráfagas sobre el pedestal del puesto 1; se quitan solas. */
+  function lanzarFuegos() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const primero = vista.querySelector('.lugar.l1');
+    if (!primero) return;
+    const caja = primero.getBoundingClientRect();
+    const vistaCaja = vista.getBoundingClientRect();
+    const cx = caja.left + caja.width / 2 - vistaCaja.left;
+    const cy = caja.top + caja.height * 0.3 - vistaCaja.top;
+    const capa = document.createElement('div');
+    capa.className = 'rp-fuegos';
+    const colores = ['#FFE066', '#00E5FF', '#FF8A80', '#FFFFFF', '#B388FF'];
+    const rafagas = [[0, 0, 1], [-130, -40, 0.7], [130, -40, 0.7], [-70, -140, 0.6], [80, -150, 0.6], [-180, -10, 0.5], [190, -15, 0.5], [0, -200, 0.55], [-120, -210, 0.45], [125, -215, 0.45]];
+    rafagas.forEach(([dx, dy, escala], b) => {
+      const centro = document.createElement('div');
+      centro.className = 'rp-rafaga';
+      centro.style.left = (cx + dx) + 'px';
+      centro.style.top = (cy + dy) + 'px';
+      for (let i = 0; i < 28; i++) {
+        const chispa = document.createElement('i');
+        const angulo = (i / 28) * Math.PI * 2;
+        const distancia = (60 + Math.random() * 70) * escala;
+        chispa.style.setProperty('--dx', Math.cos(angulo) * distancia + 'px');
+        chispa.style.setProperty('--dy', Math.sin(angulo) * distancia + 'px');
+        chispa.style.color = colores[(b + i) % colores.length];
+        chispa.style.background = 'currentColor';
+        chispa.style.animationDelay = (b * 260) + 'ms';
+        centro.appendChild(chispa);
+      }
+      capa.appendChild(centro);
+    });
+    vista.appendChild(capa);
+    setTimeout(() => capa.remove(), 4500);
+  }
+
   function revelarSiguiente() {
     const { pasos, hecho } = revelacion;
     if (hecho >= pasos.length) return;
@@ -422,6 +457,7 @@
     recienTipo = paso.tipo;
     clearTimeout(finRecien);
     finRecien = setTimeout(() => { recien = new Set(); }, 2500);
+    if (paso.tipo === 'nombre' && paso.ranks[0] === 1) setTimeout(lanzarFuegos, 1120);
     pintar();
     actualizarControles();
   }

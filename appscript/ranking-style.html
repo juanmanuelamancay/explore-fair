@@ -201,7 +201,27 @@
     80% { transform: translateY(14px); }
     100% { opacity: 1; transform: none; }
   }
-  @media (prefers-reduced-motion: reduce) { #vista-ranking .revela, #vista-ranking .podio .lugar .ficha.cae { animation: none; } }
+  #vista-ranking .podio .lugar:has(.girar) { perspective: 800px; }
+  #vista-ranking .podio .lugar .ficha.cae.girar { animation: rp-cae-giro 1.6s cubic-bezier(.34, 1.2, .64, 1) both; }
+  @keyframes rp-cae-giro {
+    0% { opacity: 0; transform: translateY(-70vh) rotateY(0deg); }
+    15% { opacity: 1; }
+    70% { transform: translateY(14px) rotateY(1080deg); }
+    85% { transform: translateY(-8px) rotateY(1080deg); }
+    100% { opacity: 1; transform: translateY(0) rotateY(1080deg); }
+  }
+  #vista-ranking .rp-fuegos { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+  #vista-ranking .rp-rafaga { position: absolute; width: 0; height: 0; }
+  #vista-ranking .rp-rafaga i {
+    position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%;
+    box-shadow: 0 0 8px 2px currentColor; animation: rp-chispa 1.3s ease-out both;
+  }
+  @keyframes rp-chispa {
+    0% { opacity: 0; transform: translate(0, 0) scale(.3); }
+    10% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.2); }
+  }
+  @media (prefers-reduced-motion: reduce) { #vista-ranking .revela, #vista-ranking .podio .lugar .ficha.cae, #vista-ranking .podio .lugar .ficha.cae.girar { animation: none; } }
   body.pantalla-grande #vista-ranking .rp-accion { border-color: rgba(0, 229, 255, .4); color: #00E5FF; background: rgba(7, 14, 70, .5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
   /* Cambios desde el último refresco: la fila destella y aparece un "+N" que se desvanece.
