@@ -1,0 +1,63 @@
+<div class="franja" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<div id="esqueleto" class="tablero esqueleto" aria-hidden="true">
+  <div class="esq-cabecera">
+    <div><div class="bloque esq-titulo"></div><div class="bloque esq-linea corto"></div></div>
+    <div class="bloque esq-circulo"></div>
+  </div>
+  <div class="bloque esq-seccion"></div>
+  <div class="kpis">
+    <div class="bloque esq-kpi"></div><div class="bloque esq-kpi"></div><div class="bloque esq-kpi"></div><div class="bloque esq-kpi"></div>
+  </div>
+  <div class="bloque esq-seccion"></div>
+  <div class="cuadricula">
+    <section class="tarjeta col-12"><div class="bloque esq-linea"></div><div class="bloque esq-grafico"></div></section>
+    <section class="tarjeta col-12"><div class="bloque esq-linea"></div><div class="bloque esq-grafico"></div></section>
+    <section class="tarjeta col-12"><div class="bloque esq-linea"></div><div class="bloque esq-grafico"></div></section>
+  </div>
+</div>
+<main class="tablero" id="tablero" hidden>
+  <header class="cabecera">
+    <div>
+      <h1>Explore Fair · Resultados</h1>
+      <p>Resumen ejecutivo de charlas y feria presencial</p>
+    </div>
+    <button id="reporte-refrescar" class="refrescar" type="button" aria-label="Actualizar datos" title="Actualizar datos">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9a7 7 0 0 1 12-2L20 12M4 12l2.5 5a7 7 0 0 0 12-2"/></svg>
+    </button>
+  </header>
+
+  <div id="dash-aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+
+  <section id="reporte-kpis" class="kpis" aria-label="Indicadores ejecutivos">
+    <div class="cargando">Cargando resultados…</div>
+  </section>
+
+  <div class="cuadricula">
+    <section class="tarjeta col-12">
+      <h2>Participación</h2>
+      <p class="nota">Quizzes iniciados, desglosados por estado.</p>
+      <div class="grafico-lista-caja"><div id="participacion-chart-wrap" class="grafico-lista-wrap"><canvas id="reporte-pabellones" aria-label="Quizzes iniciados por unidad y estado" role="img"></canvas><p id="sin-pabellones" class="sin-datos" hidden>Sin intentos para estos filtros.</p></div></div>
+    </section>
+    <section class="tarjeta col-12">
+      <h2>Retención de conocimiento por unidad</h2>
+      <p class="nota">Porcentaje de respuestas correctas en cada stand y charla.</p>
+      <div class="grafico-lista-caja"><div id="retencion-chart-wrap" class="grafico-lista-wrap"><canvas id="reporte-retencion" aria-label="Porcentaje de acierto por stand y charla" role="img"></canvas><p id="sin-retencion" class="sin-datos" hidden>Sin respuestas para estas unidades.</p></div></div>
+    </section>
+  </div>
+
+  <div class="cuadricula">
+    <section class="tarjeta col-12">
+      <h2>Flujo de actividad por día</h2>
+      <p class="nota">Ingresos de usuarios y quizzes iniciados por día</p>
+      <div class="grafico alto"><canvas id="reporte-actividad" aria-label="Intentos iniciados por hora y tipo" role="img"></canvas><p id="sin-actividad" class="sin-datos" hidden>Sin actividad para estos filtros.</p></div>
+    </section>
+    <section class="tarjeta col-12">
+      <h2>Auditoría del banco de preguntas</h2>
+      <p class="nota">Top 10 de preguntas con al menos <strong id="preguntas-minimo">5</strong> respuestas registradas.</p>
+      <div class="tabla-doble">
+        <div><h3>Más difíciles</h3><div class="tabla-caja"><table><thead><tr><th>Pregunta</th><th>Unidad</th><th>Respuestas</th><th>Acierto</th></tr></thead><tbody id="tabla-dificiles"></tbody></table></div></div>
+        <div><h3>Más fáciles</h3><div class="tabla-caja"><table><thead><tr><th>Pregunta</th><th>Unidad</th><th>Respuestas</th><th>Acierto</th></tr></thead><tbody id="tabla-faciles"></tbody></table></div></div>
+      </div>
+    </section>
+  </div>
+</main>

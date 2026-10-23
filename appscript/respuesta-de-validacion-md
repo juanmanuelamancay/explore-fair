@@ -1,0 +1,75 @@
+9:57:42	Aviso	Se ha iniciado la ejecución
+9:57:50	Información	--- Entorno
+9:57:50	Información	OK  Versión del código -> 2026-10-15.1
+9:57:50	Información	OK  Sheet abierto -> explore-fair-databse
+9:57:50	Información	OK  Propiedad SPREADSHEET_ID -> (vacía: se usa ID_DEL_SHEET)
+9:57:50	Información	OK  Cuenta que ejecuta la revisión -> juanmanuel.amancay@bbva.com
+9:57:50	Información	--- Hojas y encabezados
+9:57:50	Información	OK  Hoja Pabellones -> encabezados completos
+9:57:50	Información	OK  Hoja Stands -> encabezados completos
+9:57:50	Información	OK  Hoja Charlas -> encabezados completos
+9:57:50	Información	OK  Hoja Preguntas -> encabezados completos
+9:57:50	Información	OK  Hoja Staff -> encabezados completos
+9:57:50	Información	OK  Hoja Permisos -> encabezados completos
+9:57:50	Información	OK  Hoja Config -> encabezados completos
+9:57:50	Información	OK  Hoja Usuarios -> encabezados completos
+9:57:50	Información	OK  Hoja Codigos -> encabezados completos
+9:57:50	Información	OK  Hoja Premios -> encabezados completos
+9:57:50	Información	OK  Hoja Intentos -> encabezados completos
+9:57:50	Información	--- Catálogo (lectura directa de las hojas)
+9:57:50	Información	OK  Catálogo leído -> 13 unidades activas
+9:57:50	Información	--- Config y permisos
+9:57:50	Información	OK  feria_abierta -> TRUE
+9:57:50	Información	OK  espera_activa -> FALSE
+9:57:50	Información	OK  Permisos USUARIO → MAPA -> activo
+9:57:50	Información	OK  Permisos USUARIO → QUIZ -> activo
+9:57:50	Información	OK  Permisos USUARIO → CHARLAS -> FALSE
+9:57:50	Información	OK  Tiempos -> responder 5 min · código 5 min
+9:57:50	Información	--- Quiz de entrada
+9:57:50	Información	OK  Quiz de entrada PAB-000 -> 1 stand(s), quiz de 4 preguntas
+9:57:50	Información	--- Pabellones del mapa
+9:57:50	Información	OK  Pabellones en el mapa -> 7 pabellones: PAB-001, PAB-002, PAB-003, PAB-004, PAB-005, PAB-006, PAB-007
+9:57:50	Información	OK  Pabellón PAB-001 Backend -> 4 stand(s), quiz de 8 preguntas
+9:57:50	Información	OK  Pabellón PAB-001 Backend · líder -> elden.gutierrez@bbva.com
+9:57:50	Información	AVISO  Pabellón PAB-001 Backend · código -> sin código vigente ahora (normal si el líder todavía no lo genera)
+9:57:50	Información	OK  Pabellón PAB-002 Frontend -> 2 stand(s), quiz de 4 preguntas
+9:57:50	Información	OK  Pabellón PAB-002 Frontend · líder -> mauro.guevara@bbva.com
+9:57:50	Información	AVISO  Pabellón PAB-002 Frontend · código -> sin código vigente ahora (normal si el líder todavía no lo genera)
+9:57:50	Información	OK  Pabellón PAB-003 Quality -> 3 stand(s), quiz de 6 preguntas
+9:57:50	Información	OK  Pabellón PAB-003 Quality · líder -> camilo.galindo@bbva.com
+9:57:50	Información	AVISO  Pabellón PAB-003 Quality · código -> sin código vigente ahora (normal si el líder todavía no lo genera)
+9:57:50	Información	OK  Pabellón PAB-004 Security -> 2 stand(s), quiz de 4 preguntas
+9:57:50	Información	OK  Pabellón PAB-004 Security · líder -> cesar.mariluz@bbva.com
+9:57:50	Información	AVISO  Pabellón PAB-004 Security · código -> sin código vigente ahora (normal si el líder todavía no lo genera)
+9:57:50	Información	OK  Pabellón PAB-005 Data -> 3 stand(s), quiz de 6 preguntas
+9:57:50	Información	OK  Pabellón PAB-005 Data · líder -> jonathan.quiza@bbva.com
+9:57:50	Información	AVISO  Pabellón PAB-005 Data · código -> sin código vigente ahora (normal si el líder todavía no lo genera)
+9:57:50	Información	OK  Pabellón PAB-006 Mainframe -> 3 stand(s), quiz de 6 preguntas
+9:57:50	Información	OK  Pabellón PAB-006 Mainframe · líder -> fabrizio.uribe@bbva.com
+9:57:50	Información	AVISO  Pabellón PAB-006 Mainframe · código -> sin código vigente ahora (normal si el líder todavía no lo genera)
+9:57:50	Información	OK  Pabellón PAB-007 Transversales -> 3 stand(s), quiz de 6 preguntas
+9:57:50	Información	AVISO  Pabellón PAB-007 Transversales · líder -> sin líder: nadie puede generar su código
+9:57:50	Información	AVISO  Pabellón PAB-007 Transversales · código -> sin código vigente ahora (normal si el líder todavía no lo genera)
+9:57:50	Información	--- Preguntas de los pabellones
+9:57:50	Información	OK  Respuesta correcta (A-D) de las preguntas activas -> todas válidas
+9:57:50	Información	OK  Enunciado y opciones completos -> completos
+9:57:50	Información	--- Caché (solo lectura)
+9:57:50	Información	AVISO  Caché del catálogo -> distinta de las hojas: se actualiza sola en unos segundos o con "Actualizar desde el Sheet"
+9:57:50	Información	OK  Caché de preguntas por banco -> igual a las hojas o sin caché
+9:57:50	Información	--- Intentos y filas por persona
+9:57:50	Información	OK  Unidades por persona -> 13 de 16 filas reservadas
+9:57:50	Información	OK  Filas de Intentos -> 41601 filas; los bloques de 230 personas llegan hasta la 3681
+9:57:50	Información	OK  Intentos registrados -> 455 filas con correo · 13 marcadas EN_CURSO
+9:57:50	Información	OK  Filas dentro del bloque de su persona -> todas dentro de su bloque
+9:57:50	Información	OK  Un intento por persona y unidad -> sin repetidos
+9:57:50	Información	OK  Filas de Intentos sin número de orden -> ninguna
+9:57:50	Información	OK  Intentos de unidades que ya no existen -> ninguna
+9:57:50	Información	--- Usuarios y registro
+9:57:50	Información	OK  Números de orden únicos -> 230 personas con número
+9:57:50	Información	OK  Filas de Usuarios sin orden -> ninguna
+9:57:50	Información	OK  Columna orden igual al número entregado -> coincide
+9:57:50	Información	OK  Números entregados sin fila confirmada en Usuarios -> ninguno
+9:57:50	Información	OK  Números entregados sin fila en Usuarios -> ninguno
+9:57:50	Información	OK  Registros pendientes en el buzón -> ninguno
+9:57:50	Información	Resultado: LISTO · fallas 0 · avisos 9
+9:57:51	Aviso	Se ha completado la ejecución

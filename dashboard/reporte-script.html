@@ -1,0 +1,335 @@
+<script>
+  const REPORTE_GRAFICOS = {};
+  let REPORTE_MIN_RESPUESTAS = 5;
+  let REPORTE_DATOS = null;
+
+  function reporteEscapar(valor) {
+    return String(valor === undefined || valor === null ? '' : valor).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function reporteFiltros() {
+    return { desde: '', hasta: '', tipo: 'TODOS', unidad: '' };
+  }
+
+  function reporteMostrarPagina() {
+    document.getElementById('esqueleto').hidden = true;
+    document.getElementById('tablero').hidden = false;
+  }
+
+  function reporteCargar(forzar) {
+    if (REPORTE_DATOS && !forzar) {
+      reporteAplicarFiltros();
+      return;
+    }
+    const boton = document.getElementById('reporte-refrescar');
+    const aviso = document.getElementById('dash-aviso');
+    boton.disabled = true;
+    boton.classList.add('girando');
+    aviso.hidden = true;
+    google.script.run
+      .withSuccessHandler(datos => {
+        REPORTE_DATOS = datos;
+        REPORTE_MIN_RESPUESTAS = datos.minimoPregunta || 5;
+        document.getElementById('preguntas-minimo').textContent = REPORTE_MIN_RESPUESTAS;
+        reporteMostrarPagina();
+        reporteAplicarFiltros();
+        boton.disabled = false;
+        boton.classList.remove('girando');
+      })
+      .withFailureHandler(error => {
+        reporteMostrarPagina();
+        aviso.textContent = 'No se pudieron cargar los resultados: ' + (error && error.message ? error.message : error);
+        aviso.hidden = false;
+        boton.disabled = false;
+        boton.classList.remove('girando');
+      })
+      .reporteObtener();
+  }
+
+  function reporteEnPeriodo(dia, filtro) {
+    if (!filtro.desde && !filtro.hasta) return true;
+    return Boolean(dia) && (!filtro.desde || dia >= filtro.desde) && (!filtro.hasta || dia <= filtro.hasta);
+  }
+
+  function reportePorcentaje(numerador, denominador) {
+    return denominador ? Math.round(numerador / denominador * 1000) / 10 : 0;
+  }
+
+  function reporteCalcular(datos, filtro) {
+    const personas = datos.personas.filter(p => reporteEnPeriodo(p.dia, filtro));
+    const registrados = new Set(personas.map(p => p.id));
+    const intentosFecha = datos.intentos.filter(i => reporteEnPeriodo(i.dia, filtro));
+    const tipo = filtro.tipo === 'PABELLON' ? 'pabellon' : filtro.tipo === 'CHARLA' ? 'charla' : '';
+    const intentos = intentosFecha.filter(i => (!tipo || i.tipo === tipo) && (!filtro.unidad || i.unidad === filtro.unidad));
+    const completados = intentos.filter(i => i.estado === 'COMPLETADO');
+    const inconclusos = intentos.filter(i => i.estado !== 'COMPLETADO').length;
+    const totalRespuestas = intentos.reduce((total, i) => total + i.respuestas.length, 0);
+    const correctas = intentos.reduce((total, i) => total + i.respuestas.filter(r => r.ok).length, 0);
+    const vencidos = intentos.filter(i => i.estado === 'VENCIDO').length;
+    const activos = new Set(completados.map(i => i.persona).filter(id => registrados.has(id)));
+
+    const unidadesParticipacion = [
+      ...(filtro.tipo !== 'CHARLA' ? datos.pabellones.filter(p => !filtro.unidad || filtro.unidad === p.id).map(p => ({ id: p.id, tipo: 'pabellon', nombre: p.entrada ? 'Quiz inicial de feria' : 'Pabellón · ' + p.nombre, entrada: p.entrada })) : []),
+      ...(filtro.tipo !== 'PABELLON' ? datos.charlas.filter(c => !filtro.unidad || filtro.unidad === c.id).map(c => ({ id: c.id, tipo: 'charla', nombre: 'Charla · ' + c.titulo, entrada: false })) : []),
+    ];
+    const participacion = unidadesParticipacion.map(unidad => {
+      const filas = intentos.filter(i => i.tipo === unidad.tipo && i.unidad === unidad.id);
+      return {
+        id: unidad.id,
+        nombre: unidad.nombre,
+        entrada: unidad.entrada,
+        completados: filas.filter(i => i.estado === 'COMPLETADO').length,
+        enCurso: filas.filter(i => i.estado === 'EN_CURSO').length,
+        vencidos: filas.filter(i => i.estado === 'VENCIDO').length,
+        intentos: filas.length,
+      };
+    });
+
+    const preguntasPorId = Object.fromEntries(datos.preguntas.map(p => [p.id, p]));
+    const standsPorId = Object.fromEntries(datos.stands.map(s => [s.id, s]));
+    const charlaPorId = Object.fromEntries(datos.charlas.map(c => [c.id, c]));
+    const pabellonElegido = datos.pabellones.find(p => p.id === filtro.unidad);
+    const standsCatalogo = datos.stands.filter(s => s.activa && filtro.tipo !== 'CHARLA' && (!filtro.unidad || (pabellonElegido && s.pabellon === pabellonElegido.id)));
+    const charlasCatalogo = datos.charlas.filter(c => filtro.tipo !== 'PABELLON' && (!filtro.unidad || filtro.unidad === c.id));
+    const pabellonesCatalogo = datos.pabellones.filter(p => filtro.tipo !== 'CHARLA' && (!filtro.unidad || filtro.unidad === p.id));
+    const statsUnidad = {};
+    pabellonesCatalogo.forEach((p, orden) => {
+      statsUnidad['pabellon:' + p.id] = { id: p.id, tipo: p.entrada ? 'entrada' : 'pabellon', orden, nombre: p.entrada ? 'Quiz inicial de feria' : 'Pabellón · ' + p.nombre, respuestas: 0, aciertos: 0 };
+    });
+    standsCatalogo.forEach((s, orden) => {
+      statsUnidad['stand:' + s.id] = { id: s.id, tipo: 'stand', orden, nombre: 'Stand · ' + s.nombre, respuestas: 0, aciertos: 0 };
+    });
+    charlasCatalogo.forEach((c, orden) => {
+      statsUnidad['charla:' + c.id] = { id: c.id, tipo: 'charla', orden, nombre: 'Charla · ' + c.titulo, respuestas: 0, aciertos: 0 };
+    });
+    const statsPregunta = {};
+    intentos.forEach(i => i.respuestas.forEach(r => {
+      const pregunta = preguntasPorId[r.p];
+      const stand = pregunta && standsPorId[pregunta.stand];
+      const charla = pregunta && charlaPorId[pregunta.stand];
+      const unidad = stand ? statsUnidad['stand:' + stand.id] : charla ? statsUnidad['charla:' + charla.id] : null;
+      if (unidad) {
+        unidad.respuestas++;
+        if (r.ok) unidad.aciertos++;
+      }
+      if (unidad && stand) {
+        const pabellon = statsUnidad['pabellon:' + stand.pabellon];
+        if (pabellon) {
+          pabellon.respuestas++;
+          if (r.ok) pabellon.aciertos++;
+        }
+      }
+      if (pregunta) {
+        const stat = statsPregunta[pregunta.id] || (statsPregunta[pregunta.id] = { pregunta, respuestas: 0, aciertos: 0 });
+        stat.respuestas++;
+        if (r.ok) stat.aciertos++;
+      }
+    }));
+    const ordenTipo = { entrada: 0, pabellon: 1, charla: 2, stand: 3 };
+    const retencion = Object.values(statsUnidad).sort((a, b) => ordenTipo[a.tipo] - ordenTipo[b.tipo] || a.orden - b.orden).map(u => ({
+      id: u.id,
+      tipo: u.tipo,
+      nombre: u.nombre,
+      respuestas: u.respuestas,
+      porcentaje: reportePorcentaje(u.aciertos, u.respuestas),
+    }));
+    const preguntas = Object.values(statsPregunta).map(s => {
+      const stand = standsPorId[s.pregunta.stand];
+      const charla = charlaPorId[s.pregunta.stand];
+      return {
+        id: s.pregunta.id,
+        texto: s.pregunta.texto || '(sin texto)',
+        unidad: stand ? stand.nombre : (charla ? charla.titulo : ''),
+        respuestas: s.respuestas,
+        porcentaje: reportePorcentaje(s.aciertos, s.respuestas),
+      };
+    }).sort((a, b) => a.porcentaje - b.porcentaje || b.respuestas - a.respuestas);
+
+    const actividadPorDia = {};
+    const bucketDia = dia => actividadPorDia[dia] || (actividadPorDia[dia] = { dia, etiqueta: dia.slice(8) + '/' + dia.slice(5, 7), ingresos: 0, pabellones: 0, charlas: 0 });
+    personas.filter(p => p.dia).forEach(p => bucketDia(p.dia).ingresos++);
+    intentos.filter(i => i.dia).forEach(i => bucketDia(i.dia)[i.tipo === 'charla' ? 'charlas' : 'pabellones']++);
+    const actividad = Object.values(actividadPorDia).sort((a, b) => a.dia.localeCompare(b.dia));
+
+    return {
+      kpis: {
+        registrados: personas.length,
+        activos: activos.size,
+        activacion: reportePorcentaje(activos.size, personas.length),
+        completados: completados.length,
+        inconclusos,
+        correctas,
+        totalRespuestas,
+        efectividad: reportePorcentaje(correctas, totalRespuestas),
+        tasaVencidos: reportePorcentaje(vencidos, intentos.length),
+      },
+      participacion,
+      retencion,
+      actividad,
+      preguntas,
+    };
+  }
+
+  function reporteAplicarFiltros() {
+    const aviso = document.getElementById('dash-aviso');
+    const filtro = reporteFiltros();
+    aviso.hidden = true;
+    if (!REPORTE_DATOS) return;
+    reporteRender(reporteCalcular(REPORTE_DATOS, filtro));
+  }
+
+  function reporteDibujar(id, configuracion, tieneDatos) {
+    const canvas = document.getElementById(id);
+    const vacio = document.getElementById('sin-' + id.replace('reporte-', ''));
+    if (REPORTE_GRAFICOS[id]) {
+      REPORTE_GRAFICOS[id].destroy();
+      delete REPORTE_GRAFICOS[id];
+    }
+    canvas.hidden = !tieneDatos;
+    vacio.hidden = tieneDatos;
+    if (tieneDatos) REPORTE_GRAFICOS[id] = new Chart(canvas, configuracion);
+  }
+
+  Chart.register({
+    id: 'reporteEtiquetasValor',
+    afterDatasetsDraw(chart, args, activo) {
+      if (!activo) return;
+      const ctx = chart.ctx;
+      const area = chart.chartArea;
+      const horizontal = chart.options.indexAxis === 'y';
+      const apilado = Boolean(chart.options.scales && chart.options.scales.x && chart.options.scales.x.stacked);
+      ctx.save();
+      ctx.font = '600 12px Roboto, system-ui, sans-serif';
+      chart.data.datasets.forEach((ds, di) => {
+        if (!chart.isDatasetVisible(di)) return;
+        const meta = chart.getDatasetMeta(di);
+        meta.data.forEach((el, i) => {
+          const valor = ds.data[i];
+          if (valor === null || valor === undefined) return;
+          if (valor === 0 && (meta.type === 'line' || apilado)) return;
+          const texto = valor + (ds.valorSufijo || '');
+          const ancho = ctx.measureText(texto).width;
+          if (meta.type === 'line') {
+            ctx.fillStyle = '#1f1f1f';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(texto, el.x, el.y - 6);
+          } else if (horizontal && apilado) {
+            if (Math.abs(el.x - el.base) < ancho + 10) return;
+            ctx.fillStyle = ds.colorTexto || '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(texto, (el.x + el.base) / 2, el.y);
+          } else if (horizontal) {
+            const dentro = el.x + ancho + 8 > area.right;
+            ctx.fillStyle = dentro ? '#fff' : '#1f1f1f';
+            ctx.textAlign = dentro ? 'right' : 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(texto, dentro ? el.x - 6 : el.x + 6, el.y);
+          } else {
+            ctx.fillStyle = '#1f1f1f';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(texto, el.x, el.y - 4);
+          }
+        });
+      });
+      ctx.restore();
+    },
+  });
+
+  function reporteBase(scales) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 18, right: 12 } },
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } }, reporteEtiquetasValor: true },
+      scales: scales || { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e8eaed' } } },
+    };
+  }
+
+  function reporteAnchoEtiqueta() {
+    return window.innerWidth < 560 ? 16 : 40;
+  }
+
+  function reporteEtiquetaLineas(texto, ancho) {
+    const lineas = [''];
+    String(texto || '').split(' ').forEach(palabra => {
+      const actual = lineas[lineas.length - 1];
+      const unida = (actual + ' ' + palabra).trim();
+      if (actual && unida.length > ancho) lineas.push(palabra);
+      else lineas[lineas.length - 1] = unida;
+    });
+    return lineas;
+  }
+
+  function reporteAlturaGraficoLista(id, filas) {
+    document.getElementById(id).style.height = Math.max(280, filas.length * 36) + 'px';
+  }
+
+  function reporteKpis(kpis) {
+    const elementos = [
+      ['Participantes registrados', kpis.registrados, 'En el periodo seleccionado'],
+      ['Participantes activos', kpis.activacion + '%', kpis.activos + ' completaron al menos un quiz'],
+      ['Quizzes respondidos', kpis.completados + ' / ' + kpis.inconclusos, 'Quizzes finalizados / inconclusos'],
+      ['Efectividad de respuestas', kpis.totalRespuestas ? kpis.efectividad + '%' : '—', kpis.correctas + ' de ' + kpis.totalRespuestas + ' correctas'],
+    ];
+    document.getElementById('reporte-kpis').innerHTML = elementos.map(k => '<article class="kpi"><span>' + reporteEscapar(k[0]) + '</span><strong>' + reporteEscapar(k[1]) + '</strong><small>' + reporteEscapar(k[2]) + '</small></article>').join('');
+  }
+
+  function reporteParticipacion(filas) {
+    reporteAlturaGraficoLista('participacion-chart-wrap', filas);
+    const colores = ['#188038', '#f9ab00', '#d93025'];
+    const series = [['Completados', 'completados'], ['En curso', 'enCurso'], ['Vencidos', 'vencidos']];
+    const datasets = series.map((x, i) => ({ label: x[0], data: filas.map(f => f[x[1]]), backgroundColor: colores[i], borderRadius: 3, borderSkipped: false, colorTexto: i === 1 ? '#1f1f1f' : '#fff' }));
+    const options = reporteBase({ x: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e8eaed' } }, y: { stacked: true, ticks: { autoSkip: false }, grid: { display: false } } });
+    options.indexAxis = 'y';
+    options.interaction = { mode: 'index', axis: 'y', intersect: false };
+    const config = { type: 'bar', data: { labels: filas.map(f => reporteEtiquetaLineas(f.nombre, reporteAnchoEtiqueta())), datasets }, options };
+    reporteDibujar('reporte-pabellones', config, filas.some(f => f.intentos));
+  }
+
+  function reporteRetencion(filas) {
+    reporteAlturaGraficoLista('retencion-chart-wrap', filas);
+    const options = reporteBase({ x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#e8eaed' } }, y: { ticks: { autoSkip: false }, grid: { display: false } } });
+    options.indexAxis = 'y';
+    options.interaction = { mode: 'index', axis: 'y', intersect: false };
+    options.plugins.legend.display = false;
+    const data = { labels: filas.map(f => reporteEtiquetaLineas(f.nombre, reporteAnchoEtiqueta())), datasets: [{ label: '% de acierto', data: filas.map(f => f.porcentaje), backgroundColor: '#1a73e8', borderRadius: 3, valorSufijo: '%' }] };
+    reporteDibujar('reporte-retencion', { type: 'bar', data, options }, filas.length > 0);
+  }
+
+  function reporteActividad(filas) {
+    const linea = (label, campo, color) => ({ label, data: filas.map(f => f[campo]), borderColor: color, backgroundColor: color, pointRadius: 3, tension: .25 });
+    const data = { labels: filas.map(f => f.etiqueta), datasets: [
+      linea('Ingresos de usuarios', 'ingresos', '#f9ab00'),
+      linea('Quizzes de pabellones', 'pabellones', '#1a73e8'),
+      linea('Quizzes de charlas', 'charlas', '#188038'),
+    ] };
+    const options = reporteBase();
+    options.scales.x.ticks = { maxRotation: 60, autoSkip: true, maxTicksLimit: window.innerWidth < 560 ? 6 : 24 };
+    reporteDibujar('reporte-actividad', { type: 'line', data, options }, filas.length > 0);
+  }
+
+  function reporteTablaPreguntas(id, filas) {
+    document.getElementById(id).innerHTML = filas.map(f => '<tr><td class="pregunta">' + reporteEscapar(f.texto) + '</td><td>' + reporteEscapar(f.unidad) + '</td><td class="numero">' + f.respuestas + '</td><td><div class="barra-porcentaje"><span>' + f.porcentaje + '%</span><i style="width:' + Math.max(0, Math.min(100, f.porcentaje)) + '%"></i></div></td></tr>').join('');
+  }
+
+  function reportePreguntas(filas) {
+    const válidas = filas.filter(f => f.respuestas >= REPORTE_MIN_RESPUESTAS);
+    reporteTablaPreguntas('tabla-dificiles', válidas.slice(0, 10));
+    reporteTablaPreguntas('tabla-faciles', válidas.slice().reverse().slice(0, 10));
+  }
+
+  function reporteRender(datos) {
+    reporteKpis(datos.kpis);
+    reporteParticipacion(datos.participacion);
+    reporteRetencion(datos.retencion);
+    reporteActividad(datos.actividad);
+    reportePreguntas(datos.preguntas);
+  }
+
+  document.getElementById('reporte-refrescar').addEventListener('click', () => reporteCargar(true));
+  window.addEventListener('load', reporteCargar);
+</script>
